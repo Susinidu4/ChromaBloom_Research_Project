@@ -1,10 +1,19 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors"; 
 import connectDB from "./config/db.js";
+
+import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors(
+  {
+    origin: true,
+  }
+));
 
 // Middleware
 app.use(express.json());
@@ -13,9 +22,7 @@ app.use(express.json());
 connectDB();
 
 // Test Route
-app.get("/", (req, res) => {
-  res.send("Hello from Node.js Backend!");
-});
+app.use("/chromabloom/routine", routine);
 
 // Start server
 const PORT = process.env.PORT || 5000;
