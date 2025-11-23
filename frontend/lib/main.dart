@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'services/tts_service.dart';
 import 'Interactive_visual_task_scheduler/Caregiver_Routine/create_routine.dart';
 import 'Interactive_visual_task_scheduler/Caregiver_Routine/display_routine.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized(); 
+  // ✅ Required before async main and platform services
+
+  await TtsService.init();  
+  // 🎤 Initialize Text-to-Speech ONCE when app starts
   runApp(const MyApp());
 }
 
