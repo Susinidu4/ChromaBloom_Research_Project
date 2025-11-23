@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/routine_model.dart';
 import '../../services/routine_api.dart';
+import 'routine_details.dart';
 
 class DisplayRoutinesScreen extends StatefulWidget {
   const DisplayRoutinesScreen({super.key});
@@ -11,7 +11,7 @@ class DisplayRoutinesScreen extends StatefulWidget {
 }
 
 class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
-  String? createdBy; // Logged user's ID
+  String? createdBy;
   bool loading = false;
   String? errorMsg;
   List<RoutineModel> routines = [];
@@ -19,28 +19,11 @@ class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
   @override
   void initState() {
     super.initState();
-    loadLoggedUser(); // 🔥 Load user ID automatically
-  }
-
-  // 🔥 Load logged user's ID (from login)
-  Future<void> loadLoggedUser() async {
-    // final prefs = await SharedPreferences.getInstance();
-    // final userId = prefs.getString("userId"); // ← must be saved at login
-
-    setState(() {
-      createdBy = "ddfs"; 
-      // fallback only for testing
-    });
-
-    fetchRoutines(); // auto load after ID is available
+    createdBy = "u-001"; // hardcoded for now
+    fetchRoutines();
   }
 
   Future<void> fetchRoutines() async {
-    if (createdBy == null) {
-      setState(() => errorMsg = "Logged user ID not found");
-      return;
-    }
-
     setState(() {
       loading = true;
       errorMsg = null;
@@ -61,25 +44,13 @@ class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Display Routines")),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
-
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Logged user ID: ${createdBy ?? 'Loading...'}",
-              style: const TextStyle(fontSize: 16),
-            ),
-
-            const SizedBox(height: 12),
-
-            if (loading) const Center(child: CircularProgressIndicator()),
-
+            if (loading) const CircularProgressIndicator(),
             if (errorMsg != null)
               Text(errorMsg!, style: const TextStyle(color: Colors.red)),
-
             const SizedBox(height: 8),
 
             Expanded(
@@ -90,22 +61,34 @@ class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
                       itemBuilder: (context, index) {
                         final r = routines[index];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  r.title,
-                                  style: const TextStyle(
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    RoutineDetailsScreen(routineId: r.id),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    r.title,
+                                    style: const TextStyle(
                                       fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(r.description),
-                              ],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(r.description),
+                                ],
+                              ),
                             ),
                           ),
                         );
