@@ -132,6 +132,7 @@ export const updateRoutine = async (req, res) => {
   }
 };
 
+// Controller to delete a routine
 export const deleteRoutine = async (req, res) => {
   try {
     const { routineId } = req.params;
