@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import '../models/routine_model.dart';
 
 class RoutineApi {
-  
   // ===============================
   // IMPORTANT: Select your environment
   // ===============================
@@ -13,7 +12,6 @@ class RoutineApi {
 
   // For REAL PHONE:
   // static const String baseUrl ="http://172.28.0.221:5000/chromabloom/routine";  // <-- CHANGE IP IF NEEDED
-
 
   // ===============================
   // CREATE ROUTINE (POST)
@@ -40,7 +38,8 @@ class RoutineApi {
   // GET ROUTINES BY CREATOR ID
   // ===============================
   static Future<List<RoutineModel>> getRoutinesByCreator(
-      String createdBy) async {
+    String createdBy,
+  ) async {
     final url = Uri.parse("$baseUrl/getRoutine/$createdBy");
 
     final res = await http.get(url);
@@ -59,4 +58,23 @@ class RoutineApi {
     }
   }
 
+  // ===============================
+  // GET ONE ROUTINE BY ID
+  // ===============================
+  static Future<RoutineModel> getRoutineById(String routineId) async {
+    final url = Uri.parse("$baseUrl/getRoutineById/$routineId");
+
+    final res = await http.get(url);
+
+    print("GET ROUTINE BY ID URL: $url");
+    print("STATUS: ${res.statusCode}");
+    print("BODY: ${res.body}");
+
+    if (res.statusCode == 200) {
+      final decoded = jsonDecode(res.body);
+      return RoutineModel.fromJson(decoded["data"]);
+    } else {
+      throw Exception("Failed to fetch routine: ${res.body}");
+    }
+  }
 }
