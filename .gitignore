@@ -1,0 +1,28 @@
+# ----- Global ----- 
+.DS_Store 
+Thumbs.db 
+*.log 
+.vscode/ 
+.idea/ 
+.env 
+# ----- Node.js Backend ----- 
+backend/node_modules/ 
+backend/dist/ 
+backend/tmp/ 
+backend/npm-debug.log 
+backend/.env 
+# ----- Flutter Frontend ----- 
+frontend/build/ 
+frontend/.dart_tool/ 
+frontend/.packages 
+frontend/.pub/ 
+frontend/.flutter-plugins 
+frontend/.flutter-plugins-dependencies 
+# Android folders 
+frontend/android/.gradle/ 
+frontend/android/app/build/ 
+frontend/android/local.properties 
+# iOS folders 
+frontend/ios/Pods/ 
+frontend/ios/build/ 
+frontend/ios/.symlinks/ 
