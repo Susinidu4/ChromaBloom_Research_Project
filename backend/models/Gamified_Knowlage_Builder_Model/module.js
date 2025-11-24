@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const ModuleSchema = new mongoose.Schema(
   {
-    _id: { type: String }, // m-0001, m-0002
+    _id: { type: String }, 
 
     
     category: {
