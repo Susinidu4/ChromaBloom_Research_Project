@@ -35,7 +35,7 @@ class RoutineApi {
   }
 
   // ===============================
-  // GET ROUTINES BY CREATOR ID
+  // GET ROUTINES BY CREATOR ID (GET)
   // ===============================
   static Future<List<RoutineModel>> getRoutinesByCreator(
     String createdBy,
@@ -59,7 +59,7 @@ class RoutineApi {
   }
 
   // ===============================
-  // GET ONE ROUTINE BY ID
+  // GET ONE ROUTINE BY ID (GET)
   // ===============================
   static Future<RoutineModel> getRoutineById(String routineId) async {
     final url = Uri.parse("$baseUrl/getRoutineById/$routineId");
@@ -77,4 +77,46 @@ class RoutineApi {
       throw Exception("Failed to fetch routine: ${res.body}");
     }
   }
+
+  // ===============================
+  // UPDATE ROUTINE (PUT)
+  // ===============================
+  static Future<bool> updateRoutine(
+    String routineId,
+    Map<String, dynamic> updateData,
+  ) async {
+    final url = Uri.parse("$baseUrl/updateRoutine/$routineId");
+
+    final response = await http.put(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(updateData),
+    );
+
+    print("UPDATE URL: $url");
+    print("STATUS: ${response.statusCode}");
+    print("BODY: ${response.body}");
+
+    return response.statusCode == 200;
+  }
+
+  // ===============================
+  // Delete ROUTINE (DELETE)
+  // ===============================
+static Future<bool> deleteRoutine(String routineId) async {
+  final url = Uri.parse("$baseUrl/deleteRoutine/$routineId");
+
+  final res = await http.delete(url);
+
+  print("DELETE URL: $url");
+  print("STATUS: ${res.statusCode}");
+  print("BODY: ${res.body}");
+
+  if (res.statusCode == 200) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 }
