@@ -12,7 +12,7 @@ const ModuleSchema = new mongoose.Schema(
       unique: true,
     },
 
-    title: { type: String, required: true },       // "Drawing", "Problem Solving"
+    title: { type: String, required: true },       
     description: { type: String, required: true },
 
     coverImageUrl: String,
