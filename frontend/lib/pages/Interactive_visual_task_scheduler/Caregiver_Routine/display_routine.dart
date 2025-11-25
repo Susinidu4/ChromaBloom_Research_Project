@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/routine_model.dart';
-import '../../services/routine_api.dart';
+import '../../../models/routine_model.dart';
+import '../../../services/routine_api.dart';
 import 'routine_details.dart';
 
 class DisplayRoutinesScreen extends StatefulWidget {
