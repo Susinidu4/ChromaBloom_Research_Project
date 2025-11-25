@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors"; 
 import connectDB from "./config/db.js";
+import adminRoutes from "./routes/Users/admin.routes.js";
 
 import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
 
