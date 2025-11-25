@@ -11,8 +11,11 @@ class FormScreen extends StatefulWidget {
 class _FormScreenState extends State<FormScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // TEMP hard-coded caregiver / user id
+  // TODO: later replace with real logged-in caregiver id
+  static const String hardcodedCaregiverId = "p-0001";
+
   // Controllers for routine fields
-  final TextEditingController createdByController = TextEditingController();
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController estimatedDurationController =
@@ -50,7 +53,6 @@ class _FormScreenState extends State<FormScreen> {
 
   @override
   void dispose() {
-    createdByController.dispose();
     titleController.dispose();
     descriptionController.dispose();
     estimatedDurationController.dispose();
@@ -61,81 +63,65 @@ class _FormScreenState extends State<FormScreen> {
   }
 
   void handleSubmit() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  // Build steps array like backend expects (step_number is Number in backend)
-  final steps = List.generate(stepControllers.length, (i) {
-    return {
-      "step_number": i + 1, // ✅ must be Number (not string)
-      "instruction": stepControllers[i].text.trim(),
-    };
-  });
-
-  final routineData = {
-    "created_by": createdByController.text.trim(),
-    "title": titleController.text.trim(),
-    "description": descriptionController.text.trim(),
-    "age_group": selectedAgeGroup,
-    "development_area": selectedDevelopmentArea,
-    "steps": steps,
-    "estimated_duration": int.parse(estimatedDurationController.text.trim()),
-    "difficulty_level": selectedDifficultyLevel,
-  };
-
-  // ✅ Call backend and wait for response
-  final success = await RoutineApi.createRoutine(routineData);
-
-  if (success) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Routine Created Successfully!")),
-    );
-
-    // optional: clear form
-    createdByController.clear();
-    titleController.clear();
-    descriptionController.clear();
-    estimatedDurationController.clear();
-    stepControllers.forEach((c) => c.clear());
-    setState(() {
-      selectedAgeGroup = null;
-      selectedDevelopmentArea = null;
-      selectedDifficultyLevel = null;
+    // Build steps array like backend expects (step_number is Number)
+    final steps = List.generate(stepControllers.length, (i) {
+      return {
+        "step_number": i + 1,
+        "instruction": stepControllers[i].text.trim(),
+      };
     });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Failed to create routine")),
-    );
-  }
-}
 
+    final routineData = {
+      "created_by": hardcodedCaregiverId, // ✅ temp hard-coded user id
+      "title": titleController.text.trim(),
+      "description": descriptionController.text.trim(),
+      "age_group": selectedAgeGroup,
+      "development_area": selectedDevelopmentArea,
+      "steps": steps,
+      "estimated_duration":
+          int.parse(estimatedDurationController.text.trim()),
+      "difficulty_level": selectedDifficultyLevel,
+    };
+
+    final success = await RoutineApi.createRoutine(routineData);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Routine Created Successfully!")),
+      );
+
+      // clear form
+      titleController.clear();
+      descriptionController.clear();
+      estimatedDurationController.clear();
+      for (final c in stepControllers) {
+        c.clear();
+      }
+      setState(() {
+        selectedAgeGroup = null;
+        selectedDevelopmentArea = null;
+        selectedDifficultyLevel = null;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to create routine")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Create Routine")),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              // created_by
-              TextFormField(
-                controller: createdByController,
-                decoration: const InputDecoration(
-                  labelText: "Created By (User ID)",
-                  hintText: "e.g. u-001",
-                ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Required" : null,
-              ),
-
-              const SizedBox(height: 16),
-
               // title
               TextFormField(
                 controller: titleController,
@@ -184,7 +170,8 @@ class _FormScreenState extends State<FormScreen> {
               // development_area dropdown
               DropdownButtonFormField<String>(
                 value: selectedDevelopmentArea,
-                decoration: const InputDecoration(labelText: "Development Area"),
+                decoration:
+                    const InputDecoration(labelText: "Development Area"),
                 items: const [
                   DropdownMenuItem(value: "Motor", child: Text("Motor")),
                   DropdownMenuItem(value: "Language", child: Text("Language")),
@@ -273,7 +260,8 @@ class _FormScreenState extends State<FormScreen> {
               // difficulty dropdown
               DropdownButtonFormField<String>(
                 value: selectedDifficultyLevel,
-                decoration: const InputDecoration(labelText: "Difficulty Level"),
+                decoration:
+                    const InputDecoration(labelText: "Difficulty Level"),
                 items: const [
                   DropdownMenuItem(value: "Easy", child: Text("Easy")),
                   DropdownMenuItem(value: "Medium", child: Text("Medium")),
