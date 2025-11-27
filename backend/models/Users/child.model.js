@@ -54,11 +54,17 @@ const childSchema = new mongoose.Schema(
     },
 
     // Link to caregiver (ONE caregiver per child)
-    // Matches Caregiver._id which is a STRING like "p-0001"
     caregiver: {
-      type: String,
+      type: String,          // "p-0001"
       ref: "Caregiver",
       required: true,
+    },
+
+    // Link to therapist (ONE therapist per child)
+    therapist: {
+      type: String,          // "t-0001"
+      ref: "Therapist",
+      required: true,        // make true if every child MUST have therapist
     },
   },
   {
