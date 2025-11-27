@@ -19,7 +19,7 @@ class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
   @override
   void initState() {
     super.initState();
-    createdBy = "u-001"; // hardcoded for now
+    createdBy = "p-0001"; // hardcoded for now
     fetchRoutines();
   }
 
