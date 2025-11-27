@@ -41,9 +41,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       decoration: BoxDecoration(
         color: _primaryBlue,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(32),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,20 +54,25 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: 70,
-                    height: 70,
+                    width: 150,
+                    height: 150,
                     child: Image.asset(
                       'assets/chromabloom1.png',
                       fit: BoxFit.contain,
                     ),
                   ),
-                 
-                  SizedBox(
-                    width: 100,
-                    height: 70,
-                    child: Image.asset(
-                      'assets/chromabloom2.png',
-                      fit: BoxFit.contain,
+                  Transform.translate(
+                    offset: const Offset(
+                      0,
+                      -50,
+                    ), // move UP by 20px (adjust as needed)
+                    child: SizedBox(
+                      width: 150,
+                      height: 80,
+                      child: Image.asset(
+                        'assets/chromabloom2.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ],
@@ -115,11 +118,7 @@ class _HomePageState extends State<HomePage> {
                   shape: BoxShape.circle,
                   color: Colors.white24,
                 ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                child: const Icon(Icons.person, color: Colors.white, size: 28),
               ),
             ],
           ),
@@ -133,62 +132,12 @@ class _HomePageState extends State<HomePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _cardBackground,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-              color: Colors.black.withOpacity(0.08),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Text section
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Designed for Caregivers.\nLoved by Children. ❤️',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'A personalized, AI-powered support system designed to help children with Down Syndrome grow, learn, and thrive—while supporting caregivers every step of the way.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Illustration placeholder
-            SizedBox(
-              height: 110,
-              width: 80,
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: Icon(
-                  Icons.family_restroom,
-                  size: 80,
-                  color: _primaryBlue,
-                ),
-              ),
-            ),
-          ],
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          height: 250, // << INCREASE HEIGHT HERE
+          width: double.infinity,
+          child: Image.asset('assets/banner.png'),
         ),
       ),
     );
@@ -276,11 +225,7 @@ class _FeatureCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
-                    child: Icon(
-                      icon,
-                      size: 40,
-                      color: Colors.white,
-                    ),
+                    child: Icon(icon, size: 40, color: Colors.white),
                   ),
                 ),
               ),
