@@ -22,7 +22,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/createRoutine': (context) => const FormScreen(),
-        '/getRoutine': (context) => const DisplayRoutinesScreen(),
+        '/displayRoutines': (context) => const DisplayRoutinesScreen(),
+        
       },
     );
   }
