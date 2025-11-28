@@ -159,7 +159,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
       decoration: BoxDecoration(
         color: _primaryBlue,
         borderRadius: const BorderRadius.vertical(
@@ -167,33 +167,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
-          const Text(
-            "Sign Up",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "Let’s get Started",
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Icon(
-              Icons.auto_awesome, // replace with your logo if needed
-              color: Colors.white.withOpacity(0.8),
-              size: 32,
-            ),
+          const SizedBox(height: 16), // pushes content a bit down
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // left: text
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "Sign Up",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Let’s get Started",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+
+              // right: logo image
+              Image.asset(
+                'assets/chromabloom1.png',
+                height: 70,
+              ),
+            ],
           ),
         ],
       ),
@@ -251,9 +259,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             elevation: 4,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ).borderRadius,
+              borderRadius: BorderRadius.circular(18),
             ),
           ),
           child: Text(isLast ? "Finish" : "Next"),
