@@ -3,6 +3,7 @@ import 'package:frontend/pages/others/home.dart';
 import 'services/tts_service.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/create_routine.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/display_routine.dart';
+import 'pages/auth/signup/signup_screen.dart';
 
 
 void main() {
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         '/createRoutine': (context) => const FormScreen(),
         '/getRoutine': (context) => const DisplayRoutinesScreen(),
+         '/signup': (_) => const SignUpScreen(),
       },
     );
   }
