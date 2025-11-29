@@ -1,5 +1,10 @@
 // lib/pages/auth/therapist/therapist_register_screen.dart
+import 'dart:io';
+import 'dart:convert'; // <-- needed for base64Encode
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../../services/user_services/therapist_api.dart';
 
 class TherapistRegisterScreen extends StatefulWidget {
@@ -36,6 +41,10 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
   bool acceptTerms = false;
   bool acceptPrivacy = false;
 
+  // image picker
+  final ImagePicker _picker = ImagePicker();
+  XFile? _pickedImage;
+
   @override
   void dispose() {
     fullNameController.dispose();
@@ -66,6 +75,18 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
     }
   }
 
+  Future<void> _pickProfileImage() async {
+    final img = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (img != null) {
+      setState(() {
+        _pickedImage = img;
+      });
+    }
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -78,10 +99,17 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
 
     setState(() => _loading = true);
 
-    final payload = {
+    // optional: convert picked image to base64 string
+    String? profileBase64;
+    if (_pickedImage != null) {
+      final bytes = await _pickedImage!.readAsBytes();
+      profileBase64 = "data:image/jpeg;base64,${base64Encode(bytes)}";
+    }
+
+    final Map<String, dynamic> payload = {
       "full_name": fullNameController.text.trim(),
       "dob": dobController.text.trim(),
-      "gender": gender,
+      "gender": gender ?? "",
       "email": emailController.text.trim(),
       "password": passwordController.text.trim(),
       "phone": phoneController.text.trim(),
@@ -92,7 +120,7 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
       "work_place": workPlaceController.text.trim(),
       "terms_and_conditions": acceptTerms,
       "privacy_policy": acceptPrivacy,
-      // profile_picture will be handled later (Cloudinary upload)
+      if (profileBase64 != null) "profile_picture_base64": profileBase64,
     };
 
     final res = await TherapistApi.registerTherapist(payload);
@@ -105,8 +133,6 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Therapist registered successfully")),
       );
-
-      // TODO: maybe navigate to login
       // Navigator.pushReplacementNamed(context, '/therapistLogin');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -131,7 +157,61 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+
+                      // ==== Profile picture picker ====
+                      Center(
+                        child: Column(
+                          children: [
+                            Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                CircleAvatar(
+                                  radius: 45,
+                                  backgroundColor: Colors.grey.shade300,
+                                  backgroundImage: _pickedImage != null
+                                      ? FileImage(File(_pickedImage!.path))
+                                      : null,
+                                  child: _pickedImage == null
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: Colors.white,
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 2,
+                                  right: 2,
+                                  child: InkWell(
+                                    onTap: _pickProfileImage,
+                                    child: CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: _gold,
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Add Profile Picture",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       const SizedBox(height: 24),
+
                       const Text(
                         "Therapist Registration",
                         style: TextStyle(
@@ -188,7 +268,8 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
                               value: "Other", child: Text("Other")),
                         ],
                         onChanged: (val) => setState(() => gender = val),
-                        validator: (v) => v == null ? "Required" : null,
+                        validator: (v) =>
+                            v == null || v.isEmpty ? "Required" : null,
                       ),
                       const SizedBox(height: 16),
 

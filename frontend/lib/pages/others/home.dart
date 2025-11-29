@@ -83,6 +83,7 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // left side: greeting text
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -106,14 +107,24 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              Container(
-                width: 50,
-                height: 50,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white24,
+              // right side: profile icon (tap -> Therapist Register)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/therapistRegister');
+                },
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white24,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 28),
               ),
             ],
           ),
