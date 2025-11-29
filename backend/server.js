@@ -2,8 +2,11 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors"; 
 import connectDB from "./config/db.js";
-
 import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
+import adminRoutes from "./routes/Users/admin.routes.js";
+import caregiverRoutes from "./routes/Users/caregiver.routes.js";
+import childRoutes from "./routes/Users/child.routes.js"
+import therapistRoutes from "./routes/Users/therapist.routes.js";
 
 dotenv.config();
 
@@ -23,6 +26,12 @@ connectDB();
 
 // Test Route
 app.use("/chromabloom/routine", routine);
+
+// Routes
+app.use("/chromabloom/api/admins", adminRoutes);
+app.use("/api/caregivers", caregiverRoutes);
+app.use("/api/children", childRoutes);
+app.use("/api/therapists", therapistRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

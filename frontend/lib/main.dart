@@ -4,7 +4,6 @@ import 'services/tts_service.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/create_routine.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/display_routine.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -22,6 +21,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/createRoutine': (context) => const FormScreen(),
+        '/displayRoutines': (context) => const DisplayRoutinesScreen(),
       },
     );
   }
