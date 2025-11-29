@@ -1,6 +1,5 @@
 // routes/therapist.routes.js
 import express from "express";
-import multer from "multer";
 import {
   registerTherapist,
   loginTherapist,
@@ -12,30 +11,22 @@ import {
 
 const router = express.Router();
 
-// multer using memory storage (for Cloudinary upload_stream)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// 🔹 Register (pure JSON + optional base64 image)
+router.post("/register", registerTherapist);
 
-// register with optional profile picture
-router.post(
-  "/register",
-  upload.single("profile_picture"),
-  registerTherapist
-);
-
-// login
+// 🔹 Login (JSON)
 router.post("/login", loginTherapist);
 
-// get all
+// 🔹 Get all therapists
 router.get("/", getAllTherapists);
 
-// get by id (t-0001)
+// 🔹 Get by ID (e.g., t-0001)
 router.get("/:id", getTherapistById);
 
-// update details + optional new profile picture
-router.put("/:id", upload.single("profile_picture"), updateTherapist);
+// 🔹 Update therapist (JSON + optional base64 image)
+router.put("/:id", updateTherapist);
 
-// delete
+// 🔹 Delete therapist
 router.delete("/:id", deleteTherapist);
 
 export default router;
