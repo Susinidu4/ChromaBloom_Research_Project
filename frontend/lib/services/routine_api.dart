@@ -8,7 +8,7 @@ class RoutineApi {
   // ===============================
 
   // For EMULATOR:
-  static const String baseUrl = "http://10.0.2.2:5000/chromabloom/routine";
+  static const String baseUrl = "http://localhost:5000/chromabloom/routine";
 
   // For REAL PHONE:
   // static const String baseUrl ="http://172.28.0.221:5000/chromabloom/routine";  // <-- CHANGE IP IF NEEDED
