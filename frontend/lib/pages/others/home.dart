@@ -62,10 +62,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Transform.translate(
-                    offset: const Offset(
-                      0,
-                      -50,
-                    ), // move UP by 20px (adjust as needed)
+                    offset: const Offset(0, -50),
                     child: SizedBox(
                       width: 150,
                       height: 80,
@@ -110,15 +107,24 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              // right side: profile icon
-              Container(
-                width: 50,
-                height: 50,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white24,
+              // right side: profile icon (tap -> Therapist Register)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/therapistRegister');
+                },
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white24,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 28),
               ),
             ],
           ),
@@ -135,7 +141,7 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
         clipBehavior: Clip.antiAlias,
         child: SizedBox(
-          height: 250, // << INCREASE HEIGHT HERE
+          height: 250,
           width: double.infinity,
           child: Image.asset('assets/banner.png'),
         ),
@@ -157,22 +163,24 @@ class _HomePageState extends State<HomePage> {
         children: [
           _FeatureCard(
             title: 'Parental Stress\nMonitoring &\nSupport System',
-            icon: Icons.sentiment_very_dissatisfied,
+            imagePath: 'assets/h1.png',
             onTap: () {},
           ),
           _FeatureCard(
             title: 'Task Scheduler\n& Routine Builder',
+            imagePath: 'assets/h2.png',
+            onTap: () {},
             icon: Icons.checklist_rounded,
             onTap: () {Navigator.pushNamed(context, '/displayRoutines');},
           ),
           _FeatureCard(
             title: 'Gamified\nKnowledge\nBuilder',
-            icon: Icons.videogame_asset_rounded,
+            imagePath: 'assets/h3.png',
             onTap: () {},
           ),
           _FeatureCard(
             title: 'Cognitive\nProfiling &\nProgress',
-            icon: Icons.psychology_rounded,
+            imagePath: 'assets/h4.png',
             onTap: () {},
           ),
         ],
@@ -184,12 +192,12 @@ class _HomePageState extends State<HomePage> {
 // ================= FEATURE CARD WIDGET =================
 class _FeatureCard extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final String imagePath;
   final VoidCallback onTap;
 
   const _FeatureCard({
     required this.title,
-    required this.icon,
+    required this.imagePath,
     required this.onTap,
   });
 
@@ -225,7 +233,12 @@ class _FeatureCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
-                    child: Icon(icon, size: 40, color: Colors.white),
+                    child: Image.asset(
+                      imagePath,
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

@@ -1,3 +1,4 @@
+// models/Users/terapist.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
@@ -50,12 +51,21 @@ TherapistSchema.pre("save", async function (next) {
 //  HASH PASSWORD BEFORE SAVE
 // ===============================
 TherapistSchema.pre("save", async function (next) {
+  // if password not changed, skip
   if (!this.isModified("password")) return next();
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  // 🔴 extra safety: if somehow password is missing, avoid bcrypt error
+  if (!this.password) {
+    return next(new Error("Password is required"));
+  }
 
-  next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default mongoose.model("Therapist", TherapistSchema);
