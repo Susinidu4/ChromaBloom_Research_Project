@@ -2,11 +2,15 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors"; 
 import connectDB from "./config/db.js";
-import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
+// user management
 import adminRoutes from "./routes/Users/admin.routes.js";
 import caregiverRoutes from "./routes/Users/caregiver.routes.js";
 import childRoutes from "./routes/Users/child.routes.js"
 import therapistRoutes from "./routes/Users/therapist.routes.js";
+// routine management
+import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
+// parental stress monitoring
+import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
 dotenv.config();
 
@@ -24,14 +28,18 @@ app.use(express.json());
 // Connect to Database
 connectDB();
 
-// Test Route
-app.use("/chromabloom/routine", routine);
-
 // Routes
+// User Management
 app.use("/chromabloom/api/admins", adminRoutes);
 app.use("/api/caregivers", caregiverRoutes);
 app.use("/api/children", childRoutes);
 app.use("/api/therapists", therapistRoutes);
+
+// Routine Management
+app.use("/chromabloom/routine", routine);
+
+// Parent Stress Monitoring 
+app.use("/chromabloom/journalEntries", journalEntryRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
