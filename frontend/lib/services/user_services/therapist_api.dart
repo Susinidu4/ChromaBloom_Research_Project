@@ -10,7 +10,7 @@ class TherapistApi {
   static Future<Map<String, dynamic>> registerTherapist(
       Map<String, dynamic> data) async {
     try {
-      final url = Uri.parse("$_base/api/therapists/register");
+      final url = Uri.parse("$_base/chromabloom/therapists/register");
 
       final res = await http.post(
         url,
@@ -46,7 +46,7 @@ class TherapistApi {
   static Future<Map<String, dynamic>> loginTherapist(
       String email, String password) async {
     try {
-      final url = Uri.parse("$_base/api/therapists/login");
+      final url = Uri.parse("$_base/chromabloom/therapists/login");
 
       final res = await http.post(
         url,
