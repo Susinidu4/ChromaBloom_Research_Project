@@ -13,6 +13,9 @@ import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js
 // parental stress monitoring
 import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
+// gemified knowledge builder
+import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
+
 dotenv.config();
 
 const app = express();
