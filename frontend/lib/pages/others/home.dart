@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> {
           _FeatureCard(
             title: 'Task Scheduler\n& Routine Builder',
             imagePath: 'assets/h2.png',
-            onTap: () {},
+            onTap: () {Navigator.pushNamed(context, '/displayRoutines');},
           ),
           _FeatureCard(
             title: 'Gamified\nKnowledge\nBuilder',

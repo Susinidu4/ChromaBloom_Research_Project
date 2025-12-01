@@ -8,7 +8,6 @@ import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
 import 'pages/auth/signup/therapist_register_screen.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -25,8 +24,10 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const HomePage(),
+        
         '/createRoutine': (context) => const FormScreen(),
-        '/getRoutine': (context) => const DisplayRoutinesScreen(),
+        '/displayRoutines': (context) => const DisplayRoutinesScreen(),
+        
         '/signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
