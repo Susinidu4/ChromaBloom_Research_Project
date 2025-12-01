@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../others/profile_options_dialog.dart'; // 👈 adjust path if needed
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -107,10 +108,10 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              // right side: profile icon (tap -> Therapist Register)
+              // right side: profile icon (tap -> popup with navigation options)
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, '/therapistRegister');
+                  showProfileOptionsDialog(context);
                 },
                 child: Container(
                   width: 50,
@@ -169,7 +170,9 @@ class _HomePageState extends State<HomePage> {
           _FeatureCard(
             title: 'Task Scheduler\n& Routine Builder',
             imagePath: 'assets/h2.png',
-            onTap: () {Navigator.pushNamed(context, '/displayRoutines');},
+            onTap: () {
+              Navigator.pushNamed(context, '/displayRoutines');
+            },
           ),
           _FeatureCard(
             title: 'Gamified\nKnowledge\nBuilder',
@@ -245,7 +248,8 @@ class _FeatureCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
                 title,
                 textAlign: TextAlign.center,
