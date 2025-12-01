@@ -1,5 +1,7 @@
 // lib/pages/auth/signup/signup_screen.dart
 import 'package:flutter/material.dart';
+import '../../../services/user_services/caregiver_api.dart';
+import '../../../services/user_services/child_api.dart';
 
 import 'caregiver_step.dart';
 import 'child_step.dart';
@@ -19,6 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final Color _background = const Color(0xFFFDF8F2);
 
   int _currentStep = 0;
+  bool _isSubmitting = false;
 
   // ------- Step 1: Caregiver controllers -------
   final TextEditingController cgFullNameController = TextEditingController();
@@ -31,6 +34,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController cgEmailController = TextEditingController();
   final TextEditingController cgAddressController = TextEditingController();
 
+  // TEMP: we need a password for backend; ideally you add password fields
+  final String _tempPassword = "password123"; // TODO: replace with real input
+
   // ------- Step 2: Child controllers -------
   final TextEditingController childNameController = TextEditingController();
   final TextEditingController childDobController = TextEditingController();
@@ -39,6 +45,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController childWeightController = TextEditingController();
   String? downSyndromeType;
   String? downSyndromeConfirmedBy;
+
+  // other health conditions
+  bool hasHeartIssues = false;
+  bool hasThyroidIssues = false;
+  bool hasHearingProblems = false;
+  bool hasVisionProblems = false;
+
+  // therapist selection
+  String? selectedTherapist;
+  // For now, dummy therapist options; later fetch from backend
+  final List<String> therapistOptions = const [
+    "Dr. A - t-0001",
+    "Dr. B - t-0002",
+    "No therapist assigned",
+  ];
 
   // ------- Step 3: T&C -------
   bool acceptedTerms = false;
@@ -80,10 +101,104 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_currentStep < 2) {
       setState(() => _currentStep++);
     } else {
-      // TODO: final submit – call backend APIs here
+      _submitSignUp();
+    }
+  }
+
+  Future<void> _submitSignUp() async {
+    if (!acceptedTerms || !acceptedPrivacy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sign up completed (demo).")),
+        const SnackBar(
+          content: Text("Please accept Terms & Conditions and Privacy Policy."),
+        ),
       );
+      return;
+    }
+
+    // Basic validation – you can expand this
+    if (cgFullNameController.text.trim().isEmpty ||
+        cgEmailController.text.trim().isEmpty ||
+        childNameController.text.trim().isEmpty ||
+        childDobController.text.trim().isEmpty ||
+        childGender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill required fields in Step 1 & Step 2."),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // 1) Register caregiver
+      final cgResult = await CaregiverApi.registerCaregiver(
+        fullName: cgFullNameController.text.trim(),
+        dob: cgDobController.text.trim(),
+        gender: cgGender ?? "Other",
+        numberOfChildren:
+            int.tryParse(cgChildrenCountController.text.trim()) ?? 1,
+        mobile: cgMobileController.text.trim(),
+        email: cgEmailController.text.trim(),
+        address: cgAddressController.text.trim(),
+        password: _tempPassword, // TODO: replace with real password field
+      );
+
+      final caregiver = cgResult['caregiver'];
+      if (caregiver == null || caregiver['_id'] == null) {
+        throw Exception("Caregiver ID not returned from backend");
+      }
+
+      final String caregiverId = caregiver['_id']; // e.g. "p-0001"
+
+      // 2) Extract therapistId from dropdown (e.g. "Dr. A - t-0001")
+      String? therapistId;
+      if (selectedTherapist != null &&
+          selectedTherapist != "No therapist assigned") {
+        final parts = selectedTherapist!.split(' - ');
+        if (parts.length == 2) {
+          therapistId = parts[1]; // "t-0001"
+        }
+      }
+
+      // 3) Create child
+      final double? height = double.tryParse(childHeightController.text.trim());
+      final double? weight = double.tryParse(childWeightController.text.trim());
+
+      final childResult = await ChildApi.createChild(
+        childName: childNameController.text.trim(),
+        dateOfBirth: childDobController.text.trim(),
+        gender: childGender ?? "Other",
+        heightCm: height,
+        weightKg: weight,
+        downSyndromeType: downSyndromeType,
+        downSyndromeConfirmedBy: downSyndromeConfirmedBy,
+        caregiverId: caregiverId,
+        therapistId: therapistId,
+        hasHeartIssues: hasHeartIssues,
+        hasThyroidIssues: hasThyroidIssues,
+        hasHearingProblems: hasHearingProblems,
+        hasVisionProblems: hasVisionProblems,
+      );
+
+      if (!mounted) return;
+
+      final msg = childResult['message'] ?? "Sign up completed successfully";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+
+      // TODO: Navigate to caregiver home, maybe with newly created child
+      // Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Sign up failed: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -133,6 +248,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             setState(() => downSyndromeType = val),
                         onConfirmedByChanged: (val) =>
                             setState(() => downSyndromeConfirmedBy = val),
+
+                        // new health condition props
+                        hasHeartIssues: hasHeartIssues,
+                        hasThyroidIssues: hasThyroidIssues,
+                        hasHearingProblems: hasHearingProblems,
+                        hasVisionProblems: hasVisionProblems,
+                        onHeartIssuesChanged: (v) =>
+                            setState(() => hasHeartIssues = v ?? false),
+                        onThyroidChanged: (v) =>
+                            setState(() => hasThyroidIssues = v ?? false),
+                        onHearingChanged: (v) =>
+                            setState(() => hasHearingProblems = v ?? false),
+                        onVisionChanged: (v) =>
+                            setState(() => hasVisionProblems = v ?? false),
+
+                        // therapist
+                        selectedTherapist: selectedTherapist,
+                        therapistOptions: therapistOptions,
+                        onTherapistChanged: (v) =>
+                            setState(() => selectedTherapist = v),
                       )
                     else
                       TermsStep(
@@ -168,12 +303,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 16), // pushes content a bit down
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // left: text
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -195,8 +329,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ],
               ),
-
-              // right: logo image
               Image.asset(
                 'assets/chromabloom1.png',
                 height: 70,
@@ -252,7 +384,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: canFinish ? _handleNext : null,
+          onPressed: (!canFinish || _isSubmitting) ? null : _handleNext,
           style: ElevatedButton.styleFrom(
             backgroundColor: _gold,
             foregroundColor: Colors.white,
@@ -262,7 +394,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               borderRadius: BorderRadius.circular(18),
             ),
           ),
-          child: Text(isLast ? "Finish" : "Next"),
+          child: _isSubmitting
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(isLast ? "Finish" : "Next"),
         ),
       ),
     );
