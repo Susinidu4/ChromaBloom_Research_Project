@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/routine_model.dart';
-import '../../../services/routine_api.dart';
-import '../../../services/tts_service.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/routine_api.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart';
 import 'edit_routine.dart';
 
 class RoutineDetailsScreen extends StatefulWidget {

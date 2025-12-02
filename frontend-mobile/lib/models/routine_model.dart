@@ -1,3 +1,5 @@
+// lib/models/routine_model.dart
+
 class RoutineStep {
   final int stepNumber;
   final String instruction;
@@ -20,6 +22,7 @@ class RoutineModel {
   final String createdBy;
   final String title;
   final String description;
+  final String? image;           // may be null
   final String ageGroup;
   final String developmentArea;
   final List<RoutineStep> steps;
@@ -31,6 +34,7 @@ class RoutineModel {
     required this.createdBy,
     required this.title,
     required this.description,
+    this.image,
     required this.ageGroup,
     required this.developmentArea,
     required this.steps,
@@ -46,6 +50,7 @@ class RoutineModel {
       createdBy: json["created_by"] ?? "",
       title: json["title"] ?? "",
       description: json["description"] ?? "",
+      image: json["image"], // can be null
       ageGroup: json["age_group"] ?? "",
       developmentArea: json["development_area"] ?? "",
       steps: stepsJson.map((s) => RoutineStep.fromJson(s)).toList(),
