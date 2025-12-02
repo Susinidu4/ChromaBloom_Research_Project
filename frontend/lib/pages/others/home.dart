@@ -211,7 +211,7 @@ class _FeatureCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF2E0),
+          color: const Color(0xFF235870),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -254,10 +254,11 @@ class _FeatureCard extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
-                  color: Colors.black87,
+                  fontFamily: 'poppins',
+                  color: Colors.white,
                 ),
               ),
             ),

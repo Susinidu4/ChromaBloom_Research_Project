@@ -17,11 +17,10 @@ class ChildStep extends StatelessWidget {
   final ValueChanged<String?> onConfirmedByChanged;
 
   // ========= NEW: Therapist selection (now OPTIONAL) =========
-  /// Therapist ID or name selected
+  /// Therapist label selected (e.g. "Dr. A (Speech Therapist) - t-0001")
   final String? selectedTherapist;
 
-  /// List of therapist options to show in dropdown
-  /// (e.g. ["Dr. A - t-0001", "Dr. B - t-0002"])
+  /// List of therapist labels to show in dropdown
   final List<String>? therapistOptions;
 
   /// Callback when therapist is changed
@@ -213,12 +212,21 @@ class ChildStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        RoundedDropdown(
-          label: "Select Therapist",
-          value: selectedTherapist,
-          items: therapistItems,
-          onChanged: onTherapistChanged ?? (_) {},
-        ),
+        if (therapistItems.isEmpty)
+          const Text(
+            "No therapists available to select.",
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey,
+            ),
+          )
+        else
+          RoundedDropdown(
+            label: "Select Therapist",
+            value: selectedTherapist,
+            items: therapistItems,
+            onChanged: onTherapistChanged ?? (_) {},
+          ),
       ],
     );
   }

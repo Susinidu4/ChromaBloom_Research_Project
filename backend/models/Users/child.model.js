@@ -8,19 +8,17 @@ const childSchema = new mongoose.Schema(
     // ----- Child Details -----
     childName: {
       type: String,
-      required: true,
       trim: true,
     },
 
     dateOfBirth: {
       type: Date,
-      required: true,
     },
 
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
-      required: true,
+      
     },
 
     heightCm: {

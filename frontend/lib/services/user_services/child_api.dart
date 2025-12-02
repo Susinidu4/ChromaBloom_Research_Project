@@ -1,4 +1,4 @@
-// lib/services/child_api.dart
+// lib/services/user_services/child_api.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
@@ -19,12 +19,12 @@ class ChildApi {
     required bool hasHearingProblems,
     required bool hasVisionProblems,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}/chromabloom/children');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/chromabloom/children');
 
+    // 👇 KEYS UPDATED TO MATCH MONGOOSE SCHEMA
     final otherHealthConditions = {
       'heartIssues': hasHeartIssues,
-      'thyroidIssues': hasThyroidIssues,
+      'thyroid': hasThyroidIssues,        // was `thyroidIssues`
       'hearingProblems': hasHearingProblems,
       'visionProblems': hasVisionProblems,
     };
@@ -51,7 +51,8 @@ class ChildApi {
     final data = _decodeBody(response);
 
     if (response.statusCode == 201 || response.statusCode == 200) {
-      return data; // { child: {...}, message: 'Child registered successfully' }
+      // { child: {...}, message: 'Child registered successfully' }
+      return data;
     } else {
       throw Exception(data['message'] ?? 'Child registration failed');
     }

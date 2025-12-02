@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../services/user_services/caregiver_api.dart';
 import '../../../services/user_services/child_api.dart';
+import '../../../services/user_services/therapist_api.dart'; // 👈 NEW
 
 import 'caregiver_step.dart';
 import 'child_step.dart';
@@ -54,16 +55,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // therapist selection
   String? selectedTherapist;
-  // For now, dummy therapist options; later fetch from backend
-  final List<String> therapistOptions = const [
-    "Dr. A - t-0001",
-    "Dr. B - t-0002",
-    "No therapist assigned",
-  ];
+  List<String> therapistOptions = []; // 👈 dynamic from API
+  bool _loadingTherapists = false;
+  String? _therapistError;
 
   // ------- Step 3: T&C -------
   bool acceptedTerms = false;
   bool acceptedPrivacy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTherapists(); // 👈 fetch list when screen opens
+  }
 
   @override
   void dispose() {
@@ -95,6 +99,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
           "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {});
     }
+  }
+
+  // ================== LOAD THERAPISTS ==================
+  Future<void> _loadTherapists() async {
+    setState(() {
+      _loadingTherapists = true;
+      _therapistError = null;
+    });
+
+    final items = await TherapistApi.getTherapistDropdownItems();
+
+    if (!mounted) return;
+
+    if (items.isEmpty) {
+      setState(() {
+        therapistOptions = [];
+        _therapistError = "No therapists found. Please add therapists first.";
+        _loadingTherapists = false;
+      });
+      return;
+    }
+
+    setState(() {
+      therapistOptions = items;
+      _loadingTherapists = false;
+    });
   }
 
   void _handleNext() {
@@ -152,13 +182,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final String caregiverId = caregiver['_id']; // e.g. "p-0001"
 
-      // 2) Extract therapistId from dropdown (e.g. "Dr. A - t-0001")
+      // 2) Extract therapistId from dropdown (e.g. "Dr. A (Speech Therapist) - t-0001")
       String? therapistId;
       if (selectedTherapist != null &&
-          selectedTherapist != "No therapist assigned") {
+          selectedTherapist!.contains(' - ')) {
         final parts = selectedTherapist!.split(' - ');
-        if (parts.length == 2) {
-          therapistId = parts[1]; // "t-0001"
+        if (parts.length >= 2) {
+          therapistId = parts.last.trim(); // "t-0001"
         }
       }
 
@@ -219,6 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 24),
                     _buildStepIndicators(),
                     const SizedBox(height: 24),
+
                     if (_currentStep == 0)
                       CaregiverStep(
                         fullNameController: cgFullNameController,
@@ -233,41 +264,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onDobTap: () => _pickDate(cgDobController),
                       )
                     else if (_currentStep == 1)
-                      ChildStep(
-                        childNameController: childNameController,
-                        childDobController: childDobController,
-                        childGender: childGender,
-                        heightController: childHeightController,
-                        weightController: childWeightController,
-                        downSyndromeType: downSyndromeType,
-                        downSyndromeConfirmedBy: downSyndromeConfirmedBy,
-                        onGenderChanged: (val) =>
-                            setState(() => childGender = val),
-                        onDobTap: () => _pickDate(childDobController),
-                        onDownTypeChanged: (val) =>
-                            setState(() => downSyndromeType = val),
-                        onConfirmedByChanged: (val) =>
-                            setState(() => downSyndromeConfirmedBy = val),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_loadingTherapists)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 8.0),
+                              child: LinearProgressIndicator(),
+                            ),
+                          if (_therapistError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Text(
+                                _therapistError!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ChildStep(
+                            childNameController: childNameController,
+                            childDobController: childDobController,
+                            childGender: childGender,
+                            heightController: childHeightController,
+                            weightController: childWeightController,
+                            downSyndromeType: downSyndromeType,
+                            downSyndromeConfirmedBy: downSyndromeConfirmedBy,
+                            onGenderChanged: (val) =>
+                                setState(() => childGender = val),
+                            onDobTap: () => _pickDate(childDobController),
+                            onDownTypeChanged: (val) =>
+                                setState(() => downSyndromeType = val),
+                            onConfirmedByChanged: (val) =>
+                                setState(() => downSyndromeConfirmedBy = val),
 
-                        // new health condition props
-                        hasHeartIssues: hasHeartIssues,
-                        hasThyroidIssues: hasThyroidIssues,
-                        hasHearingProblems: hasHearingProblems,
-                        hasVisionProblems: hasVisionProblems,
-                        onHeartIssuesChanged: (v) =>
-                            setState(() => hasHeartIssues = v ?? false),
-                        onThyroidChanged: (v) =>
-                            setState(() => hasThyroidIssues = v ?? false),
-                        onHearingChanged: (v) =>
-                            setState(() => hasHearingProblems = v ?? false),
-                        onVisionChanged: (v) =>
-                            setState(() => hasVisionProblems = v ?? false),
+                            // health condition props
+                            hasHeartIssues: hasHeartIssues,
+                            hasThyroidIssues: hasThyroidIssues,
+                            hasHearingProblems: hasHearingProblems,
+                            hasVisionProblems: hasVisionProblems,
+                            onHeartIssuesChanged: (v) =>
+                                setState(() => hasHeartIssues = v ?? false),
+                            onThyroidChanged: (v) =>
+                                setState(() => hasThyroidIssues = v ?? false),
+                            onHearingChanged: (v) =>
+                                setState(() => hasHearingProblems = v ?? false),
+                            onVisionChanged: (v) =>
+                                setState(() => hasVisionProblems = v ?? false),
 
-                        // therapist
-                        selectedTherapist: selectedTherapist,
-                        therapistOptions: therapistOptions,
-                        onTherapistChanged: (v) =>
-                            setState(() => selectedTherapist = v),
+                            // therapist dropdown
+                            selectedTherapist: selectedTherapist,
+                            therapistOptions: therapistOptions,
+                            onTherapistChanged: (v) =>
+                                setState(() => selectedTherapist = v),
+                          ),
+                        ],
                       )
                     else
                       TermsStep(
@@ -278,6 +330,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onPrivacyChanged: (v) =>
                             setState(() => acceptedPrivacy = v),
                       ),
+
                     const SizedBox(height: 80),
                   ],
                 ),
