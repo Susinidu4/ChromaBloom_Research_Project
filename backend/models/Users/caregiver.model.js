@@ -6,11 +6,11 @@ const CaregiverSchema = new mongoose.Schema(
   {
     _id: { type: String }, // p-0001, p-0002 ...
 
-    full_name: { type: String, required: true },
+    full_name: { type: String, },
     dob: { type: Date },
     gender: { type: String },
 
-    email: { type: String, unique: true, required: true },
+    email: { type: String, unique: true,},
     password: { type: String, required: true },
 
     phone: { type: String },

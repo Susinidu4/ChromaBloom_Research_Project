@@ -36,10 +36,10 @@ connectDB();
 
 // Routes
 // User Management
-app.use("/chromabloom/api/admins", adminRoutes);
-app.use("/api/caregivers", caregiverRoutes);
-app.use("/api/children", childRoutes);
-app.use("/api/therapists", therapistRoutes);
+app.use("/chromabloom/admins", adminRoutes);
+app.use("/chromabloom/caregivers", caregiverRoutes);
+app.use("/chromabloom/children", childRoutes);
+app.use("/chromabloom/therapists", therapistRoutes);
 // Routine Management
 app.use("/chromabloom/routine", routine);
 // Parent Stress Monitoring 

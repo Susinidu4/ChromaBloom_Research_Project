@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         '/createRoutine': (context) => const FormScreen(),
         '/displayRoutines': (context) => const DisplayRoutinesScreen(),
         
-        '/signup': (_) => const SignUpScreen(),
+        '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
