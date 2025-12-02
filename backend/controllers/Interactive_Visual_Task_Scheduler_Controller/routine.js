@@ -1,4 +1,5 @@
 import Routine from "../../models/Interactive_Visual_Task_Scheduler_Model/routine.js";
+import cloudinary from "../../config/cloudinary.js";
 
 // Controller to create a new routine
 export const createRoutine = async (req, res) => {
@@ -14,19 +15,44 @@ export const createRoutine = async (req, res) => {
       difficulty_level,
     } = req.body;
 
-    if (!steps || steps.length === 0) {
+    // steps comes as TEXT in form-data → parse JSON
+    const parsedSteps =
+      typeof steps === "string" ? JSON.parse(steps) : steps;
+
+    if (!parsedSteps || parsedSteps.length === 0) {
       return res
         .status(400)
         .json({ error: "Routine must contain at least one step" });
     }
 
+    // ✅ image comes from multer
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Image file (routine_image) is required" });
+    }
+
+    // convert buffer -> base64 data URI for Cloudinary
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString(
+      "base64"
+    )}`;
+
+    // Upload image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(base64Image, {
+      folder: "chromabloom/routines",
+      // transformation: [{ width: 800, height: 800, crop: "limit" }],
+    });
+
+    const imageUrl = uploadResult.secure_url; // ✅ store in MongoDB
+
     const routine = await Routine.create({
       created_by,
       title,
       description,
+      image: imageUrl,
       age_group,
       development_area,
-      steps,
+      steps: parsedSteps,
       estimated_duration,
       difficulty_level,
     });
@@ -36,12 +62,14 @@ export const createRoutine = async (req, res) => {
       data: routine,
     });
   } catch (error) {
+    console.error("Create routine error:", error);
     return res.status(500).json({
       message: "Internal server error",
       error: error.message,
     });
   }
 };
+
 
 // Controller to get routines by creator
 export const getRoutineByCreator = async (req, res) => {

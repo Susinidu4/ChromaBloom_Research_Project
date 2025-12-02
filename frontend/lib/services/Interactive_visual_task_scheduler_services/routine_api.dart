@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/routine_model.dart';
+import '../../models/routine_model.dart';
 
 class RoutineApi {
   // ===============================
@@ -8,7 +8,11 @@ class RoutineApi {
   // ===============================
 
   // For EMULATOR:
-  static const String baseUrl = "http://localhost:5000/chromabloom/routine";
+  // static const String baseUrl = "http://localhost:5000/chromabloom/routine";
+
+// ✅ CORRECT for Android emulator
+  static const String baseUrl =
+      "http://10.0.2.2:5000/chromabloom/routine";
 
   // For REAL PHONE:
   // static const String baseUrl ="http://172.28.0.221:5000/chromabloom/routine";  // <-- CHANGE IP IF NEEDED
@@ -44,8 +48,12 @@ class RoutineApi {
 
     final res = await http.get(url);
 
+    // Debug logs
+    // ignore: avoid_print
     print("GET URL: $url");
+    // ignore: avoid_print
     print("STATUS: ${res.statusCode}");
+    // ignore: avoid_print
     print("BODY: ${res.body}");
 
     if (res.statusCode == 200) {

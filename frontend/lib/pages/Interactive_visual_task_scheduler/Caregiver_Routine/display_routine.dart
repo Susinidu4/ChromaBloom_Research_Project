@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/routine_model.dart';
-import '../../../services/routine_api.dart';
-import 'routine_details.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/routine_api.dart';
 
 class DisplayRoutinesScreen extends StatefulWidget {
   const DisplayRoutinesScreen({super.key});
@@ -11,28 +10,33 @@ class DisplayRoutinesScreen extends StatefulWidget {
 }
 
 class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
-  String? createdBy;
+  // 🔹 IDs used to filter
+  static const String suggestedCreatorId = "p-0001"; // system / suggested
+  static const String caregiverId = "u-005";         // logged caregiver
+
+  bool showSuggested = true;     // true = Suggested, false = Your Tasks
   bool loading = false;
   String? errorMsg;
-  List<RoutineModel> routines = [];
+
+  // two separate lists
+  List<RoutineModel> suggestedRoutines = [];
+  List<RoutineModel> caregiverRoutines = [];
 
   @override
   void initState() {
     super.initState();
-    createdBy = "p-0001"; // hardcoded for now
-    fetchRoutines();
+    _loadSuggestedRoutines(); // first tab = suggested
   }
 
-  Future<void> fetchRoutines() async {
+  Future<void> _loadSuggestedRoutines() async {
     setState(() {
       loading = true;
       errorMsg = null;
-      routines = [];
     });
 
     try {
-      final list = await RoutineApi.getRoutinesByCreator(createdBy!);
-      setState(() => routines = list);
+      final list = await RoutineApi.getRoutinesByCreator(suggestedCreatorId);
+      setState(() => suggestedRoutines = list);
     } catch (e) {
       setState(() => errorMsg = e.toString());
     } finally {
@@ -40,64 +44,160 @@ class _DisplayRoutinesScreenState extends State<DisplayRoutinesScreen> {
     }
   }
 
+  Future<void> _loadCaregiverRoutines() async {
+    setState(() {
+      loading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final list = await RoutineApi.getRoutinesByCreator(caregiverId);
+      setState(() => caregiverRoutines = list);
+    } catch (e) {
+      setState(() => errorMsg = e.toString());
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
+  // ============================= UI =============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Display Routines")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            if (loading) const CircularProgressIndicator(),
-            if (errorMsg != null)
-              Text(errorMsg!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 8),
+      backgroundColor: const Color(0xFFF9F1EA),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF235870),
+        title: const Text("Task Scheduler"),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
 
-            Expanded(
-              child: routines.isEmpty
-                  ? const Center(child: Text("No routines found"))
-                  : ListView.builder(
-                      itemCount: routines.length,
-                      itemBuilder: (context, index) {
-                        final r = routines[index];
-
-                        return InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RoutineDetailsScreen(routineId: r.id),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    r.title,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(r.description),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+          // ---------- TOGGLE ----------
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
             ),
-          ],
+            child: Row(
+              children: [
+                _toggleButton(
+                  title: "Suggested",
+                  selected: showSuggested,
+                  onTap: () async {
+                    if (!showSuggested) {
+                      setState(() => showSuggested = true);
+                      if (suggestedRoutines.isEmpty) {
+                        await _loadSuggestedRoutines();
+                      }
+                    }
+                  },
+                ),
+                _toggleButton(
+                  title: "Your Tasks",
+                  selected: !showSuggested,
+                  onTap: () async {
+                    if (showSuggested) {
+                      setState(() => showSuggested = false);
+                      if (caregiverRoutines.isEmpty) {
+                        await _loadCaregiverRoutines();
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ---------- CONTENT ----------
+          Expanded(
+            child: showSuggested
+                ? _buildRoutineList(suggestedRoutines, emptyText: "No suggested tasks")
+                : _buildRoutineList(caregiverRoutines, emptyText: "No tasks found"),
+          ),
+        ],
+      ),
+
+      // Only for caregiver tab
+      floatingActionButton: showSuggested
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.pushNamed(context, '/createRoutine');
+              },
+              label: const Text("Add New Task"),
+              icon: const Icon(Icons.add),
+              backgroundColor: const Color(0xFFC79C68),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  // ---------- Toggle Button ----------
+  Widget _toggleButton({
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFC79C68) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            title,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  // ---------- List widget used by both tabs ----------
+  Widget _buildRoutineList(List<RoutineModel> list, {required String emptyText}) {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (errorMsg != null) {
+      return Center(
+        child: Text(
+          errorMsg!,
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    if (list.isEmpty) {
+      return Center(child: Text(emptyText));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: list.length,
+      itemBuilder: (_, i) {
+        final r = list[i];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            title: Text(r.title),
+            subtitle: Text(r.description),
+            trailing: Text("${r.estimatedDuration} min"),
+          ),
+        );
+      },
     );
   }
 }
