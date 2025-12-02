@@ -17,7 +17,6 @@ dotenv.config();
 
 const app = express();
 
-
 // MIDDLEWARE
 // CORS
 app.use(
