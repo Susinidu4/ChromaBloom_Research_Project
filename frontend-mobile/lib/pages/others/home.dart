@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../others/profile_options_dialog.dart'; // 👈 adjust path if needed
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -107,10 +108,10 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              // right side: profile icon (tap -> Therapist Register)
+              // right side: profile icon (tap -> popup with navigation options)
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, '/therapistRegister');
+                  showProfileOptionsDialog(context);
                 },
                 child: Container(
                   width: 50,
@@ -210,7 +211,7 @@ class _FeatureCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF2E0),
+          color: const Color(0xFF235870),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -247,15 +248,17 @@ class _FeatureCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
-                  color: Colors.black87,
+                  fontFamily: 'poppins',
+                  color: Colors.white,
                 ),
               ),
             ),
