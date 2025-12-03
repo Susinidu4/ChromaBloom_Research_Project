@@ -1,7 +1,9 @@
-import React from 'react'
+import React from "react";
 
-export const admin_login = () => {
+export const AdminLogin = () => {
   return (
-    <div>admin_login</div>
-  )
-}
+    <div className="flex items-center justify-center h-screen bg-gray-50">
+      <h1 className="text-3xl font-bold text-gray-800">Admin Login</h1>
+    </div>
+  );
+};
