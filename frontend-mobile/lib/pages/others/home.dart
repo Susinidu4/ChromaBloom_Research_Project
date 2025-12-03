@@ -208,13 +208,13 @@ class _FeatureCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final VoidCallback onTap;
-  final Color bgColor; // 👈 ADDED
+  final Color bgColor; 
 
   const _FeatureCard({
     required this.title,
     required this.imagePath,
     required this.onTap,
-    required this.bgColor, // 👈 ADDED
+    required this.bgColor, 
   });
 
   @override
@@ -224,7 +224,7 @@ class _FeatureCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: bgColor, // 👈 APPLY CUSTOM COLOR
+          color: bgColor, 
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -243,7 +243,7 @@ class _FeatureCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: bgColor, // 👈 MATCH INNER BOX
+                    color: bgColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
