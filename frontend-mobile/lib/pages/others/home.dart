@@ -63,10 +63,10 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Transform.translate(
-                    offset: const Offset(0, -50),
+                    offset: const Offset(0, -70),
                     child: SizedBox(
-                      width: 150,
-                      height: 80,
+                      width: 170,
+                      height: 140,
                       child: Image.asset(
                         'assets/chromabloom2.png',
                         fit: BoxFit.contain,
