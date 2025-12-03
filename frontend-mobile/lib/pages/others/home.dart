@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../others/profile_options_dialog.dart'; // 👈 adjust path if needed
+import '../others/profile_options_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,7 +12,6 @@ class _HomePageState extends State<HomePage> {
   // ---- Colors ----
   final Color _primaryBlue = const Color(0xFF235870);
   final Color _lightBackground = const Color(0xFFF7EDE4);
-  final Color _cardBackground = const Color(0xFFFFF9F4);
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +107,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
 
-              // right side: profile icon (tap -> popup with navigation options)
+              // right side: profile icon
               GestureDetector(
                 onTap: () {
                   showProfileOptionsDialog(context);
@@ -162,26 +161,37 @@ class _HomePageState extends State<HomePage> {
         physics: const NeverScrollableScrollPhysics(),
         childAspectRatio: 0.78,
         children: [
+          // 1. Parental Stress Monitoring - BLUE GRAY
           _FeatureCard(
             title: 'Parental Stress\nMonitoring &\nSupport System',
             imagePath: 'assets/h1.png',
+            bgColor: const Color(0xFF6993AB),
             onTap: () {},
           ),
+
+          // 2. Task Scheduler - BEIGE
           _FeatureCard(
             title: 'Task Scheduler\n& Routine Builder',
             imagePath: 'assets/h2.png',
+            bgColor: const Color(0xFFDFC7A7),
             onTap: () {
               Navigator.pushNamed(context, '/displayRoutines');
             },
           ),
+
+          // 3. Gamified Knowledge - BEIGE
           _FeatureCard(
             title: 'Gamified\nKnowledge\nBuilder',
             imagePath: 'assets/h3.png',
+            bgColor: const Color(0xFFDFC7A7),
             onTap: () {},
           ),
+
+          // 4. Cognitive Profiling - BLUE GRAY
           _FeatureCard(
             title: 'Cognitive\nProfiling &\nProgress',
             imagePath: 'assets/h4.png',
+            bgColor: const Color(0xFF6993AB),
             onTap: () {},
           ),
         ],
@@ -190,28 +200,31 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// ========================================================================
 // ================= FEATURE CARD WIDGET =================
+// ========================================================================
+
 class _FeatureCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final VoidCallback onTap;
+  final Color bgColor; // 👈 ADDED
 
   const _FeatureCard({
     required this.title,
     required this.imagePath,
     required this.onTap,
+    required this.bgColor, // 👈 ADDED
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryBlue = const Color(0xFF235870);
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF235870),
+          color: bgColor, // 👈 APPLY CUSTOM COLOR
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -230,7 +243,7 @@ class _FeatureCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: primaryBlue,
+                    color: bgColor, // 👈 MATCH INNER BOX
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
