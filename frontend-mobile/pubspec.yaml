@@ -68,6 +68,17 @@ flutter:
   assets:
     - assets/
 
+  fonts:
+   - family: Poppins
+     fonts:
+      - asset: assets/fonts/Poppins-Regular.ttf
+      - asset: assets/fonts/Poppins-Bold.ttf
+      - asset: assets/fonts/Poppins-SemiBold.ttf
+      - asset: assets/fonts/Poppins-Medium.ttf
+      - asset: assets/fonts/Poppins-Light.ttf
+      - asset: assets/fonts/Poppins-ExtraBold.ttf
+      - asset: assets/fonts/Poppins-Thin.ttf
+ 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
