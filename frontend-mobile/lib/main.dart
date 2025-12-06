@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/others/SplashScreen.dart';
 import 'package:frontend/pages/others/home.dart';
+import 'package:frontend/pages/others/welcome_screen.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/create_routine.dart';
 import 'pages/Interactive_visual_task_scheduler/Caregiver_Routine/display_routine.dart';
 import 'pages/auth/signup/signup_screen.dart';
@@ -31,6 +33,8 @@ class MyApp extends StatelessWidget {
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
+        '/splash': (context) => const SplashScreen(),
+        '/welcome_screen': (context) => const WelcomePage()
       },
     );
   }
