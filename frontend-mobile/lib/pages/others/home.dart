@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 0),
 
           // ================= BOTTOM ROW: TEXT + PROFILE =================
           Row(
@@ -93,6 +93,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                   SizedBox(height: 4),
@@ -102,6 +103,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                 ],
@@ -135,18 +137,69 @@ class _HomePageState extends State<HomePage> {
 
   // ================= HERO CARD =================
   Widget _buildHeroCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: 250,
-          width: double.infinity,
-          child: Image.asset('assets/banner.png'),
+    return Center(
+        child: Stack(
+          clipBehavior: Clip.none, // allows overlap
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+              width: 500,
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFBD9A6B), // <-- new border color
+                  width: 3,
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+
+                // reduce width of text column
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.6, // 60% width
+                  
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Designed for Caregivers. Loved by Children. ❤️",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFBD9A6B), // <-- text color
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontFamily: 'Poppins',
+                          color: Color(0xFFBD9A6B), // <-- text color
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Image overlapping the right border
+            Positioned(
+              right: -30,
+              top: 25,
+              child: Image.asset(
+                "assets/images/banner_image.png",
+                width: 200,
+                height: 200,
+              ),
+            ),
+          ],
         ),
-      ),
-    );
+      );
   }
 
   // ================= FEATURE GRID =================
@@ -270,7 +323,7 @@ class _FeatureCard extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
-                  fontFamily: 'poppins',
+                  fontFamily: 'Poppins',
                   color: Colors.white,
                 ),
               ),
