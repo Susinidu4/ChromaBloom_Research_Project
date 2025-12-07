@@ -70,7 +70,6 @@ export const createRoutine = async (req, res) => {
   }
 };
 
-
 // Controller to get routines by creator
 export const getRoutineByCreator = async (req, res) => {
   try {
