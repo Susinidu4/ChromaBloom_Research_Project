@@ -13,6 +13,13 @@ import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js
 // parental stress monitoring
 import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
+// gemified knowledge builder
+import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
+import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js";
+import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLesson.routes.js";
+import completeProblemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingLesson.routes.js";
+
+
 dotenv.config();
 
 const app = express();
@@ -43,6 +50,11 @@ app.use("/api/therapists", therapistRoutes);
 app.use("/chromabloom/routine", routine);
 // Parent Stress Monitoring 
 app.use("/chromabloom/journalEntries", journalEntryRoutes);
+// Gemified Knowledge Builder
+app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
+app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
+app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
+app.use("/chromabloom/completed-problem-solving-lessons",completeProblemSolvingLessonRoutes);
 
 //  ERROR HANDLER (JSON, not HTML)
 app.use((err, req, res, next) => {
