@@ -1,4 +1,4 @@
-import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/UserActivity.js";
+import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/UserActivityModel.js";
 import cloudinary from "../../config/cloudinary.js";
 
 // Controller to create a new routine
