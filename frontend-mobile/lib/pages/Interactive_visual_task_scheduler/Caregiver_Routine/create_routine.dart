@@ -13,7 +13,7 @@ class _FormScreenState extends State<FormScreen> {
 
   // TEMP hard-coded caregiver / user id
   // TODO: later replace with real logged-in caregiver id
-  static const String hardcodedCaregiverId = "p-0001";
+  static const String hardcodedCaregiverId = "u-005";
 
   // Controllers for routine fields
   final TextEditingController titleController = TextEditingController();
