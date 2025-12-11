@@ -1,7 +1,7 @@
 // controllers/caregiver.controller.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import Caregiver from "../../models/Users/caregiver.model.js";
+import Caregiver from "../../models/Users/caregiverModel.js";
 
 // Helper to create JWT
 const generateToken = (caregiver) => {

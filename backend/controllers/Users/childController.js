@@ -1,5 +1,5 @@
 // controllers/child.controller.js
-import Child from "../../models/Users/child.model.js";
+import Child from "../../models/Users/childModel.js";
 
 // ==================================
 // CREATE / REGISTER CHILD
