@@ -19,7 +19,7 @@ const userActivitySchema = new Schema(
   {
     
     user_activityId: {     // Auto-increment number: 1,2,3
-      type: Number,
+      type: String,
       unique: true,
     },
 
@@ -87,20 +87,35 @@ const userActivitySchema = new Schema(
   }
 );
 
-// AUTO-GENERATE user_activityId BEFORE SAVING
+// AUTO-GENERATE user_activityId BEFORE SAVING (U001, U002...)
 userActivitySchema.pre("save", async function (next) {
-
-  // If already present (manual seed), skip
+  // If already set (manual seed), skip
   if (this.user_activityId) return next();
 
   const last = await this.constructor
     .findOne()
-    .sort({ user_activityId: -1 })
+    .sort({ created_at: -1 }) // last created doc
     .lean();
 
-  const nextId = last && last.user_activityId ? last.user_activityId + 1 : 1;
+  let lastNumber = 0;
 
-  this.user_activityId = nextId;
+  if (last && last.user_activityId) {
+    const raw = last.user_activityId;
+
+    if (typeof raw === "number") {
+      // old numeric style
+      lastNumber = raw;
+    } else if (typeof raw === "string") {
+      const match = raw.match(/\d+/); // grab digits from "U001"
+      if (match) {
+        lastNumber = parseInt(match[0], 10) || 0;
+      }
+    }
+  }
+
+  const nextNumber = lastNumber + 1;
+  this.user_activityId = `UA-${String(nextNumber).padStart(3, "0")}`;
+
   next();
 });
 
