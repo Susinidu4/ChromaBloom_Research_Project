@@ -1,5 +1,19 @@
-import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/UserActivityModel.js";
+import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/userActivityModel.js";
 import cloudinary from "../../config/cloudinary.js";
+
+// helper: upload buffer to Cloudinary using upload_stream
+const uploadBufferToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    stream.end(buffer); // send the in-memory file buffer
+  });
+};
 
 // Controller to create a new routine
 export const createUserActivity = async (req, res) => {
@@ -14,8 +28,20 @@ export const createUserActivity = async (req, res) => {
       scheduled_date,
       estimated_duration_minutes,
       difficulty_level,
-      media_image_base64,
     } = req.body;
+
+    // ------------ parse steps (comes as string in multipart) -------------
+    let parsedSteps = [];
+    if (typeof steps === "string") {
+      // expecting JSON string from Postman/Flutter
+      try {
+        parsedSteps = JSON.parse(steps);
+      } catch (e) {
+        return res.status(400).json({ error: "steps must be valid JSON" });
+      }
+    } else if (Array.isArray(steps)) {
+      parsedSteps = steps;
+    }
 
     // Basic validations
     if (!created_by || !title || !description) {
@@ -32,7 +58,7 @@ export const createUserActivity = async (req, res) => {
       return res.status(400).json({ error: "development_area is required" });
     }
 
-    if (!steps || !Array.isArray(steps) || steps.length === 0) {
+    if (!parsedSteps || !Array.isArray(parsedSteps) || parsedSteps.length === 0) {
       return res.status(400).json({
         error: "Activity must contain at least one step",
       });
@@ -52,23 +78,22 @@ export const createUserActivity = async (req, res) => {
       return res.status(400).json({ error: "difficulty_level is required" });
     }
 
-    // Upload Image to Cloudinary
+    // ---------------- CLOUDINARY UPLOAD (multer + buffer) ----------------
+    let mediaLinksArray = [];
 
-    let uploadedImageUrl = null;
-
-    if (media_image_base64) {
+    if (req.file) {
       try {
-        const uploadResult = await cloudinary.uploader.upload(
-          media_image_base64,
-          {
-            folder: "chromabloom/user_activities",
-          }
+        const result = await uploadBufferToCloudinary(
+          req.file.buffer,
+          "chromabloom/user_activities"
         );
-
-        uploadedImageUrl = uploadResult.secure_url;
-      } catch (imgErr) {
-        console.error("Cloudinary upload error:", imgErr);
-        return res.status(500).json({ error: "Image upload failed" });
+        mediaLinksArray.push(result.secure_url); // 👈 store URL
+      } catch (error) {
+        console.error("Cloudinary Upload Error:", error);
+        return res.status(500).json({
+          error: "Image upload failed",
+          details: error.message,
+        });
       }
     }
 
@@ -79,11 +104,11 @@ export const createUserActivity = async (req, res) => {
       description,
       age_group,
       development_area,
-      steps,
+      steps: parsedSteps,
       scheduled_date,
       estimated_duration_minutes,
       difficulty_level,
-      media_links: uploadedImageUrl ? [uploadedImageUrl] : [], // optional, can be undefined
+      media_links: mediaLinksArray.length > 0 ? mediaLinksArray : [],
     });
 
     return res.status(201).json({
