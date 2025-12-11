@@ -1,5 +1,5 @@
 // controllers/admin.controller.js
-import Admin from "../../models/Users/admin.model.js";
+import Admin from "../../models/Users/adminModel.js";
 
 // Create new admin
 export const createAdmin = async (req, res) => {
