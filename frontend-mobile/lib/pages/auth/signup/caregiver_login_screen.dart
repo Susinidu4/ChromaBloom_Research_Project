@@ -1,4 +1,6 @@
+// lib/pages/auth/caregiver_login_screen.dart
 import 'package:flutter/material.dart';
+import '../../../services/user_services/caregiver_api.dart';
 
 class CaregiverLoginScreen extends StatefulWidget {
   const CaregiverLoginScreen({super.key});
@@ -34,29 +36,30 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Call your caregiver login API here
-      // Example:
-      // final success = await CaregiverApi.login(
-      //   emailController.text.trim(),
-      //   passwordController.text.trim(),
-      // );
+      final result = await CaregiverApi.login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-      await Future.delayed(const Duration(seconds: 1)); // dummy delay
+      if (!mounted) return;
 
-      // For now, just show success snackbar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful (demo)")),
-        );
-        // TODO: Navigate to HomePage or Dashboard
-        // Navigator.pushReplacementNamed(context, '/home');
-      }
+      final caregiver = result['caregiver'];
+      final msg = result['message'] ?? 'Login successful';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+
+      // TODO: store token / caregiver info in local storage or provider
+      // final token = result['token'];
+
+      // TODO: Navigate to caregiver home/dashboard
+      // Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: $e")),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

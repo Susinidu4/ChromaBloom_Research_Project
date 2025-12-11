@@ -258,7 +258,7 @@ class _TherapistRegisterScreenState extends State<TherapistRegisterScreen> {
 
                       DropdownButtonFormField<String>(
                         decoration: _dropdownDecoration(label: "Gender"),
-                        value: gender,
+                        initialValue: gender,
                         items: const [
                           DropdownMenuItem(
                               value: "Male", child: Text("Male")),
