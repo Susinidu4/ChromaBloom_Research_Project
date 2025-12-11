@@ -1,11 +1,12 @@
 import express from 'express';
 import { createUserActivity, deleteUserActivity, updateUserActivity, getUserActivitiesByDate, getAllUserActivities, getAllActivities } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/userActivityController.js';
+import upload from '../../middlewares/uploadImage.js';
 
 const router = express.Router();
 
 // Create a new user activity
-// POST /chromabloom/userActivities
-router.post("/createUserActivity", createUserActivity);
+// POST /chromabloom/userActivities/createUserActivity
+router.post("/createUserActivity", upload.single("media_image"), createUserActivity);
 
 // Display all activities
 // GET /chromabloom/userActivities/allUserActivity
