@@ -8,19 +8,17 @@ const childSchema = new mongoose.Schema(
     // ----- Child Details -----
     childName: {
       type: String,
-      required: true,
       trim: true,
     },
 
     dateOfBirth: {
       type: Date,
-      required: true,
     },
 
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
-      required: true,
+      
     },
 
     heightCm: {
@@ -57,14 +55,12 @@ const childSchema = new mongoose.Schema(
     caregiver: {
       type: String,          // "p-0001"
       ref: "Caregiver",
-      required: true,
     },
 
     // Link to therapist (ONE therapist per child)
     therapist: {
       type: String,          // "t-0001"
-      ref: "Therapist",
-      required: true,        // make true if every child MUST have therapist
+      ref: "Therapist",      // make true if every child MUST have therapist
     },
   },
   {

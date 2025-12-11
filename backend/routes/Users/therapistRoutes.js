@@ -7,7 +7,7 @@ import {
   getTherapistById,
   updateTherapist,
   deleteTherapist,
-} from "../../controllers/Users/therapist.controller.js";
+} from "../../controllers/Users/therapistController.js";
 
 const router = express.Router();
 
