@@ -11,7 +11,7 @@ import therapistRoutes from "./routes/Users/therapist.routes.js";
 
 // routine management
 import userActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/userActivityRoute.js";
-
+import systemActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/systemActivityRoute.js";
 // parental stress monitoring
 import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
@@ -50,6 +50,7 @@ app.use("/api/children", childRoutes);
 app.use("/api/therapists", therapistRoutes);
 // Routine Management
 app.use("/chromabloom/userActivities", userActivityRoutes);
+app.use("/chromabloom/systemActivities", systemActivityRoutes);
 // Parent Stress Monitoring 
 app.use("/chromabloom/journalEntries", journalEntryRoutes);
 // Gemified Knowledge Builder
