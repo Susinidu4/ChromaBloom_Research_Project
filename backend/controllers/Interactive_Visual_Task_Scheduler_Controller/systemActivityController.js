@@ -126,3 +126,22 @@ export const createSystemActivity = async (req, res) => {
     });
   }
 };
+
+// GET all system activities
+export const getAllSystemActivities = async (req, res) => {
+  try {
+    // Fetch everything sorted by created date (newest first)
+    const activities = await SystemActivity.find().sort({ created_at: -1 });
+
+    return res.status(200).json({
+      message: "All system activities fetched successfully",
+      count: activities.length,
+      data: activities,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
