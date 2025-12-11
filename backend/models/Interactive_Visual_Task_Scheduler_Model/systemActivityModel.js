@@ -18,7 +18,7 @@ const stepSchema = new Schema(
 const systemActivitySchema = new Schema(
   {
     system_activityId: { // Auto-increment number: 1,2,3
-      type: Number,
+      type: String,
       unique: true,
     },
 
@@ -70,7 +70,10 @@ const systemActivitySchema = new Schema(
       },
     ],
   },
-  { timestamps: true }
+  {
+    collection: "SystemActivity",
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
+  }
 );
 
 // AUTO-GENERATE system_activityId: S001, S002
@@ -85,8 +88,8 @@ systemActivitySchema.pre("save", async function (next) {
   let nextNumber = 1;
 
   if (lastActivity && lastActivity.system_activityId) {
-    // Extract number from "S001"
-    const lastNumber = parseInt(lastActivity.system_activityId.substring(1));
+    // Extract number from "A-001"
+    const lastNumber = parseInt(lastActivity.system_activityId.substring(3));
     nextNumber = lastNumber + 1;
   }
 
