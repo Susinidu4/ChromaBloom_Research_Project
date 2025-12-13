@@ -18,6 +18,13 @@ const ProblemSolvingLessonSchema = new mongoose.Schema({
     tips: [TipsSchema],
     correct_answer: {type: String, required: true},
     images: [ImageSchema],
+    catergory: {type: String , enum: [
+        'match the similar objects',
+        'spot the difference',
+        'sorting by category',
+        'what happen next',
+        'find the missing piece'
+    ]},
 }, {timestamps: true});
     
 //pass unique id to _id field like LP-0001
