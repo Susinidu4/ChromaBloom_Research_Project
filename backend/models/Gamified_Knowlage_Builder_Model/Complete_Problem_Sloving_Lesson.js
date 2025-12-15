@@ -1,38 +1,60 @@
 import mongoose from "mongoose";
 
-const Complete_Problem_Solving_Lesson_Schema = new mongoose.Schema(
+/* Embedded Completed Lesson*/
+const CompleteProblemSolvingLessonSchema = new mongoose.Schema(
   {
-    _id: { type: String },
-
-    // RELATIONSHIP: which lesson was completed
     lesson_id: {
       type: String,
-      ref: "ProblemSolvingLesson",  
+      ref: "ProblemSolvingLesson",
+      required: true,
+    },
+  },
+  { _id: false } // no separate _id for subdocuments
+);
+
+/*Main Completion Session*/
+const CompleteProblemSolvingSessionSchema = new mongoose.Schema(
+  {
+    _id: { type: String }, // CLP-0001
+
+    user_id: {
+      type: String,
       required: true,
     },
 
-    user_id: {type: String},
+    lessons: {
+      type: [CompleteProblemSolvingLessonSchema],
+    },
+
+    correctness_score: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
 
-// pass unique id to _id like CLP-0001
-Complete_Problem_Solving_Lesson_Schema.pre("save", async function (next) {
+/* AUTO GENERATE ID (CLP-0001)*/
+CompleteProblemSolvingSessionSchema.pre("save", async function (next) {
   if (this.isNew) {
-    const lastLesson = await mongoose
-      .model("Complete_Problem_Solving_Lesson")
+    const last = await mongoose
+      .model("CompleteProblemSolvingSession")
       .findOne()
       .sort({ _id: -1 });
 
-    if (!lastLesson) {
+    if (!last) {
       this._id = "CLP-0001";
     } else {
-      const lastNumber = parseInt(lastLesson._id.split("-")[1]);
+      const lastNumber = parseInt(last._id.split("-")[1]);
       this._id = "CLP-" + String(lastNumber + 1).padStart(4, "0");
     }
   }
   next();
 });
 
-const Complete_Problem_Solving_Lesson = mongoose.model("Complete_Problem_Solving_Lesson",Complete_Problem_Solving_Lesson_Schema);
-export default Complete_Problem_Solving_Lesson;
+const CompleteProblemSolvingSession = mongoose.model(
+  "CompleteProblemSolvingSession",
+  CompleteProblemSolvingSessionSchema
+);
+
+export default CompleteProblemSolvingSession;
