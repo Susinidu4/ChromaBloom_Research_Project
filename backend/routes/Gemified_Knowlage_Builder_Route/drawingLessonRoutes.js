@@ -8,7 +8,7 @@ import {
   getDrawingLessonById,
   updateDrawingLesson,
   deleteDrawingLesson,
-} from "../../controllers/Gemified_knowlage_Builder_Controller/drawingLesson.controller.js"; // adjust path as needed
+} from "../../controllers/Gemified_knowlage_Builder_Controller/drawingLessonController.js"; // adjust path as needed
 
 const router = express.Router();
 

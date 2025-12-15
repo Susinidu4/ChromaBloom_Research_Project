@@ -14,11 +14,10 @@ import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js
 import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
 // gemified knowledge builder
-import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
-import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js";
-import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLesson.routes.js";
-import completeProblemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingLesson.routes.js";
-
+import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLessonRoutes.js";
+import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLessonRoutes.js";
+import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLessonRoutes.js";
+import completeProblemSolvingSessionRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingSessonRoutes.js";
 
 dotenv.config();
 
@@ -54,7 +53,7 @@ app.use("/chromabloom/journalEntries", journalEntryRoutes);
 app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
 app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
-app.use("/chromabloom/completed-problem-solving-lessons",completeProblemSolvingLessonRoutes);
+app.use("/chromabloom/complete-problem-solving-sessions", completeProblemSolvingSessionRoutes);
 
 //  ERROR HANDLER (JSON, not HTML)
 app.use((err, req, res, next) => {

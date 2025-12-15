@@ -8,7 +8,7 @@ import {
   getProblemSolvingLessonById,
   updateProblemSolvingLesson,
   deleteProblemSolvingLesson,
-} from "../../controllers/Gemified_knowlage_Builder_Controller/problemSolvingLesson.controller.js"; // adjust path if needed
+} from "../../controllers/Gemified_knowlage_Builder_Controller/problemSolvingLessonController.js"; // adjust path if needed
 
 const router = express.Router();
 
