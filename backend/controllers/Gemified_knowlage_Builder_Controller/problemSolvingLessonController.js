@@ -23,7 +23,7 @@ const uploadImageToCloudinary = (fileBuffer) => {
 // @route   POST /chromabloom/problem-solving-lessons
 export const createProblemSolvingLesson = async (req, res, next) => {
   try {
-    const { title, content, difficultyLevel, correct_answer, tips } = req.body;
+    const { title, content, difficultyLevel, correct_answer, tips , catergory } = req.body;
 
     if (!title || !difficultyLevel || !correct_answer) {
       return res.status(400).json({
@@ -66,6 +66,7 @@ export const createProblemSolvingLesson = async (req, res, next) => {
       correct_answer,
       tips: parsedTips,
       images,
+      catergory
     });
 
     return res.status(201).json({ success: true, data: lesson });
@@ -107,7 +108,7 @@ export const getProblemSolvingLessonById = async (req, res, next) => {
 // @route   PUT /chromabloom/problem-solving-lessons/:id
 export const updateProblemSolvingLesson = async (req, res, next) => {
   try {
-    const { title, content, difficultyLevel, correct_answer, tips } = req.body;
+    const { title, content, difficultyLevel, correct_answer, tips, catergory } = req.body;
 
     const lesson = await ProblemSolvingLesson.findById(req.params.id);
     if (!lesson) {
@@ -120,6 +121,7 @@ export const updateProblemSolvingLesson = async (req, res, next) => {
     if (content) lesson.content = content;
     if (difficultyLevel) lesson.difficultyLevel = difficultyLevel;
     if (correct_answer) lesson.correct_answer = correct_answer;
+    if (catergory) lesson.catergory = catergory;
 
     if (tips) {
       try {

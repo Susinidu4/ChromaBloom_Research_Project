@@ -12,6 +12,10 @@ import DrawingLessonCreate from "./pages/Gemified_Knowledge_Builder/Drawing_Less
 import DrawingLessonView from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonView";
 import DrawingLessonEdit from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonEdit";
 import DrawingLessonList from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonList";
+import ProblemSolvingLessonCreate from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonCreate";
+import ProblemSolvingLessonView from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonView";
+import ProblemSolvingLessonEdit from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonEdit";
+import ProblemSolvingLessonList from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonList";
 
 function App() {
 
@@ -31,6 +35,11 @@ function App() {
         <Route path="/drawing_lessons/:id" element={<DrawingLessonView />} />
         <Route path="/drawing_lessons/:id/edit" element={<DrawingLessonEdit />} />
         <Route path="/drawing_lessons" element={<DrawingLessonList />} />
+
+        <Route path="/problem_solving_lessons_create" element={<ProblemSolvingLessonCreate />} />
+        <Route path="/problem_solving_lessons/:id" element={<ProblemSolvingLessonView />} />
+        <Route path="/problem_solving_lessons/:id/edit" element={<ProblemSolvingLessonEdit />} />
+        <Route path="/problem_solving_lessons" element={<ProblemSolvingLessonList />} />
       </Routes>
     </>
   );
