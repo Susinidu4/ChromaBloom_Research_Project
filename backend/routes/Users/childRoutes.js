@@ -7,7 +7,7 @@ import {
   getChildrenByCaregiver,
   updateChild,
   deleteChild,
-} from "../../controllers/Users/child.controller.js";
+} from "../../controllers/Users/childController.js";
 
 const router = express.Router();
 

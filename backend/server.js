@@ -4,12 +4,14 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 
 // user management
-import adminRoutes from "./routes/Users/admin.routes.js";
-import caregiverRoutes from "./routes/Users/caregiver.routes.js";
-import childRoutes from "./routes/Users/child.routes.js";
-import therapistRoutes from "./routes/Users/therapist.routes.js";
+import adminRoutes from "./routes/Users/adminRoutes.js";
+import caregiverRoutes from "./routes/Users/caregiverRoutes.js";
+import childRoutes from "./routes/Users/childRoutes.js";
+import therapistRoutes from "./routes/Users/therapistRoutes.js";
+
 // routine management
-import routine from "./routes/Interactive_Visual_Task_Scheduler_Route/routine.js";
+import userActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/userActivityRoute.js";
+import systemActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/systemActivityRoute.js";
 // parental stress monitoring
 import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
 
@@ -41,12 +43,13 @@ connectDB();
 
 // Routes
 // User Management
-app.use("/chromabloom/api/admins", adminRoutes);
-app.use("/api/caregivers", caregiverRoutes);
-app.use("/api/children", childRoutes);
-app.use("/api/therapists", therapistRoutes);
+app.use("/chromabloom/admins", adminRoutes);
+app.use("/chromabloom/caregivers", caregiverRoutes);
+app.use("/chromabloom/children", childRoutes);
+app.use("/chromabloom/therapists", therapistRoutes);
 // Routine Management
-app.use("/chromabloom/routine", routine);
+app.use("/chromabloom/userActivities", userActivityRoutes);
+app.use("/chromabloom/systemActivities", systemActivityRoutes);
 // Parent Stress Monitoring 
 app.use("/chromabloom/journalEntries", journalEntryRoutes);
 // Gemified Knowledge Builder

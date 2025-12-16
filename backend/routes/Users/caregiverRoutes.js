@@ -7,7 +7,7 @@ import {
   getCaregiverById,
   updateCaregiver,
   deleteCaregiver,
-} from "../../controllers/Users/caregiver.controller.js";
+} from "../../controllers/Users/caregiverController.js";
 
 const router = express.Router();
 
