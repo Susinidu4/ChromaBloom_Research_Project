@@ -13,7 +13,7 @@ export default function DrawingLessonCreate() {
       setSaving(true);
       setError("");
       const res = await createDrawingLesson(values);
-      nav(`/lessons/${res.data._id}`);
+      nav(`/drawing_lessons/${res.data._id}`);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Create failed");
     } finally {

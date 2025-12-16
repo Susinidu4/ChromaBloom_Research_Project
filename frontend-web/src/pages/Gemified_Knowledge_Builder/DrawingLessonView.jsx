@@ -31,8 +31,8 @@ export default function DrawingLessonView() {
     <div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <h3 style={{ marginRight: "auto" }}>{lesson.title}</h3>
-        <Link to={`/lessons/${lesson._id}/edit`}>Edit</Link>
-        <Link to="/">Back</Link>
+        <Link to={`/drawing_lessons/${lesson._id}/edit`}>Edit</Link>
+        <Link to="/drawing_lessons">Back</Link>
       </div>
 
       <p><b>ID:</b> {lesson._id}</p>

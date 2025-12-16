@@ -64,8 +64,8 @@ export default function DrawingLessonList() {
                   </div>
                 </div>
 
-                <Link to={`/lessons/${l._id}`}>View</Link>
-                <Link to={`/lessons/${l._id}/edit`}>Edit</Link>
+                <Link to={`/drawing_lessons/${l._id}`}>View</Link>
+                <Link to={`/drawing_lessons/${l._id}/edit`}>Edit</Link>
                 <button onClick={() => onDelete(l._id)}>Delete</button>
               </div>
             </div>

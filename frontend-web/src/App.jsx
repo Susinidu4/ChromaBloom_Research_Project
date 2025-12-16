@@ -28,8 +28,8 @@ function App() {
 
         {/* Gemified Knowledge Builder */}
         <Route path="/drawing_lessons_create" element={<DrawingLessonCreate />} />
-        <Route path="/lessons/:id" element={<DrawingLessonView />} />
-        <Route path="/lessons/:id/edit" element={<DrawingLessonEdit />} />
+        <Route path="/drawing_lessons/:id" element={<DrawingLessonView />} />
+        <Route path="/drawing_lessons/:id/edit" element={<DrawingLessonEdit />} />
         <Route path="/drawing_lessons" element={<DrawingLessonList />} />
       </Routes>
     </>

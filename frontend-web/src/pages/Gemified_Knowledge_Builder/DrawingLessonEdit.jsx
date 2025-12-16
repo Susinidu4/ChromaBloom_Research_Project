@@ -32,7 +32,7 @@ export default function DrawingLessonEdit() {
       setSaving(true);
       setError("");
       await updateDrawingLesson(id, values);
-      nav(`/lessons/${id}`);
+      nav(`/drawing_lessons/${id}`);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Update failed");
     } finally {
@@ -47,8 +47,7 @@ export default function DrawingLessonEdit() {
   return (
     <div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <h3 style={{ marginRight: "auto" }}>Edit Lesson</h3>
-        <Link to={`/lessons/${id}`}>Back</Link>
+        <Link to={`/drawing_lessons/${id}`}>Back</Link>
       </div>
 
       <LessonForm
