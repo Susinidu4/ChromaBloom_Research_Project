@@ -515,23 +515,58 @@ class _TaskCard extends StatelessWidget {
 
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color cardBg = Color(0xFFE9DDCC);
+  static const Color shadow = Color(0x22000000);
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        height: 105,
-        padding: const EdgeInsets.all(12),
+        height: 110,
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(color: shadow, blurRadius: 14, offset: Offset(0, 8)),
+          ],
         ),
         child: Row(
           children: [
-            Image.asset(imagePath, height: 85, width: 85),
+            // ✅ LEFT COLOR BAR
+            Container(
+              width: 12,
+
+              decoration: BoxDecoration(
+                color: Color(0xFFDFC7A7),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                  // topRight and bottomRight will be sharp by default
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    _Dot(),
+                    SizedBox(height: 6),
+                    _Dot(),
+                    SizedBox(height: 6),
+                    _Dot(),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(width: 12),
+
+            // ✅ IMAGE
+            Image.asset(imagePath, height: 80, width: 80, fit: BoxFit.contain),
+
+            const SizedBox(width: 12),
+
+            // ✅ TITLE + DESCRIPTION
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -545,38 +580,64 @@ class _TaskCard extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     desc,
                     style: TextStyle(
                       color: stroke.withOpacity(0.7),
                       fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  status,
-                  style: TextStyle(
-                    color: stroke.withOpacity(0.85),
-                    fontSize: 10,
+
+            // ✅ STATUS + PERCENT
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    status,
+                    style: TextStyle(
+                      color: stroke.withOpacity(0.8),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                Text(
-                  "$percent%",
-                  style: const TextStyle(
-                    color: stroke,
-                    fontWeight: FontWeight.w900,
+                  const SizedBox(height: 4),
+                  Text(
+                    "$percent%",
+                    style: const TextStyle(
+                      color: stroke,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 5,
+      height: 5,
+      decoration: BoxDecoration(
+        color: Color(0xFFBD9A6B), // slightly darker than bar
+        shape: BoxShape.circle,
       ),
     );
   }
