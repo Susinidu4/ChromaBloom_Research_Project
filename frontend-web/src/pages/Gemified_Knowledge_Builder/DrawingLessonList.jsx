@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteDrawingLesson, getAllDrawingLessons } from "../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
 
-export default function LessonList() {
+export default function DrawingLessonList() {
   const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState([]);
   const [error, setError] = useState("");

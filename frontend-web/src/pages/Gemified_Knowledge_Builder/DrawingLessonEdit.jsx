@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { getDrawingLessonById, updateDrawingLesson } from "../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
-import LessonForm from "./LessonForm";
+import LessonForm from "./DrawingLessonForm.jsx";
 
-export default function LessonEdit() {
+export default function DrawingLessonEdit() {
   const { id } = useParams();
   const nav = useNavigate();
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getDrawingLessonById } from "../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
 
-export default function LessonView() {
+export default function DrawingLessonView() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState(null);

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createDrawingLesson } from "../../services/Gemified_Knowledge_Builder/drawingLessonService";
-import LessonForm from "./LessonForm";
+import LessonForm from "./DrawingLessonForm";
 
-export default function LessonCreate() {
+export default function DrawingLessonCreate() {
   const nav = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
