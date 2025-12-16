@@ -7,7 +7,7 @@ import {
   getCompleteDrawingLessonsByUserId,
   updateCompleteDrawingLesson,
   deleteCompleteDrawingLesson,
-} from "../../controllers/Gemified_knowlage_Builder_Controller/completeDrawingLesson.controller.js"; 
+} from "../../controllers/Gemified_knowlage_Builder_Controller/completeDrawingLessonController.js"; 
 
 const router = express.Router();
 
