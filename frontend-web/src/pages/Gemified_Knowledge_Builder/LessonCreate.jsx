@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createDrawingLesson } from "../services/drawingLesson.service";
+import { createDrawingLesson } from "../../services/Gemified_Knowledge_Builder/drawingLessonService";
 import LessonForm from "./LessonForm";
 
 export default function LessonCreate() {
@@ -23,7 +23,6 @@ export default function LessonCreate() {
 
   return (
     <div>
-      <h3>Create Drawing Lesson</h3>
       {error && <p style={{ color: "crimson" }}>{error}</p>}
 
       <LessonForm
