@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { getDrawingLessonById, updateDrawingLesson } from "../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
+import { getDrawingLessonById, updateDrawingLesson } from "../../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
 import LessonForm from "./DrawingLessonForm.jsx";
 
 export default function DrawingLessonEdit() {

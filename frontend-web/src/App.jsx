@@ -8,10 +8,10 @@ import { Therapists_register } from "./pages/therapists/Therapists_register";
 import { Therapists_dashboard } from "./pages/therapists/Therapists_dashboard";
 import CreateAdmin from "./pages/admin/CreateAdmin";
 import AdminLogin from "./pages/admin/admin_login";
-import DrawingLessonCreate from "./pages/Gemified_Knowledge_Builder/DrawingLessonCreate";
-import DrawingLessonView from "./pages/Gemified_Knowledge_Builder/DrawingLessonView";
-import DrawingLessonEdit from "./pages/Gemified_Knowledge_Builder/DrawingLessonEdit";
-import DrawingLessonList from "./pages/Gemified_Knowledge_Builder/DrawingLessonList";
+import DrawingLessonCreate from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonCreate";
+import DrawingLessonView from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonView";
+import DrawingLessonEdit from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonEdit";
+import DrawingLessonList from "./pages/Gemified_Knowledge_Builder/Drawing_Lessons/DrawingLessonList";
 
 function App() {
 
