@@ -1,0 +1,36 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createDrawingLesson } from "../services/drawingLesson.service";
+import LessonForm from "./LessonForm";
+
+export default function LessonCreate() {
+  const nav = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function onSubmit(values) {
+    try {
+      setSaving(true);
+      setError("");
+      const res = await createDrawingLesson(values);
+      nav(`/lessons/${res.data._id}`);
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message || "Create failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <h3>Create Drawing Lesson</h3>
+      {error && <p style={{ color: "crimson" }}>{error}</p>}
+
+      <LessonForm
+        mode="create"
+        saving={saving}
+        onSubmit={onSubmit}
+      />
+    </div>
+  );
+}
