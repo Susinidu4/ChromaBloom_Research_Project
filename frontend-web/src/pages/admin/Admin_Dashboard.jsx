@@ -26,6 +26,24 @@ export const Admin_Dashboard = () => {
           <h3>Manage Drawing Lessons</h3>
           <p>View, edit, or delete existing lessons</p>
         </div>
+
+        {/* create problem solving lesson */}
+        <div
+          style={styles.card}
+          onClick={() => navigate("/problem_solving_lessons_create")}
+        >
+          <h3>Create Problem Solving Lesson</h3>
+          <p>Add new problem solving lessons with video & tips</p>
+        </div>
+
+        {/* View Problem Solving Lessons */}
+        <div
+          style={styles.card}
+          onClick={() => navigate("/problem_solving_lessons")}
+        >
+          <h3>Manage Problem Solving Lessons</h3>
+          <p>View, edit, or delete existing lessons</p>
+        </div>
       </div>
     </div>
   );
