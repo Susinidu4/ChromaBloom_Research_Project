@@ -12,6 +12,8 @@ const Complete_Drawing_Lesson_Schema = new mongoose.Schema(
     },
 
     user_id: { type: String},
+
+    correctness_rate : { type: Number, default: 0 },
   },
   { timestamps: true }
 );
