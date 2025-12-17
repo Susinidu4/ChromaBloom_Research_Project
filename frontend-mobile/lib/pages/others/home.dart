@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../others/profile_options_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,7 +12,6 @@ class _HomePageState extends State<HomePage> {
   // ---- Colors ----
   final Color _primaryBlue = const Color(0xFF235870);
   final Color _lightBackground = const Color(0xFFF7EDE4);
-  final Color _cardBackground = const Color(0xFFFFF9F4);
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +62,10 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Transform.translate(
-                    offset: const Offset(0, -50),
+                    offset: const Offset(0, -70),
                     child: SizedBox(
-                      width: 150,
-                      height: 80,
+                      width: 170,
+                      height: 140,
                       child: Image.asset(
                         'assets/chromabloom2.png',
                         fit: BoxFit.contain,
@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 0),
 
           // ================= BOTTOM ROW: TEXT + PROFILE =================
           Row(
@@ -93,6 +93,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                   SizedBox(height: 4),
@@ -102,15 +103,16 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
+                      fontFamily: 'Poppins',
                     ),
                   ),
                 ],
               ),
 
-              // right side: profile icon (tap -> Therapist Register)
+              // right side: profile icon
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, '/therapistRegister');
+                  showProfileOptionsDialog(context);
                 },
                 child: Container(
                   width: 50,
@@ -135,18 +137,69 @@ class _HomePageState extends State<HomePage> {
 
   // ================= HERO CARD =================
   Widget _buildHeroCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: 250,
-          width: double.infinity,
-          child: Image.asset('assets/banner.png'),
+    return Center(
+        child: Stack(
+          clipBehavior: Clip.none, // allows overlap
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+              width: 500,
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFBD9A6B), // <-- new border color
+                  width: 3,
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+
+                // reduce width of text column
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.6, // 60% width
+                  
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Designed for Caregivers. Loved by Children. ❤️",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFBD9A6B), // <-- text color
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontFamily: 'Poppins',
+                          color: Color(0xFFBD9A6B), // <-- text color
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Image overlapping the right border
+            Positioned(
+              right: -30,
+              top: 25,
+              child: Image.asset(
+                "assets/images/banner_image.png",
+                width: 200,
+                height: 200,
+              ),
+            ),
+          ],
         ),
-      ),
-    );
+      );
   }
 
   // ================= FEATURE GRID =================
@@ -161,26 +214,37 @@ class _HomePageState extends State<HomePage> {
         physics: const NeverScrollableScrollPhysics(),
         childAspectRatio: 0.78,
         children: [
+          // 1. Parental Stress Monitoring - BLUE GRAY
           _FeatureCard(
             title: 'Parental Stress\nMonitoring &\nSupport System',
             imagePath: 'assets/h1.png',
+            bgColor: const Color(0xFF6993AB),
             onTap: () {},
           ),
+
+          // 2. Task Scheduler - BEIGE
           _FeatureCard(
             title: 'Task Scheduler\n& Routine Builder',
             imagePath: 'assets/h2.png',
+            bgColor: const Color(0xFFDFC7A7),
             onTap: () {
-              Navigator.pushNamed(context, '/displayRoutines');
+              Navigator.pushNamed(context, '/displayUserActivity');
             },
           ),
+
+          // 3. Gamified Knowledge - BEIGE
           _FeatureCard(
             title: 'Gamified\nKnowledge\nBuilder',
             imagePath: 'assets/h3.png',
+            bgColor: const Color(0xFFDFC7A7),
             onTap: () {},
           ),
+
+          // 4. Cognitive Profiling - BLUE GRAY
           _FeatureCard(
             title: 'Cognitive\nProfiling &\nProgress',
             imagePath: 'assets/h4.png',
+            bgColor: const Color(0xFF6993AB),
             onTap: () {},
           ),
         ],
@@ -189,28 +253,31 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// ========================================================================
 // ================= FEATURE CARD WIDGET =================
+// ========================================================================
+
 class _FeatureCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final VoidCallback onTap;
+  final Color bgColor; 
 
   const _FeatureCard({
     required this.title,
     required this.imagePath,
     required this.onTap,
+    required this.bgColor, 
   });
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryBlue = const Color(0xFF235870);
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF2E0),
+          color: bgColor, 
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -229,7 +296,7 @@ class _FeatureCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: primaryBlue,
+                    color: bgColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
@@ -247,15 +314,17 @@ class _FeatureCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   height: 1.3,
-                  color: Colors.black87,
+                  fontFamily: 'Poppins',
+                  color: Colors.white,
                 ),
               ),
             ),
