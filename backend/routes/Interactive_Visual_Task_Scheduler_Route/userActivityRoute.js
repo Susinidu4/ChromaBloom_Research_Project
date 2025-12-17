@@ -16,7 +16,7 @@ router.get("/allUserActivity", getAllActivities);
 // GET /chromabloom/userActivities/allUserActivity/:caregiverId
 router.get("/allUserActivity/:caregiverId", getAllUserActivities);
 
-// Delete a user activity by ID
+// Get user activities by date
 // POST /chromabloom/userActivities/getByDate
 router.post("/getByDate", getUserActivitiesByDate);
 
