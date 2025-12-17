@@ -28,7 +28,8 @@ class MyApp extends StatelessWidget {
         
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
-        
+
+
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
