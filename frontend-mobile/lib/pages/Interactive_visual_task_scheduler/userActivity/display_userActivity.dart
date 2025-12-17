@@ -3,8 +3,10 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-// IMPORTANT: make sure you registered this in MaterialApp routes
-// routes: { '/createUserActivity': (_) => const CreateUserActivityScreen(), }
+import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
+import 'create_userActivity.dart';
+
+import 'detailed_UserActivity.dart';
 
 class DisplayUserActivityScreen extends StatefulWidget {
   const DisplayUserActivityScreen({super.key});
@@ -16,11 +18,22 @@ class DisplayUserActivityScreen extends StatefulWidget {
 
 class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   static const Color pageBg = Color(0xFFF3E8E8);
+  static const Color stroke = Color(0xFFBD9A6B);
+  static const Color cardBg = Color(0xFFE9DDCC);
+
+  String searchQuery = "";
+  // ✅ TEMP hardcoded logged-in caregiver id
+  static const String hardcodedCaregiverId = "u-005";
 
   bool isSuggested = true;
   DateTime selectedDate = DateTime.now();
 
-  final List<Map<String, dynamic>> suggestedTasks = [
+  bool loading = false;
+  String? errorMsg;
+
+  List<Map<String, dynamic>> yourTasks = []; // from backend
+
+  final List<Map<String, dynamic>> suggestedTasks = const [
     {
       "title": "Mindful Reading",
       "desc": "Description",
@@ -37,26 +50,57 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     },
   ];
 
-  final List<Map<String, dynamic>> yourTasks = [
-    {
-      "title": "Simple Yoga",
-      "desc": "Description",
-      "status": "Pending",
-      "percent": 0,
-      "img": "assets/create_user_activity.png",
-    },
-    {
-      "title": "Folding Cloths",
-      "desc": "Description",
-      "status": "Pending",
-      "percent": 0,
-      "img": "assets/brushing_teeth.png",
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // optional: if you want to auto-load when opening "Your tasks" first, set isSuggested=false
+  }
+
+  Future<void> _fetchYourTasks() async {
+    setState(() {
+      loading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final data = await UserActivityService.getByDate(
+        caregiverId: hardcodedCaregiverId,
+        date: selectedDate,
+      );
+
+      // expect List<Map>
+      setState(() => yourTasks = data);
+    } catch (e) {
+      setState(() => errorMsg = e.toString());
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
+  void _onToggleChanged(bool suggestedSelected) {
+    setState(() => isSuggested = suggestedSelected);
+    if (!suggestedSelected) {
+      _fetchYourTasks(); // only fetch when switching to "Your tasks"
+    }
+  }
+
+  void _onDateSelected(DateTime d) {
+    setState(() => selectedDate = d);
+    if (!isSuggested) {
+      _fetchYourTasks(); // fetch only for "Your tasks"
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final tasks = isSuggested ? suggestedTasks : yourTasks;
+
+    final filteredTasks = tasks.where((t) {
+      final title = (t["title"] ?? "").toString().toLowerCase();
+      return title.contains(searchQuery.toLowerCase());
+    }).toList();
+
+    final showYour = !isSuggested;
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -76,12 +120,14 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                 ),
                 child: Column(
                   children: [
-                    _SearchBar(onChanged: (_) {}),
+                    _SearchBar(
+                      onChanged: (v) => setState(() => searchQuery = v.trim()),
+                    ),
                     const SizedBox(height: 14),
 
                     ExpandableCalendar(
                       selectedDate: selectedDate,
-                      onDateSelected: (d) => setState(() => selectedDate = d),
+                      onDateSelected: _onDateSelected, // ✅ use handler
                     ),
 
                     const SizedBox(height: 14),
@@ -90,8 +136,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                       leftText: "Suggested",
                       rightText: "Your tasks",
                       isLeftSelected: isSuggested,
-                      onLeftTap: () => setState(() => isSuggested = true),
-                      onRightTap: () => setState(() => isSuggested = false),
+                      onLeftTap: () => _onToggleChanged(true),
+                      onRightTap: () => _onToggleChanged(false),
                     ),
 
                     const SizedBox(height: 14),
@@ -100,35 +146,117 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                       percent: isSuggested ? 80 : 62,
                       kidImagePath: "assets/kid_trophy.png",
                       isSuggested: isSuggested,
+                      ringSize: 125, // ✅ change this to increase ring
                     ),
 
                     const SizedBox(height: 14),
 
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: tasks.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) {
-                        final t = tasks[i];
-                        return _TaskCard(
-                          title: t["title"],
-                          desc: t["desc"],
-                          status: t["status"],
-                          percent: t["percent"],
-                          imagePath: t["img"],
-                          onTap: () {},
-                        );
-                      },
-                    ),
+                    // ✅ Content area
+                    if (showYour) ...[
+                      if (loading)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        )
+                      else if (errorMsg != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            errorMsg!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        )
+                      else if (yourTasks.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "No tasks for this date.",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredTasks.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final t = filteredTasks[i];
 
-                    // ✅ CREATE NEW TASK BUTTON (only for "Your tasks")
-                    if (!isSuggested) ...[
-                      const SizedBox(height: 14),
+                            final title = (t["title"] ?? "").toString();
+                            final desc = (t["description"] ?? "").toString();
+
+                            final img =
+                                (t["media_links"] is List &&
+                                    (t["media_links"] as List).isNotEmpty)
+                                ? (t["media_links"][0]).toString()
+                                : "assets/brushing_teeth.png";
+
+                            return _TaskCard(
+                              title: title,
+                              desc: desc.isEmpty ? "Description" : desc,
+                              status: "Pending",
+                              percent: 0,
+                              imagePath: img,
+                              isNetwork: img.startsWith("http"),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        DetailedUserActivityScreen(activity: t),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                    ] else ...[
+                      // Suggested list
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: suggestedTasks.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          final t = suggestedTasks[i];
+                          return _TaskCard(
+                            title: t["title"].toString(),
+                            desc: t["desc"].toString(), // ✅ fixed key
+                            status: t["status"].toString(),
+                            percent: (t["percent"] as num).toInt(),
+                            imagePath: t["img"].toString(),
+                            isNetwork: false,
+                            onTap: () {},
+                          );
+                        },
+                      ),
+                    ],
+
+                    const SizedBox(height: 14),
+
+                    // ✅ Create button only for "Your tasks"
+                    if (showYour) ...[
                       _CreateTaskButton(
-                        onTap: () {
-                          // ✅ Correct navigation (named route)
-                          Navigator.pushNamed(context, '/createUserActivity');
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateUserActivityScreen(),
+                            ),
+                          );
+
+                          // after returning from create screen, refresh list for same date
+                          _fetchYourTasks();
                         },
                       ),
                     ],
@@ -146,9 +274,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   }
 }
 
-/* ======================================================
-   REAL EXPANDABLE CALENDAR (WEEK ⇄ MONTH)
-====================================================== */
+/* ===================== CALENDAR ===================== */
 class ExpandableCalendar extends StatefulWidget {
   const ExpandableCalendar({
     super.key,
@@ -261,9 +387,7 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
   }
 }
 
-/* ======================================================
-   SEARCH BAR
-====================================================== */
+/* ===================== SEARCH ===================== */
 class _SearchBar extends StatelessWidget {
   const _SearchBar({required this.onChanged});
   final ValueChanged<String> onChanged;
@@ -292,9 +416,7 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-/* ======================================================
-   TOGGLE
-====================================================== */
+/* ===================== TOGGLE ===================== */
 class SegmentToggle extends StatelessWidget {
   final String leftText, rightText;
   final bool isLeftSelected;
@@ -350,21 +472,19 @@ class SegmentToggle extends StatelessWidget {
   }
 }
 
-/* ======================================================
-  PROGRESS CARD (NO OVERFLOW)
-  Suggested: image RIGHT, text+ring LEFT
-  Your tasks: image LEFT, text+ring RIGHT (right aligned)
-====================================================== */
+/* ===================== PROGRESS CARD ===================== */
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
     required this.percent,
     required this.kidImagePath,
     required this.isSuggested,
+    this.ringSize = 125,
   });
 
   final int percent;
   final String kidImagePath;
   final bool isSuggested;
+  final double ringSize;
 
   static const Color cardBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
@@ -372,12 +492,7 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kidImage = Image.asset(
-      kidImagePath,
-      height: 180,
-      fit: BoxFit.contain,
-    );
-
+    // ✅ Ring widget (same as yours)
     final ring = Transform.scale(
       scale: 2.7, // Scale factor (1.25 = 125% of original size)
       child: SizedBox(
@@ -405,9 +520,10 @@ class _ProgressCard extends StatelessWidget {
       ),
     );
 
+    // ✅ IMPORTANT: Make ring area flexible to avoid overflow
     final textAndRing = Expanded(
       child: Column(
-        mainAxisSize: MainAxisSize.min, // ✅ important (prevents extra height)
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: isSuggested
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.end,
@@ -420,17 +536,28 @@ class _ProgressCard extends StatelessWidget {
               fontSize: 18,
               fontWeight: FontWeight.w900,
               decoration: TextDecoration.underline,
-              decorationColor: stroke, // ✅ underline color
+              decorationColor: stroke,
             ),
           ),
-          const SizedBox(height: 10), // ✅ instead of Spacer()
-          Align(
-            alignment: isSuggested
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
-            child: ring,
+          const SizedBox(height: 10),
+
+          // ✅ Flexible stops "Bottom overflowed"
+          Flexible(
+            child: Align(
+              alignment: isSuggested
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              child: ring,
+            ),
           ),
         ],
+      ),
+    );
+
+    final kidImage = Expanded(
+      child: Align(
+        alignment: isSuggested ? Alignment.centerRight : Alignment.centerLeft,
+        child: Image.asset(kidImagePath, height: 160, fit: BoxFit.contain),
       ),
     );
 
@@ -444,29 +571,19 @@ class _ProgressCard extends StatelessWidget {
           BoxShadow(color: shadow, blurRadius: 14, offset: Offset(0, 8)),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: isSuggested
-            ? [
-                // Suggested: LEFT text+ring, RIGHT image
-                textAndRing,
-                const SizedBox(width: 12),
-                Align(alignment: Alignment.centerRight, child: kidImage),
-              ]
-            : [
-                // Your tasks: LEFT image, RIGHT text+ring (right aligned)
-                Align(alignment: Alignment.centerLeft, child: kidImage),
-                const SizedBox(width: 12),
-                textAndRing,
-              ],
+      child: SizedBox(
+        height: 180, // keep your design same
+        child: Row(
+          children: isSuggested
+              ? [textAndRing, const SizedBox(width: 12), kidImage]
+              : [kidImage, const SizedBox(width: 12), textAndRing],
+        ),
       ),
     );
   }
 }
 
-/* ======================================================
-   CREATE BUTTON
-====================================================== */
+/* ===================== CREATE BUTTON ===================== */
 class _CreateTaskButton extends StatelessWidget {
   const _CreateTaskButton({required this.onTap});
   final VoidCallback onTap;
@@ -488,7 +605,7 @@ class _CreateTaskButton extends StatelessWidget {
           ),
         ),
         child: const Text(
-          "Create a new task",
+          "+ Add New Task",
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
@@ -496,9 +613,7 @@ class _CreateTaskButton extends StatelessWidget {
   }
 }
 
-/* ======================================================
-   TASK CARD
-====================================================== */
+/* ===================== TASK CARD ===================== */
 class _TaskCard extends StatelessWidget {
   const _TaskCard({
     required this.title,
@@ -506,10 +621,12 @@ class _TaskCard extends StatelessWidget {
     required this.status,
     required this.percent,
     required this.imagePath,
+    required this.isNetwork,
     required this.onTap,
   });
 
   final String title, desc, status, imagePath;
+  final bool isNetwork;
   final int percent;
   final VoidCallback onTap;
 
@@ -519,6 +636,10 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageWidget = isNetwork
+        ? Image.network(imagePath, height: 80, width: 80, fit: BoxFit.contain)
+        : Image.asset(imagePath, height: 80, width: 80, fit: BoxFit.contain);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -533,22 +654,20 @@ class _TaskCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ✅ LEFT COLOR BAR
+            // Left color bar + 3 dots
             Container(
-              width: 12,
-
-              decoration: BoxDecoration(
+              width: 15,
+              decoration: const BoxDecoration(
                 color: Color(0xFFDFC7A7),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                  // topRight and bottomRight will be sharp by default
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
                 ),
               ),
-              child: Center(
+              child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     _Dot(),
                     SizedBox(height: 6),
                     _Dot(),
@@ -560,13 +679,9 @@ class _TaskCard extends StatelessWidget {
             ),
 
             const SizedBox(width: 12),
-
-            // ✅ IMAGE
-            Image.asset(imagePath, height: 80, width: 80, fit: BoxFit.contain),
-
+            imageWidget,
             const SizedBox(width: 12),
 
-            // ✅ TITLE + DESCRIPTION
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -588,12 +703,13 @@ class _TaskCard extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
 
-            // ✅ STATUS + PERCENT
             Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Column(
@@ -633,10 +749,10 @@ class _Dot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 5,
-      height: 5,
-      decoration: BoxDecoration(
-        color: Color(0xFFBD9A6B), // slightly darker than bar
+      width: 6,
+      height: 6,
+      decoration: const BoxDecoration(
+        color: Color(0xFFBD9A6B),
         shape: BoxShape.circle,
       ),
     );
