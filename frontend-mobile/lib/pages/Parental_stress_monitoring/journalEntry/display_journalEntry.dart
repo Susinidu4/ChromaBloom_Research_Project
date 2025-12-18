@@ -127,6 +127,181 @@ class _JournalsScreenState extends State<JournalsScreen> {
     }
   }
 
+Future<void> _showJournalDetails({
+  required String dateText,
+  required String moodLabel,
+  required String emoji,
+  required String fullText,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierColor: const Color(0xAA000000), // grey overlay
+    builder: (dialogCtx) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE9DDCC), // outer soft bg
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x55000000),
+                blurRadius: 18,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ConstrainedBox(
+            // ✅ dialog grows/shrinks with content, but won't exceed screen
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
+            ),
+            child: IntrinsicHeight(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE9DDCC), // inner beige card
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFBD9A6B), width: 2),
+                ),
+                child: Stack(
+                  children: [
+                    // ===== Date pill (top-left) =====
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE9DDCC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFFBD9A6B),
+                            width: 2,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              dateText,
+                              style: const TextStyle(
+                                color: Color(0xFFBD9A6B),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            const Icon(
+                              Icons.calendar_month_rounded,
+                              color: Color(0xFFBD9A6B),
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ===== Close circle (top-right) =====
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: InkWell(
+                        onTap: () => Navigator.pop(dialogCtx),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          width: 45,
+                          height: 45,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3E8E8),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x55000000),
+                                blurRadius: 16,
+                                offset: Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 34,
+                              color: Color(0xFFBD9A6B),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ===== Main content =====
+                    Padding(
+                      padding: const EdgeInsets.only(top: 70),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // emoji + mood
+                          Row(
+                            children: [
+                              Text(
+                                emoji,
+                                style: const TextStyle(fontSize: 32),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                moodLabel,
+                                style: const TextStyle(
+                                  color: Color(0xFFBD9A6B),
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ✅ text scrolls only if very long
+                          Flexible(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Text(
+                                fullText,
+                                style: const TextStyle(
+                                  color: Color(0xFFBD9A6B),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
   // ===== edit (same day only) =====
   Future<void> _editEntry(Map<String, dynamic> entry) async {
     final entryId = entry['_id']?.toString() ?? "";
@@ -449,6 +624,10 @@ class _JournalsScreenState extends State<JournalsScreen> {
                                       created != null &&
                                       _isSameDay(created, DateTime.now());
 
+                                  final moodLabel =
+                                      mood[0].toUpperCase() +
+                                      mood.substring(1); // "happy" -> "Happy"
+
                                   return _JournalCard(
                                     dateText: dateText,
                                     emoji: emoji,
@@ -457,6 +636,13 @@ class _JournalsScreenState extends State<JournalsScreen> {
                                     showDelete: true,
                                     onEdit: () => _editEntry(e),
                                     onDelete: () => _confirmDelete(entryId),
+
+                                    onTap: () => _showJournalDetails(
+                                      dateText: dateText,
+                                      moodLabel: moodLabel,
+                                      emoji: emoji,
+                                      fullText: text,
+                                    ),
                                   );
                                 },
                               ),
@@ -623,6 +809,7 @@ class _AddNewButton extends StatelessWidget {
 }
 
 class _JournalCard extends StatelessWidget {
+  final VoidCallback? onTap;
   final String dateText;
   final String emoji;
   final String text;
@@ -640,76 +827,81 @@ class _JournalCard extends StatelessWidget {
     required this.showDelete,
     required this.onEdit,
     required this.onDelete,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      decoration: BoxDecoration(
-        color: _JColors.tileBeige,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 14,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      dateText,
-                      style: const TextStyle(
-                        color: _JColors.goldText,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        decoration: BoxDecoration(
+          color: _JColors.tileBeige,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 14,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        dateText,
+                        style: const TextStyle(
+                          color: _JColors.goldText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Text(emoji, style: const TextStyle(fontSize: 22)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  text,
-                  maxLines: 1, // 👈 limit lines (or 3 if you prefer)
-                  overflow: TextOverflow.ellipsis, // 👈 show ...
-                  softWrap: true,
-                  style: const TextStyle(
-                    color: _JColors.goldText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                      const SizedBox(width: 14),
+                      Text(emoji, style: const TextStyle(fontSize: 22)),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  Text(
+                    text,
+                    maxLines: 1, // 👈 limit lines (or 3 if you prefer)
+                    overflow: TextOverflow.ellipsis, // 👈 show ...
+                    softWrap: true,
+                    style: const TextStyle(
+                      color: _JColors.goldText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showEdit)
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.mode_edit_outlined),
+                    color: const Color(0xFFC6A477),
+                  ),
+                if (showDelete)
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    color: _JColors.trashRed,
+                  ),
               ],
             ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showEdit)
-                IconButton(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.mode_edit_outlined),
-                  color: const Color(0xFFC6A477),
-                ),
-              if (showDelete)
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_forever_outlined),
-                  color: _JColors.trashRed,
-                ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
