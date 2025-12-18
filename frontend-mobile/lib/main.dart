@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:frontend/pages/others/SplashScreen.dart';
 import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
@@ -6,6 +7,7 @@ import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/skill_KnowlageLevel.dart';
+import 'pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
@@ -33,7 +35,8 @@ class MyApp extends StatelessWidget {
 
         '/skillSelection': (context) => const SkillSelectionPage(),
         '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
-
+        '/unitStart': (context) => const UnitStartPage(),
+  
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
