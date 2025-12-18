@@ -3,25 +3,34 @@ const { Schema, model } = mongoose;
 
 const journalEntrySchema = new Schema(
   {
+    
     caregiver_ID: {
       type: String, //Schema.Types.ObjectId
       ref: "user",
       required: true,
     },
+
     mood: {
       type: String,
       enum: ["happy", "calm", "neutral", "tired", "sad", "angry", "stressed"],
       required: true,
       default: "neutral",
     },
+
+    moodEmoji: {
+      type: String,
+      enum: ["😃", "😌", "🙂", "🥱", "😢", "😡", "😖"],
+      required: true,
+    },
+
     text: {
       type: String,
       required: true,
     },
-    
+
     // optional NLP fields (computed server-side later)
     // sentimentScore: {
-    //   type: Number, 
+    //   type: Number,
     //   min: -1,
     //   max: 1,
     // }, // -1..1

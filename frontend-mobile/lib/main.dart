@@ -4,6 +4,9 @@ import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
+import 'pages/Parental_stress_monitoring/wellnessHome.dart';
+import 'pages/Parental_stress_monitoring/journalEntry/display_journalEntry.dart';
+import 'pages/Parental_stress_monitoring/journalEntry/create_journalEntry.dart';
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
@@ -29,6 +32,9 @@ class MyApp extends StatelessWidget {
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
 
+        '/WellnessHome': (context) => const WellnessHomeScreen(),
+        '/createJournalEntry': (context) => const CreateJournalEntryScreen(),
+        '/displayJournalEntry': (context) => const JournalsScreen(),
 
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),

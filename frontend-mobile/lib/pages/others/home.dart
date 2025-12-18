@@ -219,7 +219,9 @@ class _HomePageState extends State<HomePage> {
             title: 'Parental Stress\nMonitoring &\nSupport System',
             imagePath: 'assets/h1.png',
             bgColor: const Color(0xFF6993AB),
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, '/WellnessHome');
+            },
           ),
 
           // 2. Task Scheduler - BEIGE
