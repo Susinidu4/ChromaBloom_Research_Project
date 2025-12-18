@@ -2,40 +2,255 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class JournalsScreen extends StatelessWidget {
+import '../../../services/Parental_stress_monitoring/journal_entry.dart';
+
+class JournalsScreen extends StatefulWidget {
   const JournalsScreen({super.key});
+
+  @override
+  State<JournalsScreen> createState() => _JournalsScreenState();
+}
+
+class _JournalsScreenState extends State<JournalsScreen> {
+  final JournalEntryService _service = JournalEntryService();
+
+  // ✅ hardcode for now (until login)
+  final String _caregiverId = "u-0001";
+
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  // ===== helpers =====
+  DateTime? _parseDate(String? s) {
+    if (s == null || s.isEmpty) return null;
+    try {
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatDateDMY(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  // mood -> emoji map (fallback)
+  static const Map<String, String> _moodToEmoji = {
+    "happy": "😃",
+    "calm": "😌",
+    "neutral": "🙂",
+    "tired": "🥱",
+    "sad": "😢",
+    "angry": "😡",
+    "stressed": "😖",
+  };
+
+  // ===== load journals (last 14 days) =====
+  Future<List<Map<String, dynamic>>> _load() async {
+    final list = await _service.getJournalsByCaregiver(_caregiverId);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final cutoff = today.subtract(
+      const Duration(days: 13),
+    ); // 14 days including today
+
+    final filtered = list.where((e) {
+      final created = _parseDate(e['created_at']?.toString());
+      if (created == null) return false;
+      final createdDay = DateTime(created.year, created.month, created.day);
+      return !createdDay.isBefore(cutoff);
+    }).toList();
+
+    filtered.sort((a, b) {
+      final da = _parseDate(a['created_at']?.toString()) ?? DateTime(1970);
+      final db = _parseDate(b['created_at']?.toString()) ?? DateTime(1970);
+      return db.compareTo(da);
+    });
+
+    return filtered;
+  }
+
+  // ✅ refresh (NO async inside setState)
+  Future<void> _refresh() async {
+    setState(() {
+      _future = _load(); // <-- assign Future only (no await)
+    });
+  }
+
+  // ===== delete =====
+  Future<void> _confirmDelete(String entryId) async {
+    if (entryId.isEmpty) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Journal"),
+        content: const Text(
+          "Are you sure you want to delete this journal entry?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await _service.deleteJournal(entryId);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Deleted successfully")));
+
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Delete failed: $e")));
+    }
+  }
+
+  // ===== edit (same day only) =====
+  Future<void> _editEntry(Map<String, dynamic> entry) async {
+    final entryId = entry['_id']?.toString() ?? "";
+    if (entryId.isEmpty) return;
+
+    final created = _parseDate(entry['created_at']?.toString());
+    final now = DateTime.now();
+
+    // ✅ allow edit only within the added day (same day)
+    if (created == null || !_isSameDay(created, now)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Edit is allowed only on the same day.")),
+      );
+      return;
+    }
+
+    final textCtrl = TextEditingController(
+      text: (entry['text'] ?? "").toString(),
+    );
+    String mood = (entry['mood'] ?? "neutral").toString();
+    String emoji = (entry['moodEmoji'] ?? _moodToEmoji[mood] ?? "🙂")
+        .toString();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Journal"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              value: mood,
+              items: const [
+                DropdownMenuItem(value: "happy", child: Text("😃  Happy")),
+                DropdownMenuItem(value: "calm", child: Text("😌  Calm")),
+                DropdownMenuItem(value: "neutral", child: Text("🙂  Neutral")),
+                DropdownMenuItem(value: "tired", child: Text("🥱  Tired")),
+                DropdownMenuItem(value: "sad", child: Text("😢  Sad")),
+                DropdownMenuItem(value: "angry", child: Text("😡  Angry")),
+                DropdownMenuItem(
+                  value: "stressed",
+                  child: Text("😖  Stressed"),
+                ),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                mood = v;
+                emoji = _moodToEmoji[mood] ?? "🙂";
+              },
+              decoration: const InputDecoration(labelText: "Mood"),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: textCtrl,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: "Text",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) return;
+
+    try {
+      await _service.updateJournal(
+        entryId: entryId,
+        mood: mood,
+        moodEmoji: emoji,
+        text: textCtrl.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Updated successfully")));
+
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Update failed: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _JColors.pageBg,
-
-      // ✅ ADD THIS
       bottomNavigationBar: const MainNavBar(currentIndex: 0),
 
       body: SafeArea(
         child: Column(
           children: [
-            // ===== Header =====
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
               notificationCount: 5,
             ),
 
-            // ===== Body =====
             Expanded(
               child: Stack(
                 children: [
-                  // page background
                   Positioned.fill(child: Container(color: _JColors.pageBg)),
 
-                  // Content
                   Column(
                     children: [
                       const SizedBox(height: 12),
 
-                      // Back button + small floating button (right)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Row(
@@ -49,7 +264,6 @@ class JournalsScreen extends StatelessWidget {
                         ),
                       ),
 
-                      // Title "Journals" with underline
                       const Text(
                         "Journals",
                         style: TextStyle(
@@ -64,13 +278,11 @@ class JournalsScreen extends StatelessWidget {
 
                       const SizedBox(height: 6),
 
-                      // Illustration + Date tile + Add New
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            // big illustration (left)
                             Expanded(
                               child: Image.asset(
                                 "assets/display_Journals.png",
@@ -79,17 +291,17 @@ class JournalsScreen extends StatelessWidget {
                                 height: 198,
                               ),
                             ),
-
                             const SizedBox(width: 14),
-
-                            // date tile + add button (right column)
                             Column(
                               children: [
                                 _DateTile(date: DateTime.now()),
                                 const SizedBox(height: 18),
                                 _AddNewButton(
                                   onTap: () {
-                                    Navigator.pushNamed(context, "/createJournalEntry");
+                                    Navigator.pushNamed(
+                                      context,
+                                      "/createJournalEntry",
+                                    ).then((_) => _refresh());
                                   },
                                 ),
                               ],
@@ -100,43 +312,94 @@ class JournalsScreen extends StatelessWidget {
 
                       const SizedBox(height: 6),
 
-                      // Journal list (scrollable)
                       Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
-                          children: const [
-                            _JournalCard(
-                              dateText: "2/11/2025",
-                              emoji: "😁",
-                              text: "I feel joy with my child’s new skills",
-                              showEdit: true,
-                              showDelete: true,
-                            ),
-                            SizedBox(height: 16),
-                            _JournalCard(
-                              dateText: "1/11/2025",
-                              emoji: "😡",
-                              text: "I feel joy with my child’s new skills",
-                              showEdit: false,
-                              showDelete: true,
-                            ),
-                            SizedBox(height: 16),
-                            _JournalCard(
-                              dateText: "31/10/2025",
-                              emoji: "😢",
-                              text: "I feel joy with my child’s new skills",
-                              showEdit: false,
-                              showDelete: true,
-                            ),
-                            SizedBox(height: 16),
-                            _JournalCard(
-                              dateText: "2/11/2025",
-                              emoji: "😣",
-                              text: "I feel joy with my child’s new skills",
-                              showEdit: false,
-                              showDelete: true,
-                            ),
-                          ],
+                        child: FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _future,
+                          builder: (context, snap) {
+                            if (snap.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            if (snap.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(18),
+                                  child: Text(
+                                    "Failed to load journals:\n${snap.error}",
+                                    style: const TextStyle(
+                                      color: _JColors.goldText,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final items = snap.data ?? [];
+                            if (items.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  "No journals in the last 14 days.",
+                                  style: TextStyle(
+                                    color: _JColors.goldText,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return RefreshIndicator(
+                              onRefresh: _refresh,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                  18,
+                                  6,
+                                  18,
+                                  18,
+                                ),
+                                itemCount: items.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 16),
+                                itemBuilder: (context, i) {
+                                  final e = items[i];
+
+                                  final created = _parseDate(
+                                    e['created_at']?.toString(),
+                                  );
+                                  final dateText = created == null
+                                      ? "-"
+                                      : _formatDateDMY(created);
+
+                                  final mood = (e['mood'] ?? "neutral")
+                                      .toString();
+                                  final emoji =
+                                      (e['moodEmoji'] ??
+                                              _moodToEmoji[mood] ??
+                                              "🙂")
+                                          .toString();
+
+                                  final text = (e['text'] ?? "").toString();
+                                  final entryId = e['_id']?.toString() ?? "";
+
+                                  final canEdit =
+                                      created != null &&
+                                      _isSameDay(created, DateTime.now());
+
+                                  return _JournalCard(
+                                    dateText: dateText,
+                                    emoji: emoji,
+                                    text: text,
+                                    showEdit: canEdit,
+                                    showDelete: true,
+                                    onEdit: () => _editEntry(e),
+                                    onDelete: () => _confirmDelete(entryId),
+                                  );
+                                },
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -151,7 +414,7 @@ class JournalsScreen extends StatelessWidget {
   }
 }
 
-/* ===================== TOP ICON BUTTONS ===================== */
+/* ===================== UI WIDGETS (same design) ===================== */
 
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
@@ -187,11 +450,8 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
-/* ===================== DATE TILE ===================== */
-
 class _DateTile extends StatelessWidget {
   final DateTime date;
-
   const _DateTile({required this.date});
 
   String get month {
@@ -233,7 +493,6 @@ class _DateTile extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // dots row
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
@@ -274,11 +533,8 @@ class _DateTile extends StatelessWidget {
   }
 }
 
-/* ===================== ADD NEW BUTTON ===================== */
-
 class _AddNewButton extends StatelessWidget {
   final VoidCallback onTap;
-
   const _AddNewButton({required this.onTap});
 
   @override
@@ -304,8 +560,6 @@ class _AddNewButton extends StatelessWidget {
   }
 }
 
-/* ===================== JOURNAL CARD ===================== */
-
 class _JournalCard extends StatelessWidget {
   final String dateText;
   final String emoji;
@@ -313,12 +567,17 @@ class _JournalCard extends StatelessWidget {
   final bool showEdit;
   final bool showDelete;
 
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
   const _JournalCard({
     required this.dateText,
     required this.emoji,
     required this.text,
     required this.showEdit,
     required this.showDelete,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -338,7 +597,6 @@ class _JournalCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // left date + emoji + text
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,6 +618,9 @@ class _JournalCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   text,
+                  maxLines: 1, // 👈 limit lines (or 3 if you prefer)
+                  overflow: TextOverflow.ellipsis, // 👈 show ...
+                  softWrap: true,
                   style: const TextStyle(
                     color: _JColors.goldText,
                     fontSize: 16,
@@ -369,24 +630,18 @@ class _JournalCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // right icons
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showEdit)
                 IconButton(
-                  onPressed: () {
-                    // TODO: edit action
-                  },
+                  onPressed: onEdit,
                   icon: const Icon(Icons.mode_edit_outlined),
                   color: const Color(0xFFC6A477),
                 ),
               if (showDelete)
                 IconButton(
-                  onPressed: () {
-                    // TODO: delete action
-                  },
+                  onPressed: onDelete,
                   icon: const Icon(Icons.delete_forever_outlined),
                   color: _JColors.trashRed,
                 ),
@@ -398,13 +653,9 @@ class _JournalCard extends StatelessWidget {
   }
 }
 
-/* ===================== COLORS ===================== */
-
 class _JColors {
   static const Color pageBg = Color(0xFFF3E8E8);
-
   static const Color goldText = Color(0xFFBD9A6B);
   static const Color tileBeige = Color(0xFFE9DDCC);
-
   static const Color trashRed = Color(0xFF974333);
 }
