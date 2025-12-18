@@ -22,8 +22,7 @@ class SkillSelectionPage extends StatelessWidget {
 
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: LearnContent(
                   onTapDrawing: () =>
                       Navigator.pushNamed(context, '/drawingTutorial'),
@@ -82,6 +81,18 @@ class LearnContent extends StatelessWidget {
                   "assets/GSelection.png",
                   height: 290,
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 290,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      "GSelection image not found",
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -98,7 +109,7 @@ class LearnContent extends StatelessWidget {
           onTap: onTapDrawing,
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         _LearnTile(
           width: w * 0.88,
@@ -108,13 +119,11 @@ class LearnContent extends StatelessWidget {
           onTap: onTapProblemSolving,
         ),
 
-        const SizedBox(height: 34),
+        const SizedBox(height: 32),
       ],
     );
   }
 }
-
-/* ===================== TILE ===================== */
 
 class _LearnTile extends StatelessWidget {
   const _LearnTile({
@@ -131,8 +140,9 @@ class _LearnTile extends StatelessWidget {
   final IconData fallbackIcon;
   final VoidCallback onTap;
 
-  static const Color cardBg = Color(0xFFEADCCB);
-  static const Color border = Color(0xFFDCC9B6);
+  static const Color cardBg = Color(0xFFE9DDCC);
+  static const Color leftShade = Color(0xFFD6BFA6);
+  static const Color textColor = Color(0xFFA07E6A);
 
   @override
   Widget build(BuildContext context) {
@@ -140,65 +150,82 @@ class _LearnTile extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Container(
             width: width,
-            height: 74,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 64,
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: border, width: 1.2),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
-                  blurRadius: 10,
-                  offset: Offset(0, 6),
-                  color: Color(0x1F000000),
+                  color: Color(0x3A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 3),
                 ),
               ],
             ),
-            child: Row(
+            child: Stack(
               children: [
-                // icon container (like screenshot)
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF6EFE7),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE6D6C8)),
-                  ),
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    iconAsset,
-                    width: 30,
-                    height: 30,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      fallbackIcon,
-                      size: 28,
-                      color: const Color(0xFF6A6A6A),
+                Positioned.fill(
+                  left: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      width: 10,
+                      decoration: const BoxDecoration(
+                        color: leftShade,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ),
 
-                const SizedBox(width: 14),
+                // CONTENT
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 26),
 
-                Expanded(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFA07E6A), // light brown like screenshot
+                    Center(
+                      child: Image.asset(
+                        iconAsset,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          fallbackIcon,
+                          size: 32,
+                          color: textColor,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
 
-                // balance right side so text stays centered
-                const SizedBox(width: 46),
+                    const SizedBox(width: 28),
+
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 32),
+                  ],
+                ),
               ],
             ),
           ),
@@ -268,6 +295,7 @@ class _SpeechBubble extends StatelessWidget {
 
 class _BubbleTailPainter extends CustomPainter {
   _BubbleTailPainter({required this.fill, required this.stroke});
+
   final Color fill;
   final Color stroke;
 
