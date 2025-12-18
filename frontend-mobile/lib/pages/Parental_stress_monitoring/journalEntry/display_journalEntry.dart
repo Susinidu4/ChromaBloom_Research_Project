@@ -153,12 +153,36 @@ class _JournalsScreenState extends State<JournalsScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Edit Journal"),
+        backgroundColor: const Color(0xFFE9DDCC),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
+        title: const Text(
+          "Edit Journal",
+          style: TextStyle(
+            color: Color(0xFFBD9A6B),
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ===== Mood dropdown =====
             DropdownButtonFormField<String>(
               value: mood,
+              dropdownColor: const Color(0xFFF3E8E8),
+              decoration: InputDecoration(
+                labelText: "Mood",
+                labelStyle: const TextStyle(color: Color(0xFFBD9A6B)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFBD9A6B),
+                    width: 1.4,
+                  ),
+                ),
+              ),
               items: const [
                 DropdownMenuItem(value: "happy", child: Text("😃  Happy")),
                 DropdownMenuItem(value: "calm", child: Text("😌  Calm")),
@@ -176,27 +200,65 @@ class _JournalsScreenState extends State<JournalsScreen> {
                 mood = v;
                 emoji = _moodToEmoji[mood] ?? "🙂";
               },
-              decoration: const InputDecoration(labelText: "Mood"),
             ),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 14),
+
+            // ===== Text field =====
             TextField(
               controller: textCtrl,
               maxLines: 4,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Color(0xFF6B4F2D), fontSize: 15),
+              decoration: InputDecoration(
                 labelText: "Text",
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Color(0xFFBD9A6B)),
+                hintText: "Edit your note...",
+                hintStyle: const TextStyle(color: Color(0xFFBD9A6B)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFBD9A6B),
+                    width: 1.4,
+                  ),
+                ),
               ),
             ),
           ],
         ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
+          // ===== Cancel =====
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(
+                color: Color(0xFF8B6B4F),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Save"),
+
+          // ===== Save =====
+          SizedBox(
+            width: 80,
+            height: 30,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBD9A6B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text(
+                "Save",
+                style: TextStyle(fontWeight: FontWeight.w400),
+              ),
+            ),
           ),
         ],
       ),
