@@ -22,7 +22,8 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -36,8 +37,6 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
 
                     _KnowledgeCard(
                       onSelect: (level) {
-                        // Example navigation (optional):
-                        // Navigator.pushNamed(context, '/skillSelection', arguments: level);
                         debugPrint("Selected level: $level");
                       },
                     ),
@@ -60,7 +59,6 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
 
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
-
   final VoidCallback onTap;
 
   @override
@@ -95,7 +93,7 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/* ===================== CARD (MATCH TILE STYLE) ===================== */
+/* ===================== CARD ===================== */
 
 class _KnowledgeCard extends StatelessWidget {
   const _KnowledgeCard({required this.onSelect});
@@ -103,7 +101,6 @@ class _KnowledgeCard extends StatelessWidget {
   final void Function(String level) onSelect;
 
   static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color leftShade = Color(0xFFD6BFA6);
   static const Color textColor = Color(0xFFA07E6A);
 
   @override
@@ -122,87 +119,68 @@ class _KnowledgeCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            // left dark strip (same style as selection tiles)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 10,
-                height: double.infinity,
-                decoration: const BoxDecoration(
-                  color: leftShade,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 4),
+
+              const Text(
+                "How much skill knowledge\n does your child have?",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Image.asset(
+                "assets/skill_level.png",
+                height: 150,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 150,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    "Illustration Missing",
+                    style: TextStyle(color: Colors.black54),
                   ),
                 ),
               ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 4),
+              const SizedBox(height: 14),
 
-                  const Text(
-                    "How much skill knowledge\n does your child have?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Image.asset(
-                    "assets/images/skill_level.png",
-                    height: 150,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 150,
-                      width: double.infinity,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        "Illustration Missing",
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  _ChoiceButton(
-                    label: "I'm New",
-                    onTap: () => onSelect("new"),
-                  ),
-                  const SizedBox(height: 10),
-                  _ChoiceButton(
-                    label: "Know some common",
-                    onTap: () => onSelect("some_common"),
-                  ),
-                  const SizedBox(height: 10),
-                  _ChoiceButton(
-                    label: "Know Basic",
-                    onTap: () => onSelect("basic"),
-                  ),
-                  const SizedBox(height: 10),
-                  _ChoiceButton(
-                    label: "Know most",
-                    onTap: () => onSelect("most"),
-                  ),
-                ],
+              _ChoiceButton(
+                label: "I'm New",
+                onTap: () => onSelect("new"),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              _ChoiceButton(
+                label: "Know some common",
+                onTap: () => onSelect("some_common"),
+              ),
+              const SizedBox(height: 10),
+              _ChoiceButton(
+                label: "Know Basic",
+                onTap: () => onSelect("basic"),
+              ),
+              const SizedBox(height: 10),
+              _ChoiceButton(
+                label: "Know most",
+                onTap: () => onSelect("most"),
+              ),
+            ],
+          ),
         ),
       ),
     );
