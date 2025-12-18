@@ -17,26 +17,29 @@ class RoutineApi {
   // For REAL PHONE:
   // static const String baseUrl ="http://172.28.0.221:5000/chromabloom/routine";  // <-- CHANGE IP IF NEEDED
 
+
+
+
   // ===============================
   // CREATE ROUTINE (POST)
   // ===============================
-  static Future<bool> createRoutine(Map<String, dynamic> routineData) async {
-    final url = Uri.parse("$baseUrl/create");
+  // static Future<bool> createRoutine(Map<String, dynamic> routineData) async {
+  //   final url = Uri.parse("$baseUrl/create");
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(routineData),
-    );
+  //   final response = await http.post(
+  //     url,
+  //     headers: {"Content-Type": "application/json"},
+  //     body: jsonEncode(routineData),
+  //   );
 
-    if (response.statusCode == 201) {
-      return true; // success
-    } else {
-      // print backend error
-      print("Create routine failed: ${response.body}");
-      return false;
-    }
-  }
+  //   if (response.statusCode == 201) {
+  //     return true; // success
+  //   } else {
+  //     // print backend error
+  //     print("Create routine failed: ${response.body}");
+  //     return false;
+  //   }
+  // }
 
   // ===============================
   // GET ROUTINES BY CREATOR ID (GET)

@@ -3,15 +3,23 @@ import JournalEntry from "../../models/Parental_Stress_Monitoring_Model/journalE
 // Create a new journal entry
 export const createJournalEntry = async (req, res) => {
   try {
-    const { caregiver_ID, mood, text } = req.body;
+    const { caregiver_ID, mood, moodEmoji, text } = req.body;
 
-    if (!caregiver_ID || !mood || !text) {
-      return res.status(400).json({ error: "All fields are required" });
+    // ✅ validate required fields
+    if (!caregiver_ID || !mood || !moodEmoji || !text) {
+      return res.status(400).json({ error: "caregiver_ID, mood, moodEmoji and text are required" });
+    }
+
+    // ✅ optional: ensure mood is valid (matches schema enum)
+    const allowedMoods = ["happy", "calm", "neutral", "tired", "sad", "angry", "stressed"];
+    if (!allowedMoods.includes(mood)) {
+      return res.status(400).json({ error: "Invalid mood value" });
     }
 
     const newEntry = new JournalEntry({
       caregiver_ID,
       mood,
+      moodEmoji,
       text,
     });
 
