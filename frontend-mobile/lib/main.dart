@@ -5,6 +5,7 @@ import 'package:frontend/pages/others/welcome_screen.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
+import 'pages/Gamified_Knowlage_Builder/Selection_Screen/skill_KnowlageLevel.dart';
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
 
         '/skillSelection': (context) => const SkillSelectionPage(),
+        '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
 
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
