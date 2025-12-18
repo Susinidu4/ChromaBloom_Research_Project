@@ -99,7 +99,9 @@ class WellnessHomeScreen extends StatelessWidget {
                             child: _FeatureCard(
                               title: "Journal\nEntry",
                               imageAsset: _UiAssets.journalCardImg,
-                              onTap: () {},
+                              onTap: () {
+                                Navigator.pushNamed(context, '/displayJournalEntry');
+                              },
                             ),
                           ),
                         ],
