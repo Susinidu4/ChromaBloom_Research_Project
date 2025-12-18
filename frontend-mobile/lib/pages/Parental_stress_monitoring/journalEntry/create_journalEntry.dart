@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
 
-// ✅ update these imports to your project paths
 import '../../others/header.dart'; // MainHeader
 import '../../others/navBar.dart'; // MainNavBar
 
-// ✅ service import (path exactly as you asked)
+// ✅ add your service import (adjust relative path if needed)
 import '../../../services/Parental_stress_monitoring/journal_entry.dart';
 
 class CreateJournalEntryScreen extends StatefulWidget {
   const CreateJournalEntryScreen({super.key});
 
   @override
-  State<CreateJournalEntryScreen> createState() => _CreateJournalEntryScreenState();
+  State<CreateJournalEntryScreen> createState() =>
+      _CreateJournalEntryScreenState();
 }
 
 class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
   final DateTime _today = DateTime.now();
 
-  // ✅ CHANGE THIS to your backend IP + port
-  final JournalEntryService _service =
-      const JournalEntryService(baseUrl: "http://YOUR_SERVER_IP:PORT");
+  // ✅ service instance
+  final JournalEntryService _journalService = JournalEntryService();
 
-  // ✅ Replace later with real logged-in caregiver id
+  // ✅ Replace this with your real logged-in caregiver id later
   final String _caregiverId = "u-0001";
 
-  // UI label+emoji list
+  // Mood list (with emoji like your image)
   final List<Map<String, String>> _moods = const [
     {"label": "Happy", "emoji": "😃"},
     {"label": "Calm", "emoji": "😌"},
@@ -36,8 +35,8 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     {"label": "Stressed", "emoji": "😖"},
   ];
 
-  // UI label -> backend enum value
-  final Map<String, String> _moodToEnum = const {
+  // ✅ UI label -> backend enum value (must match schema enum)
+  final Map<String, String> _labelToMoodEnum = const {
     "Happy": "happy",
     "Calm": "calm",
     "Neutral": "neutral",
@@ -48,11 +47,12 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   };
 
   Map<String, String>? _selectedMood;
+
   bool _saving = false;
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
-  Future<void> _save() async {
+  Future<void> _onSave() async {
     if (_saving) return;
 
     if (_selectedMood == null) {
@@ -70,14 +70,14 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
       return;
     }
 
-    final label = _selectedMood!["label"]!;
-    final emoji = _selectedMood!["emoji"]!;
-    final moodEnum = _moodToEnum[label] ?? "neutral";
+    final label = _selectedMood!["label"]!; // e.g. "Happy"
+    final emoji = _selectedMood!["emoji"]!; // e.g. "😃"
+    final moodEnum = _labelToMoodEnum[label] ?? "neutral";
 
     setState(() => _saving = true);
 
     try {
-      await _service.createJournalEntry(
+      await _journalService.createJournalEntry(
         caregiverId: _caregiverId,
         mood: moodEnum,
         moodEmoji: emoji,
@@ -89,6 +89,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Journal saved successfully")),
       );
+
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -111,18 +112,19 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     return Scaffold(
       backgroundColor: _CColors.pageBg,
 
-      // ✅ bottom nav
+      // bottom nav like
       bottomNavigationBar: const MainNavBar(currentIndex: 0),
 
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
 
+            // Body
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -134,7 +136,6 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                     decoration: BoxDecoration(
                       color: _CColors.cardBg,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: _CColors.blueBorder, width: 3),
                     ),
                     child: Column(
                       children: [
@@ -149,6 +150,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
                         const SizedBox(height: 18),
 
+                        // title
                         const Text(
                           "How do you feel today?",
                           style: TextStyle(
@@ -163,17 +165,12 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
                         const SizedBox(height: 18),
 
-                        // illustration
+                        // image
                         SizedBox(
                           height: 150,
                           child: Image.asset(
-                            "assets/journal_illustration.png",
+                            "assets/display_Journals.png",
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.draw_rounded,
-                              size: 120,
-                              color: Color(0xFFB9A38B),
-                            ),
                           ),
                         ),
 
@@ -188,7 +185,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                                 "Your Mood :",
                                 style: TextStyle(
                                   color: _CColors.goldText,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -198,7 +195,8 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                               child: _MoodDropdown(
                                 moods: _moods,
                                 value: _selectedMood,
-                                onChanged: (m) => setState(() => _selectedMood = m),
+                                onChanged: (m) =>
+                                    setState(() => _selectedMood = m),
                               ),
                             ),
                           ],
@@ -212,7 +210,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                             "Write Something :",
                             style: TextStyle(
                               color: _CColors.goldText,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -225,7 +223,8 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                           decoration: BoxDecoration(
                             color: _CColors.inputBg,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: _CColors.inputBorder, width: 1.5),
+                            border: Border.all(
+                                color: _CColors.inputBorder, width: 1.5),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color(0x16000000),
@@ -248,7 +247,8 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                                 color: Color(0xFFBFA780),
                                 fontWeight: FontWeight.w600,
                               ),
-                              contentPadding: EdgeInsets.fromLTRB(14, 14, 14, 14),
+                              contentPadding:
+                                  EdgeInsets.fromLTRB(14, 14, 14, 14),
                               border: InputBorder.none,
                             ),
                           ),
@@ -256,14 +256,14 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
                         const Spacer(),
 
-                        // save button
+                        // save button (UI unchanged; just prevents double taps while saving)
                         Align(
                           alignment: Alignment.centerRight,
                           child: SizedBox(
-                            width: 120,
-                            height: 44,
+                            width: 105,
+                            height: 32,
                             child: ElevatedButton(
-                              onPressed: _saving ? null : _save,
+                              onPressed: _saving ? null : _onSave,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _CColors.saveBtn,
                                 elevation: 6,
@@ -271,23 +271,14 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: _saving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Save",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
+                              child: const Text(
+                                "Save",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -304,7 +295,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   }
 }
 
-/* ===================== SMALL WIDGETS ===================== */
+/* ===================== WIDGETS ===================== */
 
 class _DateChip extends StatelessWidget {
   final String text;
@@ -313,7 +304,7 @@ class _DateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36,
+      height: 30,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: const Color(0xFFE9DDCC),
@@ -337,8 +328,9 @@ class _DateChip extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 12),
-          const Icon(Icons.calendar_month_rounded, color: _CColors.goldText, size: 18),
+          const SizedBox(width: 8),
+          const Icon(Icons.calendar_month_rounded,
+              color: _CColors.goldText, size: 18),
         ],
       ),
     );
@@ -355,10 +347,10 @@ class _CloseCircle extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        width: 54,
-        height: 54,
+        width: 45,
+        height: 45,
         decoration: const BoxDecoration(
-          color: Color(0xFFF3ECE4),
+          color: Color(0xFFFFFFFF),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -368,7 +360,8 @@ class _CloseCircle extends StatelessWidget {
             ),
           ],
         ),
-        child: const Icon(Icons.close_rounded, color: _CColors.goldText, size: 26),
+        child: const Icon(Icons.close_rounded,
+            color: _CColors.goldText, size: 26),
       ),
     );
   }
@@ -406,7 +399,8 @@ class _MoodDropdown extends StatelessWidget {
         child: DropdownButton<Map<String, String>>(
           value: value,
           hint: const Text(""),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _CColors.goldText),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+              color: _CColors.goldText),
           items: moods.map((m) {
             final label = m["label"]!;
             final emoji = m["emoji"]!;
@@ -431,14 +425,13 @@ class _MoodDropdown extends StatelessWidget {
 /* ===================== COLORS ===================== */
 
 class _CColors {
-  static const Color pageBg = Color(0xFFF3ECE4);
+  static const Color pageBg = Color(0xFFF3E8E8);
   static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color blueBorder = Color(0xFF5A8FE6);
 
-  static const Color goldText = Color(0xFFC6A477);
+  static const Color goldText = Color(0xFFBD9A6B);
 
   static const Color inputBg = Color(0xFFE9DDCC);
-  static const Color inputBorder = Color(0xFFB79B72);
+  static const Color inputBorder = Color(0xFFBD9A6B);
 
-  static const Color saveBtn = Color(0xFFB79B72);
+  static const Color saveBtn = Color(0xFFBD9A6B);
 }
