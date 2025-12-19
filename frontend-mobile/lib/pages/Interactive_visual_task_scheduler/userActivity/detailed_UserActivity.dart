@@ -1,16 +1,14 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
-import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart'; // ✅ CHANGE path if your file is elsewhere
+import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart';
 import 'edit_userActivity.dart';
 
 class DetailedUserActivityScreen extends StatefulWidget {
   const DetailedUserActivityScreen({super.key, required this.activity});
-
   final Map<String, dynamic> activity;
 
   @override
@@ -21,9 +19,7 @@ class DetailedUserActivityScreen extends StatefulWidget {
 class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen> {
   // ===== Theme colors =====
   static const Color pageBg = Color(0xFFF3E8E8);
-  static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
-  static const Color shadow = Color(0x33000000);
 
   int progressPercent = 0;
   String statusText = "In Progress";
@@ -41,8 +37,11 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
     TtsService.init();
 
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
-    steps = rawSteps.map((e) => Map<String, dynamic>.from(e as Map)).toList()
-      ..sort((a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0));
+    steps = rawSteps
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList()
+      ..sort((a, b) =>
+          (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0));
 
     stepDone = List<bool>.filled(steps.length, false);
   }
@@ -90,18 +89,22 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
   void _decCompleted() =>
       setState(() => completedMinutes = (completedMinutes - 1).clamp(0, 999));
 
-  // ✅ TTS helpers
-  Future<void> _speakTitle() async {
-    await TtsService.speak(_title());
+  // ✅ TTS
+  Future<void> _speakTitle() async => TtsService.speak(_title());
+  Future<void> _speakDescription() async => TtsService.speak(_desc());
+
+  // ✅ Speak a single step (STEP BY STEP)
+  Future<void> _speakStep(int index) async {
+    if (index < 0 || index >= steps.length) return;
+    final n = (steps[index]["step_number"] ?? (index + 1)).toString();
+    final instruction = (steps[index]["instruction"] ?? "").toString().trim();
+    if (instruction.isEmpty) return;
+    await TtsService.speak("Step $n. $instruction");
   }
 
-  Future<void> _speakDescription() async {
-    await TtsService.speak(_desc());
-  }
-
+  // ✅ Optional: speak ALL steps (you already had this)
   Future<void> _speakAllSteps() async {
     if (steps.isEmpty) return;
-
     final buffer = StringBuffer();
     buffer.writeln("Steps.");
     for (int i = 0; i < steps.length; i++) {
@@ -110,7 +113,6 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
       if (instruction.trim().isEmpty) continue;
       buffer.writeln("Step $n. $instruction.");
     }
-
     await TtsService.speak(buffer.toString());
   }
 
@@ -159,7 +161,8 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                       // ✅ TTS callbacks
                       onSpeakTitle: _speakTitle,
                       onSpeakDescription: _speakDescription,
-                      onSpeakSteps: _speakAllSteps,
+                      onSpeakAllSteps: _speakAllSteps,
+                      onSpeakSingleStep: _speakStep, // ✅ NEW
                       onStopTts: () => TtsService.stop(),
 
                       onDelete: () async {
@@ -220,7 +223,8 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                         final updated = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => UpdateUserActivityScreen(activity: widget.activity),
+                            builder: (_) =>
+                                UpdateUserActivityScreen(activity: widget.activity),
                           ),
                         );
 
@@ -267,7 +271,8 @@ class _DetailCard extends StatelessWidget {
     // ✅ TTS
     required this.onSpeakTitle,
     required this.onSpeakDescription,
-    required this.onSpeakSteps,
+    required this.onSpeakAllSteps,
+    required this.onSpeakSingleStep, // ✅ NEW
     required this.onStopTts,
   });
 
@@ -294,7 +299,8 @@ class _DetailCard extends StatelessWidget {
   // ✅ TTS
   final VoidCallback onSpeakTitle;
   final VoidCallback onSpeakDescription;
-  final VoidCallback onSpeakSteps;
+  final VoidCallback onSpeakAllSteps;
+  final Future<void> Function(int index) onSpeakSingleStep; // ✅ NEW
   final VoidCallback onStopTts;
 
   static const Color cardBg = Color(0xFFE9DDCC);
@@ -316,9 +322,9 @@ class _DetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // top row: edit + stop TTS
+          // top row: edit (stop TTS optional)
           Row(
-            children: [             // stop TTS button 
+            children: [
               // InkWell(
               //   onTap: onStopTts,
               //   borderRadius: BorderRadius.circular(10),
@@ -424,7 +430,8 @@ class _DetailCard extends StatelessWidget {
               height: 220,
               child: imgUrl != null
                   ? Image.network(imgUrl!, fit: BoxFit.contain)
-                  : Image.asset("assets/create_user_activity.png", fit: BoxFit.contain),
+                  : Image.asset("assets/create_user_activity.png",
+                      fit: BoxFit.contain),
             ),
           ),
 
@@ -459,7 +466,7 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // steps header + speaker
+          // steps header + speaker (all steps)
           Row(
             children: [
               const Expanded(
@@ -472,18 +479,19 @@ class _DetailCard extends StatelessWidget {
                   ),
                 ),
               ),
-              InkWell(
-                onTap: onSpeakSteps,
-                borderRadius: BorderRadius.circular(10),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
-                ),
-              ),
+              // InkWell(
+              //   onTap: onSpeakAllSteps,
+              //   borderRadius: BorderRadius.circular(10),
+              //   child: const Padding(
+              //     padding: EdgeInsets.all(6),
+              //     child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(height: 10),
 
+          // ✅ steps list with per-step speaker icon + checkbox
           ...List.generate(steps.length, (i) {
             final s = steps[i];
             final n = (s["step_number"] ?? (i + 1)).toString();
@@ -504,17 +512,36 @@ class _DetailCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+
+                  const SizedBox(width: 8),
+
+                  // ✅ step speaker
+                  InkWell(
+                    onTap: () => onSpeakSingleStep(i),
+                    borderRadius: BorderRadius.circular(10),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.volume_up_rounded,
+                          color: stroke, size: 22),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
                   SizedBox(
                     width: 22,
                     height: 22,
                     child: Checkbox(
                       value: stepDone[i],
                       onChanged: (v) => onStepChanged(i, v),
-                      fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                        return Colors.white;
+                      fillColor:
+                          MaterialStateProperty.resolveWith<Color>((states) {
+                        return Colors.white; // ✅ white background
                       }),
-                      side: BorderSide(color: stroke.withOpacity(0.9), width: 1.2),
+                      side: BorderSide(
+                        color: stroke.withOpacity(0.9),
+                        width: 1.2,
+                      ),
                       checkColor: stroke,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -549,7 +576,8 @@ class _DetailCard extends StatelessWidget {
                 ),
                 child: Text(
                   "$completedMinutes",
-                  style: const TextStyle(color: textDark, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                      color: textDark, fontWeight: FontWeight.w800),
                 ),
               ),
               const SizedBox(width: 8),
