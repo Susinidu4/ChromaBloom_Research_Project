@@ -5,7 +5,7 @@ import '../../others/navBar.dart';
 class SkillSelectionPage extends StatelessWidget {
   const SkillSelectionPage({super.key});
 
-  static const Color pageBg = Color(0xFFF5ECEC);
+  static const Color pageBg = Color(0xFFF3E8E8);
 
   @override
   Widget build(BuildContext context) {
@@ -141,8 +141,8 @@ class _LearnTile extends StatelessWidget {
   final VoidCallback onTap;
 
   static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color leftShade = Color(0xFFD6BFA6);
-  static const Color textColor = Color(0xFFA07E6A);
+  static const Color leftShade = Color(0xFFDFC7A7);
+  static const Color textColor = Color(0xFFBD9A6B);
 
   @override
   Widget build(BuildContext context) {
