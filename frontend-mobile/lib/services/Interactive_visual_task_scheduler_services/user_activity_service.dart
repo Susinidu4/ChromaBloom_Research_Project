@@ -5,10 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
+import '../api_config.dart';
 
 class UserActivityService {
-  static const String _baseUrl = "http://10.0.2.2:5000";
-  // static const String _baseUrl = "http://localhost:5000";
+
+  static final String _base = ApiConfig.baseUrl;
+  
   static const String _createPath =
       "/chromabloom/userActivities/createUserActivity";
 
@@ -27,7 +29,7 @@ class UserActivityService {
     required List<Map<String, dynamic>> steps,
     File? mediaImage,
   }) async {
-    final uri = Uri.parse("$_baseUrl$_createPath");
+    final uri = Uri.parse("$_base$_createPath");
     final request = http.MultipartRequest("POST", uri);
 
     request.fields["created_by"] = createdBy;
@@ -75,7 +77,7 @@ class UserActivityService {
     required String caregiverId,
     required DateTime date,
   }) async {
-    final uri = Uri.parse("$_baseUrl/chromabloom/userActivities/getByDate");
+    final uri = Uri.parse("$_base/chromabloom/userActivities/getByDate");
 
     final response = await http.post(
       uri,
@@ -107,7 +109,7 @@ class UserActivityService {
     required String mongoId, // ✅ must be _id
   }) async {
     final uri = Uri.parse(
-      "$_baseUrl/chromabloom/userActivities/deleteUserActivity/$mongoId",
+      "$_base/chromabloom/userActivities/deleteUserActivity/$mongoId",
     );
 
     final res = await http.delete(uri);
@@ -138,7 +140,7 @@ class UserActivityService {
     required List<Map<String, dynamic>> steps,
     String? mediaImageBase64, // optional
   }) async {
-    final uri = Uri.parse("$_baseUrl/chromabloom/userActivities/updateUserActivity/$activityId");
+    final uri = Uri.parse("$_base/chromabloom/userActivities/updateUserActivity/$activityId");
 
     final body = {
       "created_by": createdBy,
