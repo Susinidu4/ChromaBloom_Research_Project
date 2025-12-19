@@ -5,14 +5,12 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart'; // ✅ CHANGE path if your file is elsewhere
 import 'edit_userActivity.dart';
 
 class DetailedUserActivityScreen extends StatefulWidget {
   const DetailedUserActivityScreen({super.key, required this.activity});
 
-  /// Expected keys (from your backend):
-  /// title, description, estimated_duration_minutes, media_links (List),
-  /// steps (List of {step_number, instruction})
   final Map<String, dynamic> activity;
 
   @override
@@ -20,40 +18,43 @@ class DetailedUserActivityScreen extends StatefulWidget {
       _DetailedUserActivityScreenState();
 }
 
-class _DetailedUserActivityScreenState
-    extends State<DetailedUserActivityScreen> {
+class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen> {
   // ===== Theme colors =====
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
 
-  // progress demo (you can calculate later)
   int progressPercent = 0;
   String statusText = "In Progress";
 
-  // steps state
   late List<Map<String, dynamic>> steps;
   late List<bool> stepDone;
 
-  // completed duration (minutes)
   int completedMinutes = 0;
 
   @override
   void initState() {
     super.initState();
 
+    // ✅ init TTS once
+    TtsService.init();
+
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
     steps = rawSteps.map((e) => Map<String, dynamic>.from(e as Map)).toList()
-      ..sort(
-        (a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0),
-      );
+      ..sort((a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0));
 
     stepDone = List<bool>.filled(steps.length, false);
   }
 
-  String _title() => (widget.activity["title"] ?? "").toString();
+  @override
+  void dispose() {
+    // ✅ stop speaking when leaving page
+    TtsService.stop();
+    super.dispose();
+  }
 
+  String _title() => (widget.activity["title"] ?? "").toString();
   String _desc() => (widget.activity["description"] ?? "").toString();
 
   int _estimatedMinutes() {
@@ -76,17 +77,42 @@ class _DetailedUserActivityScreenState
   void _toggleStep(int i, bool? v) {
     setState(() => stepDone[i] = v ?? false);
 
-    // optional: auto-update progress
     final done = stepDone.where((x) => x).length;
     final pct = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
-    setState(() => progressPercent = pct);
-    setState(() => statusText = (pct == 100) ? "Completed" : "In Progress");
+    setState(() {
+      progressPercent = pct;
+      statusText = (pct == 100) ? "Completed" : "In Progress";
+    });
   }
 
   void _incCompleted() =>
       setState(() => completedMinutes = (completedMinutes + 1).clamp(0, 999));
   void _decCompleted() =>
       setState(() => completedMinutes = (completedMinutes - 1).clamp(0, 999));
+
+  // ✅ TTS helpers
+  Future<void> _speakTitle() async {
+    await TtsService.speak(_title());
+  }
+
+  Future<void> _speakDescription() async {
+    await TtsService.speak(_desc());
+  }
+
+  Future<void> _speakAllSteps() async {
+    if (steps.isEmpty) return;
+
+    final buffer = StringBuffer();
+    buffer.writeln("Steps.");
+    for (int i = 0; i < steps.length; i++) {
+      final n = (steps[i]["step_number"] ?? (i + 1)).toString();
+      final instruction = (steps[i]["instruction"] ?? "").toString();
+      if (instruction.trim().isEmpty) continue;
+      buffer.writeln("Step $n. $instruction.");
+    }
+
+    await TtsService.speak(buffer.toString());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,16 +128,11 @@ class _DetailedUserActivityScreenState
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 child: Column(
                   children: [
-                    // Back button (floating look)
                     Align(
                       alignment: Alignment.centerLeft,
                       child: _CircleIconButton(
@@ -119,10 +140,8 @@ class _DetailedUserActivityScreenState
                         onTap: () => Navigator.pop(context),
                       ),
                     ),
-
                     const SizedBox(height: 14),
 
-                    // Main detail card
                     _DetailCard(
                       title: _title(),
                       statusText: statusText,
@@ -136,14 +155,18 @@ class _DetailedUserActivityScreenState
                       completedMinutes: completedMinutes,
                       onIncCompleted: _incCompleted,
                       onDecCompleted: _decCompleted,
+
+                      // ✅ TTS callbacks
+                      onSpeakTitle: _speakTitle,
+                      onSpeakDescription: _speakDescription,
+                      onSpeakSteps: _speakAllSteps,
+                      onStopTts: () => TtsService.stop(),
+
                       onDelete: () async {
-                        final mongoId = (widget.activity["_id"] ?? "")
-                            .toString();
+                        final mongoId = (widget.activity["_id"] ?? "").toString();
                         if (mongoId.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Cannot delete: missing _id"),
-                            ),
+                            const SnackBar(content: Text("Cannot delete: missing _id")),
                           );
                           return;
                         }
@@ -152,9 +175,7 @@ class _DetailedUserActivityScreenState
                           context: context,
                           builder: (_) => AlertDialog(
                             title: const Text("Delete this task?"),
-                            content: const Text(
-                              "This action cannot be undone.",
-                            ),
+                            content: const Text("This action cannot be undone."),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
@@ -171,19 +192,16 @@ class _DetailedUserActivityScreenState
                         if (ok != true) return;
 
                         try {
-                          final res =
-                              await UserActivityService.deleteUserActivity(
-                                mongoId: mongoId,
-                              );
+                          final res = await UserActivityService.deleteUserActivity(
+                            mongoId: mongoId,
+                          );
 
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(res["message"] ?? "Deleted"),
-                            ),
+                            SnackBar(content: Text(res["message"] ?? "Deleted")),
                           );
 
-                          Navigator.pop(context, true); // ✅ return to list page
+                          Navigator.pop(context, true);
                         } catch (e) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -193,25 +211,21 @@ class _DetailedUserActivityScreenState
                       },
 
                       onSave: () {
-                        // TODO: call update/save API
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Save pressed")),
                         );
                       },
+
                       onEdit: () async {
                         final updated = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => UpdateUserActivityScreen(
-                              activity:
-                                  widget.activity, // 👈 pass current activity
-                            ),
+                            builder: (_) => UpdateUserActivityScreen(activity: widget.activity),
                           ),
                         );
 
-                        // Optional: refresh detail page if updated
                         if (updated == true && mounted) {
-                          Navigator.pop(context, true); // refresh list page
+                          Navigator.pop(context, true);
                         }
                       },
                     ),
@@ -249,6 +263,12 @@ class _DetailCard extends StatelessWidget {
     required this.onDelete,
     required this.onSave,
     required this.onEdit,
+
+    // ✅ TTS
+    required this.onSpeakTitle,
+    required this.onSpeakDescription,
+    required this.onSpeakSteps,
+    required this.onStopTts,
   });
 
   final String title;
@@ -271,6 +291,12 @@ class _DetailCard extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onEdit;
 
+  // ✅ TTS
+  final VoidCallback onSpeakTitle;
+  final VoidCallback onSpeakDescription;
+  final VoidCallback onSpeakSteps;
+  final VoidCallback onStopTts;
+
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
@@ -290,26 +316,30 @@ class _DetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // top row: edit icon
+          // top row: edit + stop TTS
           Row(
-            children: [
+            children: [             // stop TTS button 
+              // InkWell(
+              //   onTap: onStopTts,
+              //   borderRadius: BorderRadius.circular(10),
+              //   child: const Padding(
+              //     padding: EdgeInsets.all(6),
+              //     child: Icon(Icons.stop_circle_outlined, color: stroke, size: 26),
+              //   ),
+              // ),
               const Spacer(),
               InkWell(
                 onTap: onEdit,
                 borderRadius: BorderRadius.circular(10),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.mode_edit_outlined,
-                    color: stroke,
-                    size: 25,
-                  ),
+                  child: Icon(Icons.mode_edit_outlined, color: stroke, size: 25),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          // status + progress bar row
+
           Row(
             children: [
               Expanded(
@@ -334,7 +364,6 @@ class _DetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
-          // progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
@@ -347,18 +376,32 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // title
-          Text(
-            title,
-            style: const TextStyle(
-              color: stroke,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
+          // title + speaker
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: stroke,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: onSpeakTitle,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 26),
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 8),
 
-          // estimated duration row
           Row(
             children: [
               const Icon(Icons.timer_outlined, color: stroke, size: 18),
@@ -376,46 +419,71 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // big image center
           Center(
             child: SizedBox(
               height: 220,
               child: imgUrl != null
                   ? Image.network(imgUrl!, fit: BoxFit.contain)
-                  : Image.asset(
-                      "assets/create_user_activity.png",
-                      fit: BoxFit.contain,
-                    ),
+                  : Image.asset("assets/create_user_activity.png", fit: BoxFit.contain),
             ),
           ),
 
           const SizedBox(height: 18),
 
-          // description paragraph
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: stroke.withOpacity(0.75),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.5,
-            ),
+          // description + speaker
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: stroke.withOpacity(0.75),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: onSpeakDescription,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 18),
 
-          const Text(
-            "STEPS:",
-            style: TextStyle(
-              color: stroke,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
+          // steps header + speaker
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "STEPS:",
+                  style: TextStyle(
+                    color: stroke,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: onSpeakSteps,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
 
-          // steps list (numbers left, checkbox right)
           ...List.generate(steps.length, (i) {
             final s = steps[i];
             final n = (s["step_number"] ?? (i + 1)).toString();
@@ -443,23 +511,11 @@ class _DetailCard extends StatelessWidget {
                     child: Checkbox(
                       value: stepDone[i],
                       onChanged: (v) => onStepChanged(i, v),
-
-                      // ✅ WHITE background always
-                      fillColor: MaterialStateProperty.resolveWith<Color>((
-                        states,
-                      ) {
+                      fillColor: MaterialStateProperty.resolveWith<Color>((states) {
                         return Colors.white;
                       }),
-
-                      // ✅ Border color
-                      side: BorderSide(
-                        color: stroke.withOpacity(0.9),
-                        width: 1.2,
-                      ),
-
-                      // ✅ Tick color
+                      side: BorderSide(color: stroke.withOpacity(0.9), width: 1.2),
                       checkColor: stroke,
-
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
@@ -470,7 +526,6 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // completed duration row (input + up/down)
           Row(
             children: [
               Text(
@@ -483,7 +538,6 @@ class _DetailCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // number box
               Container(
                 width: 52,
                 height: 36,
@@ -495,16 +549,11 @@ class _DetailCard extends StatelessWidget {
                 ),
                 child: Text(
                   "$completedMinutes",
-                  style: const TextStyle(
-                    color: textDark,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: const TextStyle(color: textDark, fontWeight: FontWeight.w800),
                 ),
               ),
-
               const SizedBox(width: 8),
 
-              // up/down
               Container(
                 width: 28,
                 height: 36,
@@ -518,21 +567,15 @@ class _DetailCard extends StatelessWidget {
                     Expanded(
                       child: InkWell(
                         onTap: onIncCompleted,
-                        child: const Icon(
-                          Icons.keyboard_arrow_up_rounded,
-                          color: stroke,
-                          size: 18,
-                        ),
+                        child: const Icon(Icons.keyboard_arrow_up_rounded,
+                            color: stroke, size: 18),
                       ),
                     ),
                     Expanded(
                       child: InkWell(
                         onTap: onDecCompleted,
-                        child: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: stroke,
-                          size: 18,
-                        ),
+                        child: const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: stroke, size: 18),
                       ),
                     ),
                   ],
@@ -553,7 +596,6 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 22),
 
-          // buttons
           Row(
             children: [
               Expanded(
@@ -580,12 +622,7 @@ class _DetailCard extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.text,
-    required this.bg,
-    required this.onTap,
-  });
-
+  const _ActionButton({required this.text, required this.bg, required this.onTap});
   final String text;
   final Color bg;
   final VoidCallback onTap;
@@ -601,9 +638,7 @@ class _ActionButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 10,
           shadowColor: Colors.black54,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
@@ -611,9 +646,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// =======================================================
-// Small circle icon button (back)
-// =======================================================
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({required this.icon, required this.onTap});
 
