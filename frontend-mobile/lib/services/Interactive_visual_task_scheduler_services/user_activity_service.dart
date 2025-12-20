@@ -8,15 +8,15 @@ import 'package:path/path.dart' as p;
 import '../api_config.dart';
 
 class UserActivityService {
-
   static final String _base = ApiConfig.baseUrl;
-  
+
   static const String _createPath =
       "/chromabloom/userActivities/createUserActivity";
 
-  // GET BY DATE
-  static const String _getByDatePath = "/chromabloom/userActivities/getByDate";
+  static const String _getByDatePath = 
+      "/chromabloom/userActivities/getByDate";
 
+  // CREATE USER ACTIVITY
   static Future<Map<String, dynamic>> createUserActivity({
     required String createdBy,
     required String title,
@@ -72,7 +72,7 @@ class UserActivityService {
     }
   }
 
-  // ✅ FETCH ACTIVITIES FOR A CAREGIVER + DATE
+  // FETCH ACTIVITIES FOR A CAREGIVER + DATE
   static Future<List<Map<String, dynamic>>> getByDate({
     required String caregiverId,
     required DateTime date,
@@ -104,7 +104,7 @@ class UserActivityService {
     }
   }
 
-// DELETE USER ACTIVITY
+  // DELETE USER ACTIVITY
   static Future<Map<String, dynamic>> deleteUserActivity({
     required String mongoId, // ✅ must be _id
   }) async {
@@ -126,7 +126,7 @@ class UserActivityService {
     }
   }
 
-// UPDATE USER ACTIVITY
+  // UPDATE USER ACTIVITY
   static Future<Map<String, dynamic>> updateUserActivity({
     required String activityId,
     required String createdBy,
@@ -140,7 +140,9 @@ class UserActivityService {
     required List<Map<String, dynamic>> steps,
     String? mediaImageBase64, // optional
   }) async {
-    final uri = Uri.parse("$_base/chromabloom/userActivities/updateUserActivity/$activityId");
+    final uri = Uri.parse(
+      "$_base/chromabloom/userActivities/updateUserActivity/$activityId",
+    );
 
     final body = {
       "created_by": createdBy,
@@ -159,6 +161,37 @@ class UserActivityService {
       uri,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      try {
+        final parsed = jsonDecode(res.body);
+        throw Exception(parsed["error"] ?? parsed["message"] ?? res.body);
+      } catch (_) {
+        throw Exception(res.body);
+      }
+    }
+  }
+
+  // PATCH update progress
+  static Future<Map<String, dynamic>> updateUserActivityProgress({
+    required String mongoId,
+    required List<Map<String, dynamic>> steps,
+    required int completedDurationMinutes,
+  }) async {
+    final uri = Uri.parse(
+      "$_base/chromabloom/userActivities/updateProgress/$mongoId",
+    );
+
+    final res = await http.patch(
+      uri,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "steps": steps,
+        "completed_duration_minutes": completedDurationMinutes,
+      }),
     );
 
     if (res.statusCode == 200) {
