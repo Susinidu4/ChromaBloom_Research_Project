@@ -91,6 +91,35 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     }
   }
 
+  int _calcProgressPercent(Map<String, dynamic> activity) {
+    final steps = (activity["steps"] as List?) ?? [];
+    if (steps.isEmpty) return 0;
+
+    final done = steps.where((s) => (s["status"] == true)).length;
+    return ((done / steps.length) * 100).round();
+  }
+
+  int _dailyProgressPercentForList(
+    List<dynamic> taskList, {
+    required bool suggested,
+  }) {
+    if (taskList.isEmpty) return 0;
+
+    int total = 0;
+
+    for (final t in taskList) {
+      final task = Map<String, dynamic>.from(t as Map);
+
+      final p = suggested
+          ? ((task["percent"] as num?)?.toInt() ?? 0) // suggestedTasks percent
+          : _calcProgressPercent(task); // yourTasks from steps.status
+
+      total += p;
+    }
+
+    return (total / taskList.length).round(); // average
+  }
+
   @override
   Widget build(BuildContext context) {
     final tasks = isSuggested ? suggestedTasks : yourTasks;
@@ -100,7 +129,13 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       return title.contains(searchQuery.toLowerCase());
     }).toList();
 
+    final dailyProgress = _dailyProgressPercentForList(
+      filteredTasks,
+      suggested: isSuggested,
+    );
+
     final showYour = !isSuggested;
+    final bool isDailyLimitReached = yourTasks.length >= 10;
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -143,10 +178,10 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                     const SizedBox(height: 14),
 
                     _ProgressCard(
-                      percent: isSuggested ? 80 : 62,
+                      percent: dailyProgress,
                       kidImagePath: "assets/kid_trophy.png",
                       isSuggested: isSuggested,
-                      ringSize: 125, // ✅ change this to increase ring
+                      ringSize: 125,
                     ),
 
                     const SizedBox(height: 14),
@@ -201,11 +236,27 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                 ? (t["media_links"][0]).toString()
                                 : "assets/brushing_teeth.png";
 
+                            final steps = (t["steps"] as List?) ?? [];
+                            final done = steps
+                                .where((s) => s["status"] == true)
+                                .length;
+                            final total = steps.length;
+
+                            final percent = _calcProgressPercent(t);
+
+                            final status = total == 0
+                                ? "Pending"
+                                : (done == 0
+                                      ? "Pending"
+                                      : (done == total
+                                            ? "Completed"
+                                            : "In Progress"));
+
                             return _TaskCard(
                               title: title,
                               desc: desc.isEmpty ? "Description" : desc,
-                              status: "Pending",
-                              percent: 0,
+                              status: status,
+                              percent: percent,
                               imagePath: img,
                               isNetwork: img.startsWith("http"),
                               onTap: () {
@@ -215,7 +266,10 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                     builder: (_) =>
                                         DetailedUserActivityScreen(activity: t),
                                   ),
-                                );
+                                ).then((changed) {
+                                  // ✅ If details page updated progress, refresh list
+                                  if (changed == true) _fetchYourTasks();
+                                });
                               },
                             );
                           },
@@ -231,7 +285,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           final t = suggestedTasks[i];
                           return _TaskCard(
                             title: t["title"].toString(),
-                            desc: t["desc"].toString(), // ✅ fixed key
+                            desc: t["desc"].toString(), 
                             status: t["status"].toString(),
                             percent: (t["percent"] as num).toInt(),
                             imagePath: t["img"].toString(),
@@ -244,10 +298,12 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ✅ Create button only for "Your tasks"
                     if (showYour) ...[
                       _CreateTaskButton(
+                        enabled: !isDailyLimitReached,
                         onTap: () async {
+                          if (isDailyLimitReached) return;
+
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -255,10 +311,21 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                             ),
                           );
 
-                          // after returning from create screen, refresh list for same date
                           _fetchYourTasks();
                         },
                       ),
+
+                      if (isDailyLimitReached) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          "Daily limit reached (10 activities)",
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
 
                     const SizedBox(height: 90),
@@ -585,8 +652,10 @@ class _ProgressCard extends StatelessWidget {
 
 /* ===================== CREATE BUTTON ===================== */
 class _CreateTaskButton extends StatelessWidget {
-  const _CreateTaskButton({required this.onTap});
+  const _CreateTaskButton({required this.onTap, this.enabled = true});
+
   final VoidCallback onTap;
+  final bool enabled;
 
   static const Color stroke = Color(0xFFBD9A6B);
 
@@ -596,9 +665,11 @@ class _CreateTaskButton extends StatelessWidget {
       width: double.infinity,
       height: 46,
       child: ElevatedButton(
-        onPressed: onTap,
+        onPressed: enabled ? onTap : null, // ✅ disables button
         style: ElevatedButton.styleFrom(
-          backgroundColor: stroke,
+          backgroundColor: enabled
+              ? stroke
+              : stroke.withOpacity(0.4), // greyed look
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
