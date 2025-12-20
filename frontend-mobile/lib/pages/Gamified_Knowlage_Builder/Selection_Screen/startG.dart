@@ -5,7 +5,7 @@ import '../../others/navBar.dart';
 class UnitStartPage extends StatelessWidget {
   const UnitStartPage({super.key});
 
-  static const Color pageBg = Color(0xFFF5ECEC);
+  static const Color pageBg = Color(0xFFF3E8E8);
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +158,8 @@ class _PrimaryButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 110, // ✅ UI-accurate width
-          height: 36, // ✅ UI-accurate height
+          width: 110, 
+          height: 36, 
           decoration: BoxDecoration(
             color: const Color(0xFFB89A76),
             borderRadius: BorderRadius.circular(10),
