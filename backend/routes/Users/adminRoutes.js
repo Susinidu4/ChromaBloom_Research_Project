@@ -1,28 +1,25 @@
-// routes/admin.routes.js
 import express from "express";
 import {
   createAdmin,
+  loginAdmin,
   getAdmins,
   getAdminById,
   updateAdmin,
   deleteAdmin,
 } from "../../controllers/Users/adminController.js";
 
+import { protectAdmin } from "../../middlewares/authAdmin.js";
+
 const router = express.Router();
 
-// POST /api/admins          -> create admin
+// PUBLIC
 router.post("/", createAdmin);
+router.post("/login", loginAdmin);
 
-// GET /api/admins           -> view all admins
-router.get("/", getAdmins);
-
-// GET /api/admins/:id       -> view admin by id
-router.get("/:id", getAdminById);
-
-// PUT /api/admins/:id       -> update admin
-router.put("/:id", updateAdmin);
-
-// DELETE /api/admins/:id    -> delete admin
-router.delete("/:id", deleteAdmin);
+// PROTECTED (optional) - require token
+router.get("/", protectAdmin, getAdmins);
+router.get("/:id", protectAdmin, getAdminById);
+router.put("/:id", protectAdmin, updateAdmin);
+router.delete("/:id", protectAdmin, deleteAdmin);
 
 export default router;
