@@ -5,7 +5,7 @@ import '../../others/navBar.dart';
 class SkillKnowledgeLevelPage extends StatelessWidget {
   const SkillKnowledgeLevelPage({super.key});
 
-  static const Color pageBg = Color(0xFFF5ECEC);
+  static const Color pageBg = Color(0xFFF3E8E8);
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +101,7 @@ class _KnowledgeCard extends StatelessWidget {
   final void Function(String level) onSelect;
 
   static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color textColor = Color(0xFFA07E6A);
+  static const Color textColor = Color(0xFFBD9A6B);
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +198,7 @@ class _ChoiceButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  static const Color textColor = Color(0xFFA07E6A);
+  static const Color textColor = Color(0xFFBD9A6B);
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +214,7 @@ class _ChoiceButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFFD8C6B4), width: 1),
+            border: Border.all(color: const Color(0xFFBD9A6B), width: 1),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x14000000),

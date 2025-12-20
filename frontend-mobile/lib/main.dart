@@ -9,6 +9,9 @@ import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/skill_KnowlageLevel.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/display_DrawingLesson.dart';
+import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
+import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
+import 'pages/Gamified_Knowlage_Builder/Drawing/improvment.dart';
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
@@ -38,6 +41,9 @@ class MyApp extends StatelessWidget {
         '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
+        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
+        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(),
+        '/lessonComplete': (context) => const LessonCompletePage(),
         
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
