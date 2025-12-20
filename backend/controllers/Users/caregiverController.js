@@ -1,25 +1,46 @@
-// controllers/caregiver.controller.js
+// controllers/Users/caregiverController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import Caregiver from "../../models/Users/caregiverModel.js";
+import Caregiver from "../../models/Users/caregiver.model.js";
+import cloudinary from "../../config/cloudinary.js";
 
 // Helper to create JWT
 const generateToken = (caregiver) => {
-  return jwt.sign(
-    { id: caregiver._id, email: caregiver.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  return jwt.sign({ id: caregiver._id, email: caregiver.email }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 };
 
-// =======================
-//   CREATE / REGISTER
-// =======================
+// Helper: upload buffer to Cloudinary
+const uploadBufferToCloudinary = (fileBuffer, folder = "chromabloom/caregivers") => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "image" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
+    stream.end(fileBuffer);
+  });
+};
+
+// ✅ CREATE / REGISTER (NO profile image upload here)
 export const createCaregiver = async (req, res) => {
   try {
-    const { full_name, email, password, dob, gender, phone, address } = req.body;
+    const full_name = req.body.full_name ?? req.body.fullName;
+    const email = req.body.email;
+    const password = req.body.password;
 
-    // Check existing email
+    const dob = req.body.dob ?? req.body.dateOfBirth;
+    const gender = req.body.gender;
+
+    const phone = req.body.phone ?? req.body.phoneNumber;
+    const address = req.body.address;
+
+    const child_count = req.body.child_count ?? req.body.numberOfChildren ?? 0;
+
     const existing = await Caregiver.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: "Email already registered" });
@@ -28,11 +49,13 @@ export const createCaregiver = async (req, res) => {
     const caregiver = await Caregiver.create({
       full_name,
       email,
-      password, // will be hashed in pre('save')
+      password,
       dob,
       gender,
       phone,
       address,
+      child_count,
+      // profile_pic NOT handled here
     });
 
     const token = generateToken(caregiver);
@@ -48,9 +71,7 @@ export const createCaregiver = async (req, res) => {
   }
 };
 
-// =======================
-//   LOGIN
-// =======================
+// ✅ LOGIN
 export const loginCaregiver = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -78,9 +99,7 @@ export const loginCaregiver = async (req, res) => {
   }
 };
 
-// =======================
-//   GET ALL CAREGIVERS
-// =======================
+// ✅ GET ALL
 export const getAllCaregivers = async (req, res) => {
   try {
     const caregivers = await Caregiver.find().sort({ createdAt: -1 });
@@ -91,13 +110,11 @@ export const getAllCaregivers = async (req, res) => {
   }
 };
 
-// =======================
-//   GET CAREGIVER BY ID
-// =======================
+// ✅ GET BY ID
 export const getCaregiverById = async (req, res) => {
   try {
-    const { id } = req.params; // id = p-0001
-    const caregiver = await Caregiver.findById(id); // works because _id is a string
+    const { id } = req.params;
+    const caregiver = await Caregiver.findById(id);
 
     if (!caregiver) {
       return res.status(404).json({ message: "Caregiver not found" });
@@ -110,17 +127,21 @@ export const getCaregiverById = async (req, res) => {
   }
 };
 
-// =======================
-//   UPDATE CAREGIVER
-// =======================
+// ✅ UPDATE CAREGIVER (supports profile_pic upload)
 export const updateCaregiver = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // If password is sent in body, hash it manually
+    // If password sent, hash it
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       req.body.password = await bcrypt.hash(req.body.password, salt);
+    }
+
+    // If image uploaded (multipart/form-data)
+    if (req.file) {
+      const result = await uploadBufferToCloudinary(req.file.buffer);
+      req.body.profile_pic = result.secure_url;
     }
 
     const updated = await Caregiver.findByIdAndUpdate(id, req.body, {
@@ -142,9 +163,7 @@ export const updateCaregiver = async (req, res) => {
   }
 };
 
-// =======================
-//   DELETE CAREGIVER
-// =======================
+// ✅ DELETE
 export const deleteCaregiver = async (req, res) => {
   try {
     const { id } = req.params;
