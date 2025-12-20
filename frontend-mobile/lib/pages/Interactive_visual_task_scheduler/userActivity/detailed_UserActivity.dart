@@ -16,7 +16,8 @@ class DetailedUserActivityScreen extends StatefulWidget {
       _DetailedUserActivityScreenState();
 }
 
-class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen> {
+class _DetailedUserActivityScreenState
+    extends State<DetailedUserActivityScreen> {
   // ===== Theme colors =====
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
@@ -33,17 +34,33 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
   void initState() {
     super.initState();
 
-    // ✅ init TTS once
     TtsService.init();
 
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
-    steps = rawSteps
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList()
-      ..sort((a, b) =>
-          (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0));
+    steps = rawSteps.map((e) => Map<String, dynamic>.from(e as Map)).toList()
+      ..sort(
+        (a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0),
+      );
 
-    stepDone = List<bool>.filled(steps.length, false);
+    // ✅ load saved step status from DB
+    stepDone = steps.map((s) => (s["status"] == true)).toList();
+
+    // ✅ load saved completed minutes from DB
+    final cd = widget.activity["completed_duration_minutes"];
+    if (cd is int) {
+      completedMinutes = cd;
+    } else if (cd is double) {
+      completedMinutes = cd.toInt();
+    } else if (cd is String) {
+      completedMinutes = int.tryParse(cd) ?? 0;
+    } else {
+      completedMinutes = 0;
+    }
+
+    // ✅ compute initial progress using DB values
+    final done = stepDone.where((x) => x).length;
+    progressPercent = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
+    statusText = (progressPercent == 100) ? "Completed" : "In Progress";
   }
 
   @override
@@ -132,7 +149,10 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
                 child: Column(
                   children: [
                     Align(
@@ -166,10 +186,13 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                       onStopTts: () => TtsService.stop(),
 
                       onDelete: () async {
-                        final mongoId = (widget.activity["_id"] ?? "").toString();
+                        final mongoId = (widget.activity["_id"] ?? "")
+                            .toString();
                         if (mongoId.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Cannot delete: missing _id")),
+                            const SnackBar(
+                              content: Text("Cannot delete: missing _id"),
+                            ),
                           );
                           return;
                         }
@@ -178,7 +201,9 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                           context: context,
                           builder: (_) => AlertDialog(
                             title: const Text("Delete this task?"),
-                            content: const Text("This action cannot be undone."),
+                            content: const Text(
+                              "This action cannot be undone.",
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
@@ -195,13 +220,16 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                         if (ok != true) return;
 
                         try {
-                          final res = await UserActivityService.deleteUserActivity(
-                            mongoId: mongoId,
-                          );
+                          final res =
+                              await UserActivityService.deleteUserActivity(
+                                mongoId: mongoId,
+                              );
 
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(res["message"] ?? "Deleted")),
+                            SnackBar(
+                              content: Text(res["message"] ?? "Deleted"),
+                            ),
                           );
 
                           Navigator.pop(context, true);
@@ -213,18 +241,45 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                         }
                       },
 
-                      onSave: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Save pressed")),
-                        );
+                      onSave: () async {
+                        final mongoId = (widget.activity["_id"] ?? "")
+                            .toString();
+                        if (mongoId.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Cannot save: missing _id"),
+                            ),
+                          );
+                          return;
+                        }
+
+                        try {
+                          final res =
+                              await UserActivityService.updateUserActivityProgress(
+                                mongoId: mongoId,
+                                steps: _stepsPayload(),
+                                completedDurationMinutes: completedMinutes,
+                              );
+
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res["message"] ?? "Saved")),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Save failed: $e")),
+                          );
+                        }
                       },
 
                       onEdit: () async {
                         final updated = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                UpdateUserActivityScreen(activity: widget.activity),
+                            builder: (_) => UpdateUserActivityScreen(
+                              activity: widget.activity,
+                            ),
                           ),
                         );
 
@@ -234,7 +289,7 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
                       },
                     ),
 
-                    const SizedBox(height: 90),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),
@@ -244,6 +299,17 @@ class _DetailedUserActivityScreenState extends State<DetailedUserActivityScreen>
       ),
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
+  }
+
+  List<Map<String, dynamic>> _stepsPayload() {
+    return List.generate(steps.length, (i) {
+      final s = steps[i];
+      return {
+        "step_number": s["step_number"] ?? (i + 1),
+        "instruction": (s["instruction"] ?? "").toString(),
+        "status": stepDone[i],
+      };
+    });
   }
 }
 
@@ -339,7 +405,11 @@ class _DetailCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 child: const Padding(
                   padding: EdgeInsets.all(6),
-                  child: Icon(Icons.mode_edit_outlined, color: stroke, size: 25),
+                  child: Icon(
+                    Icons.mode_edit_outlined,
+                    color: stroke,
+                    size: 25,
+                  ),
                 ),
               ),
             ],
@@ -430,8 +500,10 @@ class _DetailCard extends StatelessWidget {
               height: 220,
               child: imgUrl != null
                   ? Image.network(imgUrl!, fit: BoxFit.contain)
-                  : Image.asset("assets/create_user_activity.png",
-                      fit: BoxFit.contain),
+                  : Image.asset(
+                      "assets/create_user_activity.png",
+                      fit: BoxFit.contain,
+                    ),
             ),
           ),
 
@@ -521,8 +593,11 @@ class _DetailCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     child: const Padding(
                       padding: EdgeInsets.all(4),
-                      child: Icon(Icons.volume_up_rounded,
-                          color: stroke, size: 22),
+                      child: Icon(
+                        Icons.volume_up_rounded,
+                        color: stroke,
+                        size: 22,
+                      ),
                     ),
                   ),
 
@@ -534,8 +609,9 @@ class _DetailCard extends StatelessWidget {
                     child: Checkbox(
                       value: stepDone[i],
                       onChanged: (v) => onStepChanged(i, v),
-                      fillColor:
-                          MaterialStateProperty.resolveWith<Color>((states) {
+                      fillColor: MaterialStateProperty.resolveWith<Color>((
+                        states,
+                      ) {
                         return Colors.white; // ✅ white background
                       }),
                       side: BorderSide(
@@ -577,7 +653,9 @@ class _DetailCard extends StatelessWidget {
                 child: Text(
                   "$completedMinutes",
                   style: const TextStyle(
-                      color: textDark, fontWeight: FontWeight.w800),
+                    color: textDark,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -595,15 +673,21 @@ class _DetailCard extends StatelessWidget {
                     Expanded(
                       child: InkWell(
                         onTap: onIncCompleted,
-                        child: const Icon(Icons.keyboard_arrow_up_rounded,
-                            color: stroke, size: 18),
+                        child: const Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: stroke,
+                          size: 18,
+                        ),
                       ),
                     ),
                     Expanded(
                       child: InkWell(
                         onTap: onDecCompleted,
-                        child: const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: stroke, size: 18),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: stroke,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -650,7 +734,11 @@ class _DetailCard extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.text, required this.bg, required this.onTap});
+  const _ActionButton({
+    required this.text,
+    required this.bg,
+    required this.onTap,
+  });
   final String text;
   final Color bg;
   final VoidCallback onTap;
@@ -666,7 +754,9 @@ class _ActionButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 10,
           shadowColor: Colors.black54,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
