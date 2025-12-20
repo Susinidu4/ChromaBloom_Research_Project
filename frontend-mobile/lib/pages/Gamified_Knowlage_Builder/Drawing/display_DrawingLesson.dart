@@ -5,16 +5,16 @@ import '../../others/navBar.dart';
 class DrawingUnit1Page extends StatelessWidget {
   DrawingUnit1Page({super.key}); // (non-const while you iterate)
 
-  static const Color pageBg = Color(0xFFF5ECEC);
+  static const Color pageBg = Color(0xFFF3E8E8);
 
   // Card palette
-  static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color leftShade = Color(0xFFD6BFA6);
+  static const Color cardBg = Color(0xFFFFFFFF);
+  static const Color leftShade = Color(0xFFDFC7A7);
   static const Color titleColor = Color(0xFFA07E6A);
-  static const Color descColor = Color(0xFFB79B86);
+  static const Color descColor = Color(0xFFBD9A6B);
 
   // Top row
-  static const Color topRowBlue = Color(0xFF3D6B86);
+  static const Color topRowBlue = Color(0xFF386884);
   static const Color actionBtnBg = Color(0xFFF8F2E8);
   static const Color actionBtnBorder = Color(0xFFD8C6B4);
   static const Color actionIcon = Color(0xFFB0896E);
