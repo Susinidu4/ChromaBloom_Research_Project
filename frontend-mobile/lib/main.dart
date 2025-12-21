@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
+import 'package:provider/provider.dart';
+
+import 'state/session_provider.dart';
+
 import 'package:frontend/pages/others/SplashScreen.dart';
 import 'package:frontend/pages/others/first_time_options.dart';
 import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
+
+import 'package:frontend/pages/profile_pages/ChildDetailsPage.dart';
+import 'package:frontend/pages/profile_pages/ProfileSettingsPage.dart';
+import 'package:frontend/pages/profile_pages/profile_page.dart';
+
+import 'pages/auth/signup/signup_screen.dart';
+import 'pages/auth/signup/caregiver_login_screen.dart';
+import 'pages/auth/signup/therapist_login_screen.dart';
+import 'pages/auth/signup/therapist_register_screen.dart';
 
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
@@ -14,13 +27,15 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/display_DrawingLesson.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/improvment.dart';
-import 'pages/auth/signup/signup_screen.dart';
-import 'pages/auth/signup/caregiver_login_screen.dart';
-import 'pages/auth/signup/therapist_login_screen.dart';
-import 'pages/auth/signup/therapist_register_screen.dart';
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SessionProvider()..loadFromStorage(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -40,6 +55,10 @@ class MyApp extends StatelessWidget {
         
         '/': (context) => const HomePage(),
         
+         '/profile_page': (context) => const ProfilePage(),
+        '/profile_settings': (context) => const ProfileSettingsPage(),
+        '/child_details': (context) => const ChildDetailsPage(),
+        
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
 
@@ -55,8 +74,6 @@ class MyApp extends StatelessWidget {
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
-        '/splash': (context) => const SplashScreen(),
-        '/welcome_screen': (context) => const WelcomePage()
       },
     );
   }
