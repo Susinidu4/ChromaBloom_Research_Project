@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../others/profile_options_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -237,7 +236,9 @@ class _HomePageState extends State<HomePage> {
             title: 'Gamified\nKnowledge\nBuilder',
             imagePath: 'assets/h3.png',
             bgColor: const Color(0xFFDFC7A7),
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, '/skillSelection');
+            },
           ),
 
           // 4. Cognitive Profiling - BLUE GRAY
