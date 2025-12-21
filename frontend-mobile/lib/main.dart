@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:frontend/pages/others/SplashScreen.dart';
+import 'package:frontend/pages/others/first_time_options.dart';
 import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
+
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
@@ -30,8 +32,12 @@ class MyApp extends StatelessWidget {
       title: 'ChromaBloom',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue,),
-      initialRoute: '/',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
+        '/welcome_screen': (context) => const WelcomePage(),
+        '/first_time': (context) => const FirstTimeOptionsPage(),
+        
         '/': (context) => const HomePage(),
         
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
