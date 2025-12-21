@@ -1,8 +1,7 @@
-// lib/pages/auth/signup/signup_screen.dart
 import 'package:flutter/material.dart';
 import '../../../services/user_services/caregiver_api.dart';
 import '../../../services/user_services/child_api.dart';
-import '../../../services/user_services/therapist_api.dart'; // 👈 NEW
+import '../../../services/user_services/therapist_api.dart';
 
 import 'caregiver_step.dart';
 import 'child_step.dart';
@@ -35,8 +34,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController cgEmailController = TextEditingController();
   final TextEditingController cgAddressController = TextEditingController();
 
-  // TEMP: we need a password for backend; ideally you add password fields
-  final String _tempPassword = "password123"; // TODO: replace with real input
+  // ✅ NEW: Password controllers
+  final TextEditingController cgPasswordController = TextEditingController();
+  final TextEditingController cgConfirmPasswordController =
+      TextEditingController();
 
   // ------- Step 2: Child controllers -------
   final TextEditingController childNameController = TextEditingController();
@@ -55,7 +56,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // therapist selection
   String? selectedTherapist;
-  List<String> therapistOptions = []; // 👈 dynamic from API
+  List<String> therapistOptions = [];
   bool _loadingTherapists = false;
   String? _therapistError;
 
@@ -66,7 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTherapists(); // 👈 fetch list when screen opens
+    _loadTherapists();
   }
 
   @override
@@ -77,6 +78,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     cgMobileController.dispose();
     cgEmailController.dispose();
     cgAddressController.dispose();
+
+    // ✅ NEW
+    cgPasswordController.dispose();
+    cgConfirmPasswordController.dispose();
 
     childNameController.dispose();
     childDobController.dispose();
@@ -159,6 +164,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    // ✅ Password validation
+    final pw = cgPasswordController.text.trim();
+    final cpw = cgConfirmPasswordController.text.trim();
+
+    if (pw.isEmpty || cpw.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter password and confirm it.")),
+      );
+      return;
+    }
+
+    if (pw.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password must be at least 6 characters.")),
+      );
+      return;
+    }
+
+    if (pw != cpw) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match.")),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -172,7 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         mobile: cgMobileController.text.trim(),
         email: cgEmailController.text.trim(),
         address: cgAddressController.text.trim(),
-        password: _tempPassword, // TODO: replace with real password field
+        password: pw, // ✅ real password from UI
       );
 
       final caregiver = cgResult['caregiver'];
@@ -182,7 +212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final String caregiverId = caregiver['_id']; // e.g. "p-0001"
 
-      // 2) Extract therapistId from dropdown (e.g. "Dr. A (Speech Therapist) - t-0001")
+      // 2) Extract therapistId from dropdown
       String? therapistId;
       if (selectedTherapist != null &&
           selectedTherapist!.contains(' - ')) {
@@ -205,7 +235,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         downSyndromeType: downSyndromeType,
         downSyndromeConfirmedBy: downSyndromeConfirmedBy,
         caregiverId: caregiverId,
-        therapistId: therapistId,
+        therapistId: therapistId!,
         hasHeartIssues: hasHeartIssues,
         hasThyroidIssues: hasThyroidIssues,
         hasHearingProblems: hasHearingProblems,
@@ -220,8 +250,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         SnackBar(content: Text(msg)),
       );
 
-      // TODO: Navigate to caregiver home, maybe with newly created child
+      // ✅ Navigate after success (update route to your app)
       // Navigator.pushReplacementNamed(context, '/home');
+
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -259,6 +290,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         mobileController: cgMobileController,
                         emailController: cgEmailController,
                         addressController: cgAddressController,
+
+                        // ✅ NEW
+                        passwordController: cgPasswordController,
+                        confirmPasswordController: cgConfirmPasswordController,
+
                         onGenderChanged: (val) =>
                             setState(() => cgGender = val),
                         onDobTap: () => _pickDate(cgDobController),
@@ -298,8 +334,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 setState(() => downSyndromeType = val),
                             onConfirmedByChanged: (val) =>
                                 setState(() => downSyndromeConfirmedBy = val),
-
-                            // health condition props
                             hasHeartIssues: hasHeartIssues,
                             hasThyroidIssues: hasThyroidIssues,
                             hasHearingProblems: hasHearingProblems,
@@ -312,8 +346,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 setState(() => hasHearingProblems = v ?? false),
                             onVisionChanged: (v) =>
                                 setState(() => hasVisionProblems = v ?? false),
-
-                            // therapist dropdown
                             selectedTherapist: selectedTherapist,
                             therapistOptions: therapistOptions,
                             onTherapistChanged: (v) =>

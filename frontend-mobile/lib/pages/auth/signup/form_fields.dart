@@ -1,4 +1,3 @@
-// lib/pages/auth/signup/form_fields.dart
 import 'package:flutter/material.dart';
 
 const Color _gold = Color(0xFFC89B62);
@@ -13,6 +12,7 @@ class RoundedTextField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType? keyboardType;
   final int maxLines;
+  final bool obscureText;
 
   const RoundedTextField({
     super.key,
@@ -20,6 +20,7 @@ class RoundedTextField extends StatelessWidget {
     required this.controller,
     this.keyboardType,
     this.maxLines = 1,
+    this.obscureText = false,
   });
 
   @override
@@ -28,6 +29,7 @@ class RoundedTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: _gold),
