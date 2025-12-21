@@ -1,6 +1,7 @@
-// lib/pages/auth/caregiver_login_screen.dart
 import 'package:flutter/material.dart';
 import '../../../services/user_services/caregiver_api.dart';
+import '../../../state/session_provider.dart';
+import 'package:provider/provider.dart';
 
 class CaregiverLoginScreen extends StatefulWidget {
   const CaregiverLoginScreen({super.key});
@@ -31,38 +32,25 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
       final result = await CaregiverApi.login(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
       );
 
-      if (!mounted) return;
+      final token = result['token'] as String?;
+      final caregiver = result['caregiver'] as Map<String, dynamic>?;
 
-      final caregiver = result['caregiver'];
-      final msg = result['message'] ?? 'Login successful';
+      if (token == null || caregiver == null) {
+        throw Exception("Missing token/caregiver from server response");
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
+      await context.read<SessionProvider>().setSession(
+        token: token,
+        caregiver: caregiver,
       );
 
-      // TODO: store token / caregiver info in local storage or provider
-      // final token = result['token'];
-
-      // TODO: Navigate to caregiver home/dashboard
-      // Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      // go home
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   @override
@@ -201,8 +189,8 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                           ),
                           TextButton(
                             onPressed: () {
-                              // TODO: navigate to SignUpScreen
-                              // Navigator.pushNamed(context, '/signup');
+                              // ✅ Route in your main.dart is /caregiver_signup
+                              Navigator.pushNamed(context, '/caregiver_signup');
                             },
                             child: const Text(
                               "Sign Up",
