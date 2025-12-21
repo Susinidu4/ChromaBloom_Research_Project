@@ -1,4 +1,4 @@
-// routes/caregiver.routes.js
+// routes/Users/caregiverRoutes.js
 import express from "express";
 import {
   createCaregiver,
@@ -9,16 +9,22 @@ import {
   deleteCaregiver,
 } from "../../controllers/Users/caregiverController.js";
 
+import upload from "../../middlewares/uploadImage.js";
+
 const router = express.Router();
 
-// Auth routes
-router.post("/register", createCaregiver); // POST /api/caregivers/register
-router.post("/login", loginCaregiver);     // POST /api/caregivers/login
+// Auth
+router.post("/register", createCaregiver); // JSON only
+router.post("/login", loginCaregiver);
 
-// CRUD routes
-router.get("/", getAllCaregivers);         // GET  /api/caregivers
-router.get("/:id", getCaregiverById);      // GET  /api/caregivers/p-0001
-router.put("/:id", updateCaregiver);       // PUT  /api/caregivers/p-0001
-router.delete("/:id", deleteCaregiver);    // DELETE /api/caregivers/p-0001
+// CRUD
+router.get("/", getAllCaregivers);
+router.get("/:id", getCaregiverById);
+
+// ✅ Only update supports image upload
+// form-data key must be: profile_pic
+router.put("/:id", upload.single("profile_pic"), updateCaregiver);
+
+router.delete("/:id", deleteCaregiver);
 
 export default router;

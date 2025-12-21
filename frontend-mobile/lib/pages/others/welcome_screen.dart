@@ -1,18 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  @override
+  void initState() {
+    super.initState();
+    _routeNext();
+  }
+
+  Future<void> _routeNext() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstInstall = prefs.getBool('isFirstInstall') ?? true;
+
+    if (!mounted) return;
+
+    if (isFirstInstall) {
+      // mark as completed so next time it won't show options
+      await prefs.setBool('isFirstInstall', false);
+      Navigator.pushReplacementNamed(context, '/first_time');
+    } else {
+      // returning user -> go to home or login
+      Navigator.pushReplacementNamed(context, '/caregiver_login');
+      // or: Navigator.pushReplacementNamed(context, '/');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF386884), // Background color
-
+      backgroundColor: const Color(0xFF386884),
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ================== TOP CONTAINER ==================
             Align(
               alignment: Alignment.topCenter,
               child: Container(
@@ -23,14 +52,14 @@ class WelcomePage extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color.fromARGB(255, 62, 162, 216), // top
-                      Color(0xFF386884), // bottom
+                      Color.fromARGB(255, 62, 162, 216),
+                      Color(0xFF386884),
                     ],
                   ),
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(50),
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
                       blurRadius: 5,
@@ -41,19 +70,12 @@ class WelcomePage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // -------- chromabloom1.png --------
                     SizedBox(
                       width: 120,
                       height: 120,
-                      child: Image.asset(
-                        "assets/chromabloom1.png",
-                        fit: BoxFit.contain,
-                      ),
+                      child: Image.asset("assets/chromabloom1.png"),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // -------- Text --------
                     const Text(
                       "Hello! Welcome to",
                       style: TextStyle(
@@ -63,35 +85,26 @@ class WelcomePage extends StatelessWidget {
                         color: Color(0xFFBD9A6B),
                       ),
                     ),
-
-                    const SizedBox(height: 0),
-
-                    // -------- chromabloom2.png --------
                     Transform.translate(
-                      offset: Offset(0, -20), // Move upward
+                      offset: const Offset(0, -20),
                       child: SizedBox(
                         width: 150,
                         height: 130,
-                        child: Image.asset(
-                          "assets/chromabloom2.png",
-                          fit: BoxFit.contain,
-                        ),
+                        child: Image.asset("assets/chromabloom2.png"),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
-            // ================== BOTTOM TAGLINE ==================
-            Padding(
-              padding: const EdgeInsets.only(bottom: 30),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 30),
               child: Text(
                 "WHERE CARE MEETS INTELLIGENCE",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "Poppins",
-                  fontWeight: FontWeight.w100, // Thin
+                  fontWeight: FontWeight.w100,
                   fontSize: 11,
                   letterSpacing: 1.5,
                   color: Color(0xFFBD9A6B),

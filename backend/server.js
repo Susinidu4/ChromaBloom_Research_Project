@@ -21,6 +21,10 @@ import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route
 import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLessonRoutes.js";
 import completeProblemSolvingSessionRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingSessonRoutes.js";
 
+// cognitive progress prediction
+import cognitiveProgressRoutes from "./routes/Cognitive_Progress_Prediction/cognitiveProgressRoutes.js";
+
+
 dotenv.config();
 
 const app = express();
@@ -57,6 +61,9 @@ app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
 app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
 app.use("/chromabloom/complete-problem-solving-sessions", completeProblemSolvingSessionRoutes);
+// Cognitive Progress Prediction
+app.use("/chromabloom/cognitiveProgress", cognitiveProgressRoutes);
+
 
 //  ERROR HANDLER (JSON, not HTML)
 app.use((err, req, res, next) => {

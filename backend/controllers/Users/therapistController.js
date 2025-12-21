@@ -1,7 +1,7 @@
 // controllers/Users/therapist.controller.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import Therapist from "../../models/Users/terapistModel.js";
+import Therapist from "../../models/Users/terapist.model.js";
 import cloudinary from "../../config/cloudinary.js";
 
 // =========================
