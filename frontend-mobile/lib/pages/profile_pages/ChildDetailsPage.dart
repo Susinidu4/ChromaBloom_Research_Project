@@ -1,4 +1,6 @@
 // lib/pages/profile_pages/ChildDetailsPage.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -55,10 +57,7 @@ class _ChildDetailsPageState extends State<ChildDetailsPage> {
 
       final list = await ChildApi.getChildrenByCaregiver(caregiverId);
 
-      final parsed = list
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
+      final parsed = list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
 
       setState(() {
         _children = parsed;
@@ -123,8 +122,8 @@ class _ChildDetailsPageState extends State<ChildDetailsPage> {
               name: caregiverName,
               email: caregiverEmail,
               notificationCount: 0,
+              caregiver: caregiver, // ✅ pass caregiver map for avatar
             ),
-
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -295,16 +294,64 @@ class _HeaderSection extends StatelessWidget {
   final String email;
   final int notificationCount;
 
+  // ✅ to read profile picture from session.caregiver
+  final Map<String, dynamic>? caregiver;
+
   const _HeaderSection({
     required this.name,
     required this.email,
     required this.notificationCount,
+    required this.caregiver,
   });
 
   static const Color headerBlue = Color(0xFF3E6D86);
 
+  // ✅ resolves profile pic (network url / data-uri base64 / plain base64)
+  ImageProvider _resolveAvatar(Map<String, dynamic>? caregiver) {
+    final raw = (caregiver?['profilePicUrl'] ??
+            caregiver?['profile_pic_url'] ??
+            caregiver?['profilePic'] ??
+            caregiver?['profile_pic'] ??
+            caregiver?['avatar'] ??
+            caregiver?['image'])
+        ?.toString();
+
+    const fallback = AssetImage("assets/images/profile_avatar.png");
+
+    if (raw == null || raw.trim().isEmpty) return fallback;
+
+    final v = raw.trim();
+
+    // URL
+    if (v.startsWith('http://') || v.startsWith('https://')) {
+      return NetworkImage(v);
+    }
+
+    // data:image/...;base64,...
+    if (v.startsWith('data:image')) {
+      final comma = v.indexOf(',');
+      if (comma != -1) {
+        final b64 = v.substring(comma + 1);
+        try {
+          return MemoryImage(base64Decode(b64));
+        } catch (_) {
+          return fallback;
+        }
+      }
+    }
+
+    // plain base64
+    try {
+      return MemoryImage(base64Decode(v));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final avatarProvider = _resolveAvatar(caregiver);
+
     return Container(
       decoration: const BoxDecoration(
         color: headerBlue,
@@ -335,9 +382,8 @@ class _HeaderSection extends StatelessWidget {
               child: CircleAvatar(
                 radius: 46,
                 backgroundColor: const Color(0xFFE9E9E9),
-                child: const Image(
-                  image: AssetImage("assets/images/profile_avatar.png"),
-                ),
+                backgroundImage: avatarProvider, // ✅ HERE
+                onBackgroundImageError: (_, __) {},
               ),
             ),
           ),

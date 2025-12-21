@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/session_provider.dart';
@@ -14,6 +16,51 @@ class ProfilePage extends StatelessWidget {
 
   static const Color signOutBg = Color(0xFFE9DECF);
 
+  ImageProvider _resolveAvatar(Map<String, dynamic>? caregiver) {
+    // Try multiple common keys your backend might return
+    final raw = (caregiver?['profilePicUrl'] ??
+            caregiver?['profile_pic_url'] ??
+            caregiver?['profilePic'] ??
+            caregiver?['profile_pic'] ??
+            caregiver?['avatar'] ??
+            caregiver?['image'])
+        ?.toString();
+
+    // Fallback asset
+    const fallback = AssetImage("assets/images/profile_avatar.png");
+
+    if (raw == null || raw.trim().isEmpty) return fallback;
+
+    final v = raw.trim();
+
+    // 1) Network URL
+    if (v.startsWith('http://') || v.startsWith('https://')) {
+      return NetworkImage(v);
+    }
+
+    // 2) Data URI base64: data:image/png;base64,....
+    if (v.startsWith('data:image')) {
+      final commaIndex = v.indexOf(',');
+      if (commaIndex != -1) {
+        final b64 = v.substring(commaIndex + 1);
+        try {
+          final bytes = base64Decode(b64);
+          return MemoryImage(bytes);
+        } catch (_) {
+          return fallback;
+        }
+      }
+    }
+
+    // 3) Plain base64 (no prefix)
+    try {
+      final bytes = base64Decode(v);
+      return MemoryImage(bytes);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionProvider>();
@@ -27,6 +74,8 @@ class ProfilePage extends StatelessWidget {
 
     final email = (caregiver?['email'] ?? 'unknown@email.com').toString();
 
+    final avatarProvider = _resolveAvatar(caregiver);
+
     return Scaffold(
       backgroundColor: pageBg,
       body: SafeArea(
@@ -35,6 +84,7 @@ class ProfilePage extends StatelessWidget {
             _HeaderSection(
               name: fullName,
               email: email,
+              avatar: avatarProvider,
               notificationCount: 5,
               onNotificationTap: () {},
               onBackTap: () {
@@ -85,8 +135,7 @@ class ProfilePage extends StatelessWidget {
                       icon: Icons.child_care_outlined,
                       title: "Child Details",
                       subtitle: "Update and Modify your child details",
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/child_details'),
+                      onTap: () => Navigator.pushNamed(context, '/child_details'),
                     ),
                     const SizedBox(height: 26),
                     const Text(
@@ -118,9 +167,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                         onPressed: () async {
-                          await context
-                              .read<SessionProvider>()
-                              .logout();
+                          await context.read<SessionProvider>().logout();
                           if (context.mounted) {
                             Navigator.pushNamedAndRemoveUntil(
                               context,
@@ -154,6 +201,8 @@ class ProfilePage extends StatelessWidget {
 class _HeaderSection extends StatelessWidget {
   final String name;
   final String email;
+  final ImageProvider avatar;
+
   final int notificationCount;
   final VoidCallback onNotificationTap;
   final VoidCallback onBackTap;
@@ -161,6 +210,7 @@ class _HeaderSection extends StatelessWidget {
   const _HeaderSection({
     required this.name,
     required this.email,
+    required this.avatar,
     required this.notificationCount,
     required this.onNotificationTap,
     required this.onBackTap,
@@ -208,12 +258,12 @@ class _HeaderSection extends StatelessWidget {
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.88),
             ),
-            child: const Center(
+            child: Center(
               child: CircleAvatar(
                 radius: 46,
-                backgroundColor: Color(0xFFE9E9E9),
-                backgroundImage:
-                    AssetImage("assets/images/profile_avatar.png"),
+                backgroundColor: const Color(0xFFE9E9E9),
+                backgroundImage: avatar,
+                onBackgroundImageError: (_, __) {},
               ),
             ),
           ),
