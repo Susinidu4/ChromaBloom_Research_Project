@@ -52,7 +52,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   bool saving = false;
 
   // TEMP caregiver
-  static const String hardcodedCaregiverId = "u-005";
+  static const String hardcodedCaregiverId = "p-0001";
 
   @override
   void dispose() {
