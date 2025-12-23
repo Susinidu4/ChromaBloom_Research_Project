@@ -4,9 +4,11 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
 import 'create_userActivity.dart';
 
 import 'detailed_UserActivity.dart';
+import '../../Interactive_visual_task_scheduler/systemActivity/detailed_systemActivity.dart';
 
 class DisplayUserActivityScreen extends StatefulWidget {
   const DisplayUserActivityScreen({super.key});
@@ -22,8 +24,15 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   static const Color cardBg = Color(0xFFE9DDCC);
 
   String searchQuery = "";
-  // ✅ TEMP hardcoded logged-in caregiver id
-  static const String hardcodedCaregiverId = "u-005";
+
+  // ✅ TEMP hardcoded logged-in caregiver id, childID, ageGroup
+  //static const String hardcodedCaregiverId = "u-005";
+
+  static const String hardcodedCaregiverId = "p-0001";
+  static const String hardcodedChildId = "c-0001";
+  static const String hardcodedAgeGroup = "5";
+
+  String? suggestedPlanMongoId;
 
   bool isSuggested = true;
   DateTime selectedDate = DateTime.now();
@@ -31,29 +40,76 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   bool loading = false;
   String? errorMsg;
 
-  List<Map<String, dynamic>> yourTasks = []; // from backend
+  bool loadingSuggested = false;
+  String? suggestedError;
 
-  final List<Map<String, dynamic>> suggestedTasks = const [
-    {
-      "title": "Mindful Reading",
-      "desc": "Description",
-      "status": "Completed",
-      "percent": 100,
-      "img": "assets/brushing_teeth.png",
-    },
-    {
-      "title": "Organizing",
-      "desc": "Description",
-      "status": "In Progress",
-      "percent": 70,
-      "img": "assets/create_user_activity.png",
-    },
-  ];
+  List<Map<String, dynamic>> suggestedTasks = [];
+
+  List<Map<String, dynamic>> yourTasks = [];
 
   @override
   void initState() {
     super.initState();
     // optional: if you want to auto-load when opening "Your tasks" first, set isSuggested=false
+
+    _fetchSuggestedPlan();
+  }
+
+  Future<void> _fetchSuggestedPlan() async {
+    setState(() {
+      loadingSuggested = true;
+      suggestedError = null;
+    });
+
+    try {
+      final res = await ChildRoutinePlanService.getOrCreateStarterPlan(
+        caregiverId: hardcodedCaregiverId,
+        childId: hardcodedChildId,
+        ageGroup: hardcodedAgeGroup,
+      );
+
+      final plan = (res["data"] as Map?) ?? {};
+      final acts = (plan["activities"] as List?) ?? [];
+
+      suggestedPlanMongoId = (plan["_id"] ?? "").toString();
+
+      // activities[] -> activityId populated object
+      final list = acts.map<Map<String, dynamic>>((a) {
+        final activityObj = (a["activityId"] as Map?) ?? {};
+
+        return {
+          "_id": activityObj["_id"],
+          "title": (activityObj["title"] ?? "").toString(),
+
+          // ✅ make UI keys exist
+          "desc": (activityObj["description"] ?? "").toString(),
+          "img":
+              ((activityObj["media_links"] is List &&
+                  (activityObj["media_links"] as List).isNotEmpty)
+              ? (activityObj["media_links"][0]).toString()
+              : "assets/brushing_teeth.png"),
+
+          // keep extra fields if you want
+          "description": (activityObj["description"] ?? "").toString(),
+          "steps": (activityObj["steps"] as List?) ?? [],
+          "media_links": (activityObj["media_links"] as List?) ?? [],
+          "estimated_duration_minutes":
+              activityObj["estimated_duration_minutes"],
+          "difficulty_level": activityObj["difficulty_level"],
+          "development_area": activityObj["development_area"],
+          "age_group": activityObj["age_group"],
+
+          "status": "Pending",
+          "percent": 0,
+        };
+      }).toList();
+
+      setState(() => suggestedTasks = list);
+    } catch (e) {
+      setState(() => suggestedError = e.toString());
+    } finally {
+      setState(() => loadingSuggested = false);
+    }
   }
 
   Future<void> _fetchYourTasks() async {
@@ -79,8 +135,10 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   void _onToggleChanged(bool suggestedSelected) {
     setState(() => isSuggested = suggestedSelected);
-    if (!suggestedSelected) {
-      _fetchYourTasks(); // only fetch when switching to "Your tasks"
+    if (suggestedSelected) {
+      _fetchSuggestedPlan(); // ✅ when switching to Suggested
+    } else {
+      _fetchYourTasks();
     }
   }
 
@@ -230,12 +288,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                             final title = (t["title"] ?? "").toString();
                             final desc = (t["description"] ?? "").toString();
 
-                            final img =
-                                (t["media_links"] is List &&
-                                    (t["media_links"] as List).isNotEmpty)
-                                ? (t["media_links"][0]).toString()
-                                : "assets/brushing_teeth.png";
-
                             final steps = (t["steps"] as List?) ?? [];
                             final done = steps
                                 .where((s) => s["status"] == true)
@@ -252,9 +304,13 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                             ? "Completed"
                                             : "In Progress"));
 
+                            final img =
+                                (t["img"] ?? "assets/brushing_teeth.png")
+                                    .toString();
+
                             return _TaskCard(
                               title: title,
-                              desc: desc.isEmpty ? "Description" : desc,
+                              desc: desc,
                               status: status,
                               percent: percent,
                               imagePath: img,
@@ -267,7 +323,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                         DetailedUserActivityScreen(activity: t),
                                   ),
                                 ).then((changed) {
-                                  // ✅ If details page updated progress, refresh list
                                   if (changed == true) _fetchYourTasks();
                                 });
                               },
@@ -275,25 +330,83 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           },
                         ),
                     ] else ...[
-                      // Suggested list
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: suggestedTasks.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          final t = suggestedTasks[i];
-                          return _TaskCard(
-                            title: t["title"].toString(),
-                            desc: t["desc"].toString(), 
-                            status: t["status"].toString(),
-                            percent: (t["percent"] as num).toInt(),
-                            imagePath: t["img"].toString(),
-                            isNetwork: false,
-                            onTap: () {},
-                          );
-                        },
-                      ),
+                      if (loadingSuggested)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        )
+                      else if (suggestedError != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            suggestedError!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        )
+                      else if (filteredTasks.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "No suggested activities found.",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredTasks.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final t = filteredTasks[i];
+                            final img =
+                                (t["img"] ?? "assets/brushing_teeth.png")
+                                    .toString();
+
+                            return _TaskCard(
+                              title: t["title"].toString(),
+                              desc: (t["desc"] ?? "").toString(),
+                              status: (t["status"] ?? "Pending").toString(),
+                              percent: (t["percent"] as num?)?.toInt() ?? 0,
+                              imagePath: img,
+                              isNetwork: img.startsWith("http"),
+                              onTap: () {
+                                final planId = suggestedPlanMongoId ?? "";
+                                if (planId.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Missing planId"),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DetailedSystemActivityScreen(
+                                      activity: {
+                                        ...t,
+                                        "selectedDate":
+                                            selectedDate, // optional if you still want it
+                                      },
+                                      planMongoId: planId, // ✅ PASS HERE
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                     ],
 
                     const SizedBox(height: 14),
