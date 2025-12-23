@@ -1,35 +1,57 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
+const stepProgressSchema = new Schema(
+  {
+    step_number: {
+      type: Number,
+      required: true,
+    },
+
+    status: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
+    
+  },
+  { _id: false } // no separate _id for each step progress
+);
+
 const routineRunSchema = new Schema(
   {
     caregiverId: {
       type: String,
-      ref: "Caregiver",
+      ref: "caregivers",
       required: true,
     },
 
     childId: {
       type: String,
-      ref: "Child",
+      ref: "children",
       required: true,
     },
 
     activityId: {
-      type: String,    // Schema.Types.ObjectId
-      ref: "userActivity",
+      type: Schema.Types.ObjectId,
+      ref: "SystemActivity",
       required: true,
     },
 
     planId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "childRoutinePlan",
       required: true,
     },
 
-    date: {
-      type: Date,
-      required: true,
+    steps_progress:{
+      type: [stepProgressSchema],
     },
+
+    // date: {
+    //   type: Date,
+    //   required: true,
+    // },
 
     total_steps: {
       type: Number,
@@ -46,7 +68,7 @@ const routineRunSchema = new Schema(
       required: true,
     },
 
-    duration_minutes: {
+    completed_duration_minutes: {
       type: Number,
       required: true,
     },
