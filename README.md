@@ -3,18 +3,6 @@
   <img src="frontend-mobile/assets/chromabloom-readME_banner.png" alt="ChromaBloom readme Banner" width="100%" />
 </p>
 
-## 👥 Research Team
-
-| Name | Role | GitHub |
-|------|------|--------|
-| **J.A.I.S. Wijesundara** | Principal Researcher / Team Lead | [@Ishara184](https://github.com/Ishara184) |
-| **A.M.O.M. Chathurangi** | Researcher | [@OshiMC](https://github.com/OshiMC) |
-| **A.D.S.S. Wijerathna** | Researcher | [@Susinidu4](https://github.com/Susinidu4) |
-| **M.Y.P. Perera** | Researcher | [@YASSA2001](https://github.com/YASSA2001) |
-
-<br>
-
-## 🌼 Overview
 ChromaBloom is an applied research and system-development project that aims to build a personalized cloud-based AI platform to support the cognitive development of children with Down Syndrome while empowering their caregivers. The project integrates software engineering, AI/ML modelling, digital health design, and user-centered evaluation to create a unified tool tailored to the Sri Lankan special-needs community.
 
 At its core, ChromaBloom addresses a major gap in Sri Lanka: families raising children with Down Syndrome often lack structured developmental tools, continuous progress tracking, and accessible emotional support for caregivers. The system provides a digital ecosystem that connects learning, routines, caregiver well-being, and predictive analytics into one cohesive platform.
@@ -67,5 +55,15 @@ The project follows a rigorous, ethical, and user-centered approach that include
 - Reduced caregiver stress and burden  
 - AI-powered cognitive progress predictions  
 - A scalable digital health solution for Sri Lanka and beyond
+
+## 👥 Research Team
+
+| Name | Role | GitHub |
+|------|------|--------|
+| **J.A.I.S. Wijesundara** | Principal Researcher / Team Lead | [@Ishara184](https://github.com/Ishara184) |
+| **A.M.O.M. Chathurangi** | Researcher | [@OshiMC](https://github.com/OshiMC) |
+| **A.D.S.S. Wijerathna** | Researcher | [@Susinidu4](https://github.com/Susinidu4) |
+| **M.Y.P. Perera** | Researcher | [@YASSA2001](https://github.com/YASSA2001) |
+
 
 ---
