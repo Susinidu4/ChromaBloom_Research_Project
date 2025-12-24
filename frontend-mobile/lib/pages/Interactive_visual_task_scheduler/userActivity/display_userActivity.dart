@@ -47,12 +47,84 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   List<Map<String, dynamic>> yourTasks = [];
 
+  void _onDateSelected(DateTime d) {
+    setState(() => selectedDate = d);
+
+    if (isSuggested) {
+      _refreshSuggestedProgressForDay(); // ✅ refresh suggested day progress
+    } else {
+      _fetchYourTasks();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     // optional: if you want to auto-load when opening "Your tasks" first, set isSuggested=false
 
     _fetchSuggestedPlan();
+  }
+
+  Future<void> _refreshSuggestedProgressForDay() async {
+    if (suggestedPlanMongoId == null || suggestedPlanMongoId!.isEmpty) return;
+    if (suggestedTasks.isEmpty) return;
+
+    try {
+      final futures = suggestedTasks.map((t) async {
+        final activityId = (t["_id"] ?? "").toString();
+        if (activityId.isEmpty) return t;
+
+        final run = await ChildRoutinePlanService.getRoutineRunProgress(
+          caregiverId: hardcodedCaregiverId,
+          childId: hardcodedChildId,
+          planMongoId: suggestedPlanMongoId!,
+          activityMongoId: activityId,
+          runDate: selectedDate, // ✅ calendar day
+        );
+
+        if (run == null) {
+          // no progress saved for this day
+          return {...t, "percent": 0, "status": "Pending"};
+        }
+
+        final total = (run["total_steps"] ?? 0) as int;
+        final completed = (run["completed_steps"] ?? 0) as int;
+        final percent = total == 0 ? 0 : ((completed / total) * 100).round();
+
+        final status = percent == 0
+            ? "Pending"
+            : (percent == 100 ? "Completed" : "In Progress");
+
+        return {...t, "percent": percent, "status": status};
+      }).toList();
+
+      final updated = await Future.wait(futures);
+      if (!mounted) return;
+      setState(() => suggestedTasks = updated);
+    } catch (_) {
+      // ignore for UI
+    }
+  }
+
+  Future<int> _fetchSuggestedPercentForActivity(
+    String planId,
+    String activityId,
+  ) async {
+    final run = await ChildRoutinePlanService.getRoutineRunProgress(
+      caregiverId: hardcodedCaregiverId,
+      childId: hardcodedChildId,
+      planMongoId: planId,
+      activityMongoId: activityId,
+      runDate: selectedDate, // ✅ per day
+    );
+
+    if (run == null) return 0;
+
+    final steps = (run["steps_progress"] as List?) ?? [];
+    if (steps.isEmpty) return 0;
+
+    final done = steps.where((s) => (s["status"] == true)).length;
+    return ((done / steps.length) * 100).round();
   }
 
   Future<void> _fetchSuggestedPlan() async {
@@ -105,6 +177,19 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       }).toList();
 
       setState(() => suggestedTasks = list);
+      await _refreshSuggestedProgressForDay();
+      final planId = suggestedPlanMongoId ?? "";
+      for (final t in list) {
+        final actId = (t["_id"] ?? "").toString();
+        if (planId.isNotEmpty && actId.isNotEmpty) {
+          t["percent"] = await _fetchSuggestedPercentForActivity(planId, actId);
+          t["status"] = (t["percent"] == 100)
+              ? "Completed"
+              : (t["percent"] == 0 ? "Pending" : "In Progress");
+        }
+      }
+      setState(() => suggestedTasks = list);
+
     } catch (e) {
       setState(() => suggestedError = e.toString());
     } finally {
@@ -139,13 +224,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       _fetchSuggestedPlan(); // ✅ when switching to Suggested
     } else {
       _fetchYourTasks();
-    }
-  }
-
-  void _onDateSelected(DateTime d) {
-    setState(() => selectedDate = d);
-    if (!isSuggested) {
-      _fetchYourTasks(); // fetch only for "Your tasks"
     }
   }
 
@@ -399,7 +477,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                         "selectedDate":
                                             selectedDate, // optional if you still want it
                                       },
-                                      planMongoId: planId, // ✅ PASS HERE
+                                      planMongoId: planId,
+                                      selectedDate: selectedDate,
                                     ),
                                   ),
                                 );
