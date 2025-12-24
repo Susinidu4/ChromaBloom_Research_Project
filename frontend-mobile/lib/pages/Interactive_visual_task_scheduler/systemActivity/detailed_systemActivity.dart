@@ -6,11 +6,13 @@ import '../../../services/Interactive_visual_task_scheduler_services/system_acti
 
 class DetailedSystemActivityScreen extends StatefulWidget {
   final String planMongoId;
+  final DateTime selectedDate; 
 
   const DetailedSystemActivityScreen({
     super.key,
     required this.activity,
     required this.planMongoId,
+    required this.selectedDate,
   });
 
   final Map<String, dynamic> activity;
@@ -93,8 +95,9 @@ class _DetailedSystemActivityScreenState
       final run = await ChildRoutinePlanService.getRoutineRunProgress(
         caregiverId: caregiverId,
         childId: childId,
-        planMongoId: planId,
-        activityMongoId: activityId,
+        planMongoId: widget.planMongoId,
+        activityMongoId: widget.activity["_id"],
+        runDate: widget.selectedDate, // ✅ calendar date
       );
 
       if (run != null) {
@@ -408,6 +411,7 @@ class _DetailedSystemActivityScreenState
                                             planMongoId: widget.planMongoId,
                                             activityMongoId:
                                                 _getActivityMongoId(),
+                                            runDate: widget.selectedDate,
                                             stepsProgress: List.generate(
                                               stepDone.length,
                                               (idx) => {
@@ -600,6 +604,7 @@ class _DetailedSystemActivityScreenState
                                           childId: childId,
                                           planMongoId: planId,
                                           activityMongoId: activityId,
+                                          runDate: widget.selectedDate,
                                           stepsProgress: stepsProgress,
                                           completedDurationMinutes:
                                               completedMinutes,
