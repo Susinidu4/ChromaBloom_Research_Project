@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
+import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
 import upload from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
@@ -27,5 +27,12 @@ router.post("/updateSystemActivityProgress", updateSystemActivityProgress);
 // Get routine run progress by planId and activityId
 // GET /chromabloom/systemActivities/getRoutineRunProgress/:planId/:activityId
 router.get("/getRoutineRunProgress/:planId/:activityId", getRoutineRunProgress);
+
+
+
+router.post("/closeCycleAndSendToML", closeCycleAndSendToML);
+
+
+
 
 export default router;
