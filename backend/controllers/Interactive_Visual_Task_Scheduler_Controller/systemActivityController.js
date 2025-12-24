@@ -1,7 +1,10 @@
+import { computeCycleFeatures } from "../../services/Interactive_Visual_Task_Scheduler/routineCycleFeatures.service.js";
+
 import SystemActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/systemActivityModel.js";
 import ChildRoutinePlan from "../../models/Interactive_Visual_Task_Scheduler_Model/childRoutinePlanModel.js";
 import RoutineRunModel from "../../models/Interactive_Visual_Task_Scheduler_Model/routineRunModel.js";
 
+import axios from "axios";
 
 import cloudinary from "../../config/cloudinary.js";
 
@@ -253,7 +256,7 @@ export const getOrCreateStarterPlan = async (req, res) => {
   }
 };
 
-// Update system activity progress for a routine run
+// POST /chromabloom/systemActivities/updateSystemActivityProgress
 export const updateSystemActivityProgress = async (req, res) => {
   try {
     const {
@@ -261,96 +264,57 @@ export const updateSystemActivityProgress = async (req, res) => {
       childId,
       planId,
       activityId,
+      run_date,
       steps_progress,
       completed_duration_minutes,
     } = req.body;
 
-    if (!caregiverId || !childId || !planId || !activityId) {
+    if (!caregiverId || !childId || !planId || !activityId || !run_date) {
       return res.status(400).json({
-        error: "caregiverId, childId, planId, activityId are required",
+        error: "caregiverId, childId, planId, activityId, run_date required",
       });
     }
 
-    // 1) validate active plan
-    const now = new Date();
-    const plan = await ChildRoutinePlan.findOne({
-      _id: planId,
-      caregiverId,
-      childId,
-      is_active: true,
-      cycle_end_date: { $gte: now },
-    }).lean();
+    // normalize date (YYYY-MM-DD)
+    const [y, m, d] = run_date.split("-").map(Number);
+    const runDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
-    if (!plan) {
-      return res.status(404).json({
-        error: "Active plan not found for this caregiver/child",
-      });
-    }
-
-    // 2) validate activity
     const activity = await SystemActivity.findById(activityId).lean();
-    if (!activity) return res.status(404).json({ error: "System activity not found" });
+    if (!activity) return res.status(404).json({ error: "Activity not found" });
 
-    const total_steps = Array.isArray(activity.steps) ? activity.steps.length : 0;
-    if (total_steps === 0) return res.status(400).json({ error: "Activity has no steps" });
+    const total_steps = activity.steps.length;
 
-    // 3) normalize steps_progress -> always 1..total_steps
-    const incoming = Array.isArray(steps_progress) ? steps_progress : [];
-    const normalized = Array.from({ length: total_steps }, (_, idx) => {
-      const stepNo = idx + 1;
-      const found = incoming.find((s) => Number(s.step_number) === stepNo);
-      return { step_number: stepNo, status: found ? !!found.status : false };
+    const normalized = Array.from({ length: total_steps }, (_, i) => {
+      const found = steps_progress?.find(s => s.step_number === i + 1);
+      return { step_number: i + 1, status: !!found?.status };
     });
 
-    const completed_steps = normalized.filter((s) => s.status).length;
-    const skipped_steps = total_steps - completed_steps;
+    const completed_steps = normalized.filter(s => s.status).length;
 
-    const completedMins = Math.max(0, Number(completed_duration_minutes) || 0);
+    const run = await RoutineRunModel.findOneAndUpdate(
+      {
+        caregiverId,
+        childId,
+        planId,
+        activityId,
+        run_date: runDate,
+      },
+      {
+        $set: {
+          steps_progress: normalized,
+          total_steps,
+          completed_steps,
+          skipped_steps: total_steps - completed_steps,
+          completed_duration_minutes,
+          run_date: runDate,
+        },
+      },
+      { upsert: true, new: true }
+    );
 
-    // 4) prevent duplicate "same day" save using created_at (since you removed date field)
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-
-    const existingRun = await RoutineRunModel.findOne({
-      planId,
-      activityId,
-      created_at: { $gte: start, $lte: end },
-    });
-
-    if (existingRun) {
-      existingRun.steps_progress = normalized;
-      existingRun.total_steps = total_steps;
-      existingRun.completed_steps = completed_steps;
-      existingRun.skipped_steps = skipped_steps;
-      existingRun.completed_duration_minutes = completedMins;
-      await existingRun.save();
-
-      return res.status(200).json({
-        message: "Routine run updated",
-        data: existingRun,
-      });
-    }
-
-    const created = await RoutineRunModel.create({
-      caregiverId,
-      childId,
-      planId,
-      activityId,
-      steps_progress: normalized,
-      total_steps,
-      completed_steps,
-      skipped_steps,
-      completed_duration_minutes: completedMins,
-    });
-
-    return res.status(201).json({
-      message: "Routine run saved",
-      data: created,
-    });
+    res.status(200).json({ message: "Saved", data: run });
   } catch (e) {
-    return res.status(500).json({ message: "Server error", error: e.message });
+    res.status(500).json({ error: e.message });
   }
 };
 
@@ -358,17 +322,26 @@ export const updateSystemActivityProgress = async (req, res) => {
 export const getRoutineRunProgress = async (req, res) => {
   try {
     const { planId, activityId } = req.params;
-    const { caregiverId, childId } = req.query; // pass from frontend
+    const { caregiverId, childId, run_date } = req.query;
 
-    if (!planId || !activityId || !caregiverId || !childId) {
-      return res.status(400).json({ error: "planId, activityId, caregiverId, childId required" });
+    if (!planId || !activityId || !caregiverId || !childId || !run_date) {
+      return res.status(400).json({
+        error: "planId, activityId, caregiverId, childId, run_date required",
+      });
     }
+
+    const [y, m, d] = run_date.split("-").map(Number);
+    if (!y || !m || !d) {
+      return res.status(400).json({ error: "run_date must be YYYY-MM-DD" });
+    }
+    const runDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
 
     const run = await RoutineRunModel.findOne({
       planId,
       activityId,
       caregiverId,
       childId,
+      run_date: runDate,
     }).lean();
 
     return res.status(200).json({
@@ -381,3 +354,82 @@ export const getRoutineRunProgress = async (req, res) => {
 };
 
 
+
+
+
+/**
+ * Call ML service to predict next difficulty level
+ */
+async function callMlForNextDifficulty(payload) {
+  const mlUrl = process.env.ML_PREDICT_URL; // http://127.0.0.1:8000/predict-difficulty
+  if (!mlUrl) throw new Error("ML_PREDICT_URL is not set in .env");
+
+  const resp = await axios.post(mlUrl, payload, {
+    headers: { "Content-Type": "application/json" },
+    timeout: 15000,
+  });
+
+  return resp.data; // expected: { next_difficulty_level: "easy|medium|hard" }
+}
+
+/**
+ * POST /chromabloom/systemActivities/closeCycleAndSendToML
+ * body: { caregiverId, childId }
+ */
+export const closeCycleAndSendToML = async (req, res) => {
+  try {
+    const { caregiverId, childId } = req.body;
+
+    if (!caregiverId || !childId) {
+      return res.status(400).json({ error: "caregiverId and childId required" });
+    }
+
+    const now = new Date();
+
+    // 1) find ended active plan
+    const plan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      childId,
+      is_active: true,
+      cycle_end_date: { $lte: now },
+    }).lean();
+
+    if (!plan) {
+      return res.status(404).json({
+        error: "No ended active plan found (cycle not finished yet)",
+      });
+    }
+
+    // 2) compute 14-day features
+    const features = await computeCycleFeatures({
+      caregiverId,
+      childId,
+      planId: plan._id,
+      cycleStart: plan.cycle_start_date,
+      cycleEnd: plan.cycle_end_date,
+      currentDifficultyLevel: plan.current_difficulty_level,
+    });
+
+    // 3) call ML
+    const mlResult = await callMlForNextDifficulty(features);
+    const nextLevel = mlResult?.next_difficulty_level;
+
+    if (!nextLevel) {
+      return res.status(500).json({
+        error: "ML response missing next_difficulty_level",
+        ml_result: mlResult,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Cycle features sent to ML successfully",
+      features_sent: features,
+      ml_result: mlResult,
+    });
+  } catch (e) {
+    return res.status(500).json({
+      message: "Server error",
+      error: e.message,
+    });
+  }
+};
