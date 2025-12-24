@@ -44,14 +44,14 @@ const routineRunSchema = new Schema(
       required: true,
     },
 
+    run_date:{
+      type: Date,
+      required: true,
+    },
+
     steps_progress:{
       type: [stepProgressSchema],
     },
-
-    // date: {
-    //   type: Date,
-    //   required: true,
-    // },
 
     total_steps: {
       type: Number,
@@ -77,6 +77,12 @@ const routineRunSchema = new Schema(
     collection: "routineRun",
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
+);
+
+// ✅ prevent duplicate progress for same day + activity + plan + caregiver + child
+routineRunSchema.index(
+  { caregiverId: 1, childId: 1, planId: 1, activityId: 1, run_date: 1 },
+  { unique: true }
 );
 
 const RoutineRunModel = mongoose.model("RoutineRun", routineRunSchema);
