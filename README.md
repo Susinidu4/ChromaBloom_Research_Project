@@ -1,5 +1,7 @@
 # ChromaBloom - Research Project
---banner--
+<p align="center">
+  <img src="frontend-mobile/assets/chromabloom-readME_banner.png" alt="ChromaBloom readme Banner" width="100%" />
+</p>
 
 ## 👥 Research Team
 
@@ -12,12 +14,17 @@
 
 <br>
 
-## 🌼 Project Overview
+## 🌼 Overview
 ChromaBloom is an applied research and system-development project that aims to build a personalized cloud-based AI platform to support the cognitive development of children with Down Syndrome while empowering their caregivers. The project integrates software engineering, AI/ML modelling, digital health design, and user-centered evaluation to create a unified tool tailored to the Sri Lankan special-needs community.
 
 At its core, ChromaBloom addresses a major gap in Sri Lanka: families raising children with Down Syndrome often lack structured developmental tools, continuous progress tracking, and accessible emotional support for caregivers. The system provides a digital ecosystem that connects learning, routines, caregiver well-being, and predictive analytics into one cohesive platform.
 
 ChromaBloom aims to become a pioneering AI ecosystem for neurodevelopmental support. By integrating cognitive learning, stress tracking, scheduling, and predictive analytics, it enhances day-to-day caregiving and improves the quality of life for families of children with Down Syndrome.
+
+## 📃 Overall system architechture
+<p align="center">
+  <img src="frontend-mobile/assets/Overall_system_architecture.png" alt="Overall architecture diagram" />
+</p>
 
 ## 🧩 Core System Components
 
@@ -41,23 +48,24 @@ The project follows a rigorous, ethical, and user-centered approach that include
 - **Mixed-method data collection** combining qualitative and quantitative inputs  
 - **Non-invasive behavioral and emotional metrics** gathered through app interactions  
 - **AI/ML models** for personalization, stress analysis, and developmental prediction  
-- **Strict ethical protocols**, including informed consent, anonymization, and secure encrypted data storage  
+- **Strict ethical protocols**, including informed consent, anonymization, and secure encrypted data storage
 
-## Participants
-- **Primary**: Caregivers of children with Down Syndrome  
-- **Indirect**: Children (through caregiver-mediated participation)  
-- **Additional**: Therapists and special educators for expert insights  
+## 🔗 ChromaBloom Dependencies
 
-## Expected Outcomes
+| Category | Technologies / Tools | Purpose |
+|--------|----------------------|---------|
+| **Frontend (Mobile App)** | Flutter, Dart, Material UI, SharedPreferences, HTTP | Builds the caregiver-facing mobile application and handles UI, local storage, and API communication |
+| **Backend & API Services** | Node.js, Express.js, MongoDB, Mongoose, JWT, bcrypt, dotenv | Manages authentication, business logic, secure APIs, and data storage |
+| **AI / Machine Learning** | Python, Scikit-learn, LightGBM, TensorFlow, Keras, Pandas, NumPy, SHAP | Enables cognitive profiling, stress analysis, predictive modeling, and model explainability |
+| **Cloud & Storage** | MongoDB Atlas, Cloudinary, REST APIs | Provides scalable database hosting, secure image storage, and service communication |
+| **Security & Ethics** | Data Encryption, Anonymization, Role-based Access Control, Consent-based Data Collection | Ensures participant privacy, ethical compliance, and secure access management |
+| **Development & Collaboration** | Git, GitHub, Postman, Google Colab, VS Code, Android Studio | Supports version control, API testing, ML training, and development workflows |
+| **Device & OS (Optional)** | Android SDK, ADB, Web Browser | Enables mobile deployment, device debugging, and optional web access |
+
+## 🏷️ Expected Outcomes
 - Improved developmental routines and learning efficiency  
 - Reduced caregiver stress and burden  
 - AI-powered cognitive progress predictions  
 - A scalable digital health solution for Sri Lanka and beyond
-
-<br>
-
-## 📃 Overall system architechture
---diagram--
-
 
 ---
