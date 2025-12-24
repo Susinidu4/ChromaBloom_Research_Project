@@ -1,4 +1,4 @@
-import mongoose, { version } from "mongoose";
+import mongoose from "mongoose";
 const { Schema, model } = mongoose;
 
 const activitiesSchema = new Schema(
@@ -26,13 +26,13 @@ const childRoutinePlanSchema = new Schema(
 
     caregiverId: {
       type: String,
-      ref: "Caregiver",
+      ref: "caregivers",
       required: true,
     },
 
     childId: {
       type: String,
-      ref: "Child",
+      ref: "children",
       required: true,
     },
 
