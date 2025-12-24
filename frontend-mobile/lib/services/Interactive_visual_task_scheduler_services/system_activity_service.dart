@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 
@@ -25,6 +26,8 @@ class ChildRoutinePlanService {
       }),
     );
 
+    //debugPrint("getOrCreateStarterPlan response: ${res.body}");
+
     if (res.statusCode == 200 || res.statusCode == 201) {
       return jsonDecode(res.body) as Map<String, dynamic>;
     } else {
@@ -43,12 +46,18 @@ class ChildRoutinePlanService {
     required String childId,
     required String planMongoId,
     required String activityMongoId,
+    required DateTime runDate,
     required List<Map<String, dynamic>> stepsProgress,
     required int completedDurationMinutes,
   }) async {
     final uri = Uri.parse(
       "$_base/chromabloom/systemActivities/updateSystemActivityProgress",
     );
+
+final dateStr  =
+    "${runDate.year.toString().padLeft(4, '0')}-"
+    "${runDate.month.toString().padLeft(2, '0')}-"
+    "${runDate.day.toString().padLeft(2, '0')}";
 
     final res = await http.post(
       uri,
@@ -58,6 +67,7 @@ class ChildRoutinePlanService {
         "childId": childId,
         "planId": planMongoId,
         "activityId": activityMongoId,
+        "run_date": dateStr,
         "steps_progress": stepsProgress,
         "completed_duration_minutes": completedDurationMinutes,
       }),
@@ -77,10 +87,17 @@ class ChildRoutinePlanService {
     required String childId,
     required String planMongoId,
     required String activityMongoId,
+    required DateTime runDate,
   }) async {
+
+    final dateStr  =
+    "${runDate.year.toString().padLeft(4, '0')}-"
+    "${runDate.month.toString().padLeft(2, '0')}-"
+    "${runDate.day.toString().padLeft(2, '0')}";
+
     final uri = Uri.parse(
       "$_base/chromabloom/systemActivities/getRoutineRunProgress/$planMongoId/$activityMongoId",
-    ).replace(queryParameters: {"caregiverId": caregiverId, "childId": childId});
+    ).replace(queryParameters: {"caregiverId": caregiverId, "childId": childId, "run_date": dateStr });
 
     final res = await http.get(uri);
 
