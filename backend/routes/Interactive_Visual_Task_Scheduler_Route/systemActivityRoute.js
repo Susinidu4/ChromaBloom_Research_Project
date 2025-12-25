@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
+import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
 import upload from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
@@ -30,9 +30,15 @@ router.get("/getRoutineRunProgress/:planId/:activityId", getRoutineRunProgress);
 
 
 
+//------------------------- cycle management routes -------------------------//
+
+// Close cycle and send features to ML
+// POST /chromabloom/systemActivities/closeCycleAndSendToML
 router.post("/closeCycleAndSendToML", closeCycleAndSendToML);
 
-
+// Close cycle, send to ML, and create next plan
+// POST /chromabloom/systemActivities/closeCycleAndCreateNextPlan
+router.post("/closeCycleAndCreateNextPlan", closeCycleSendToMLAndCreateNextPlan);
 
 
 export default router;
