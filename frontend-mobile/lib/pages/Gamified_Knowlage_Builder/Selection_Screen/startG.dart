@@ -19,11 +19,9 @@ class UnitStartPage extends StatelessWidget {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -35,7 +33,6 @@ class UnitStartPage extends StatelessWidget {
 
                     const SizedBox(height: 18),
 
-                    // ===== CENTER CONTENT =====
                     Center(
                       child: Column(
                         children: [
@@ -53,7 +50,6 @@ class UnitStartPage extends StatelessWidget {
 
                           const SizedBox(height: 26),
 
-                          // Illustration
                           Image.asset(
                             "assets/unit_start.png",
                             height: 220,
@@ -75,11 +71,11 @@ class UnitStartPage extends StatelessWidget {
 
                           const SizedBox(height: 28),
 
-                          // ===== CONTINUE BUTTON =====
                           _PrimaryButton(
                             label: "Continue",
                             onTap: () {
-                              // Navigator.pushNamed(context, '/unit1');
+                              // ✅ Go to drawing unit 1
+                              Navigator.pushReplacementNamed(context, '/drawingUnit1');
                             },
                           ),
 
@@ -94,7 +90,6 @@ class UnitStartPage extends StatelessWidget {
           ],
         ),
       ),
-
       bottomNavigationBar: const MainNavBar(currentIndex: 2),
     );
   }
@@ -158,8 +153,8 @@ class _PrimaryButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          width: 110, 
-          height: 36, 
+          width: 110,
+          height: 36,
           decoration: BoxDecoration(
             color: const Color(0xFFB89A76),
             borderRadius: BorderRadius.circular(10),
