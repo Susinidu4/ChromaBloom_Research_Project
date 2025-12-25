@@ -18,6 +18,8 @@ import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
 import 'pages/auth/signup/therapist_register_screen.dart';
 
+import 'pages/Cognitive_Progress_Prediction/prediction_screen.dart';
+
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
@@ -76,6 +78,9 @@ class MyApp extends StatelessWidget {
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
+
+        '/cognitive_prediction': (context) => const PredictionScreen(),
+
       },
     );
   }
