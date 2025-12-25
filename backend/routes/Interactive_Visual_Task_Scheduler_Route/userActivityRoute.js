@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUserActivity, deleteUserActivity, updateUserActivity, getUserActivitiesByDate, getAllUserActivities, getAllActivities } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/userActivityController.js';
+import { createUserActivity, deleteUserActivity, updateUserActivity, getUserActivitiesByDate, getAllUserActivities, getAllActivities, updateUserActivityProgress } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/userActivityController.js';
 import upload from '../../middlewares/uploadImage.js';
 
 const router = express.Router();
@@ -27,5 +27,10 @@ router.delete("/deleteUserActivity/:activityId", deleteUserActivity);
 // Update User Activity by ID
 // PUT /chromabloom/userActivities/updateUserActivity/:activityId
 router.put("/updateUserActivity/:activityId", updateUserActivity);
+
+// Update User Activity Progress
+// PATCH /chromabloom/userActivities/updateProgress/:activityId
+router.patch("/updateProgress/:activityId", updateUserActivityProgress);
+
 
 export default router;

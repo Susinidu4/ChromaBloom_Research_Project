@@ -1,18 +1,14 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart';
 import 'edit_userActivity.dart';
 
 class DetailedUserActivityScreen extends StatefulWidget {
   const DetailedUserActivityScreen({super.key, required this.activity});
-
-  /// Expected keys (from your backend):
-  /// title, description, estimated_duration_minutes, media_links (List),
-  /// steps (List of {step_number, instruction})
   final Map<String, dynamic> activity;
 
   @override
@@ -24,24 +20,21 @@ class _DetailedUserActivityScreenState
     extends State<DetailedUserActivityScreen> {
   // ===== Theme colors =====
   static const Color pageBg = Color(0xFFF3E8E8);
-  static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
-  static const Color shadow = Color(0x33000000);
 
-  // progress demo (you can calculate later)
   int progressPercent = 0;
   String statusText = "In Progress";
 
-  // steps state
   late List<Map<String, dynamic>> steps;
   late List<bool> stepDone;
 
-  // completed duration (minutes)
   int completedMinutes = 0;
 
   @override
   void initState() {
     super.initState();
+
+    TtsService.init();
 
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
     steps = rawSteps.map((e) => Map<String, dynamic>.from(e as Map)).toList()
@@ -49,11 +42,35 @@ class _DetailedUserActivityScreenState
         (a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0),
       );
 
-    stepDone = List<bool>.filled(steps.length, false);
+    // ✅ load saved step status from DB
+    stepDone = steps.map((s) => (s["status"] == true)).toList();
+
+    // ✅ load saved completed minutes from DB
+    final cd = widget.activity["completed_duration_minutes"];
+    if (cd is int) {
+      completedMinutes = cd;
+    } else if (cd is double) {
+      completedMinutes = cd.toInt();
+    } else if (cd is String) {
+      completedMinutes = int.tryParse(cd) ?? 0;
+    } else {
+      completedMinutes = 0;
+    }
+
+    // ✅ compute initial progress using DB values
+    final done = stepDone.where((x) => x).length;
+    progressPercent = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
+    statusText = (progressPercent == 100) ? "Completed" : "In Progress";
+  }
+
+  @override
+  void dispose() {
+    // ✅ stop speaking when leaving page
+    TtsService.stop();
+    super.dispose();
   }
 
   String _title() => (widget.activity["title"] ?? "").toString();
-
   String _desc() => (widget.activity["description"] ?? "").toString();
 
   int _estimatedMinutes() {
@@ -76,17 +93,45 @@ class _DetailedUserActivityScreenState
   void _toggleStep(int i, bool? v) {
     setState(() => stepDone[i] = v ?? false);
 
-    // optional: auto-update progress
     final done = stepDone.where((x) => x).length;
     final pct = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
-    setState(() => progressPercent = pct);
-    setState(() => statusText = (pct == 100) ? "Completed" : "In Progress");
+    setState(() {
+      progressPercent = pct;
+      statusText = (pct == 100) ? "Completed" : "In Progress";
+    });
   }
 
   void _incCompleted() =>
       setState(() => completedMinutes = (completedMinutes + 1).clamp(0, 999));
   void _decCompleted() =>
       setState(() => completedMinutes = (completedMinutes - 1).clamp(0, 999));
+
+  // ✅ TTS
+  Future<void> _speakTitle() async => TtsService.speak(_title());
+  Future<void> _speakDescription() async => TtsService.speak(_desc());
+
+  // ✅ Speak a single step (STEP BY STEP)
+  Future<void> _speakStep(int index) async {
+    if (index < 0 || index >= steps.length) return;
+    final n = (steps[index]["step_number"] ?? (index + 1)).toString();
+    final instruction = (steps[index]["instruction"] ?? "").toString().trim();
+    if (instruction.isEmpty) return;
+    await TtsService.speak("Step $n. $instruction");
+  }
+
+  // ✅ Optional: speak ALL steps (you already had this)
+  Future<void> _speakAllSteps() async {
+    if (steps.isEmpty) return;
+    final buffer = StringBuffer();
+    buffer.writeln("Steps.");
+    for (int i = 0; i < steps.length; i++) {
+      final n = (steps[i]["step_number"] ?? (i + 1)).toString();
+      final instruction = (steps[i]["instruction"] ?? "").toString();
+      if (instruction.trim().isEmpty) continue;
+      buffer.writeln("Step $n. $instruction.");
+    }
+    await TtsService.speak(buffer.toString());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +147,6 @@ class _DetailedUserActivityScreenState
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -111,7 +155,6 @@ class _DetailedUserActivityScreenState
                 ),
                 child: Column(
                   children: [
-                    // Back button (floating look)
                     Align(
                       alignment: Alignment.centerLeft,
                       child: _CircleIconButton(
@@ -119,10 +162,8 @@ class _DetailedUserActivityScreenState
                         onTap: () => Navigator.pop(context),
                       ),
                     ),
-
                     const SizedBox(height: 14),
 
-                    // Main detail card
                     _DetailCard(
                       title: _title(),
                       statusText: statusText,
@@ -136,6 +177,14 @@ class _DetailedUserActivityScreenState
                       completedMinutes: completedMinutes,
                       onIncCompleted: _incCompleted,
                       onDecCompleted: _decCompleted,
+
+                      // ✅ TTS callbacks
+                      onSpeakTitle: _speakTitle,
+                      onSpeakDescription: _speakDescription,
+                      onSpeakAllSteps: _speakAllSteps,
+                      onSpeakSingleStep: _speakStep, // ✅ NEW
+                      onStopTts: () => TtsService.stop(),
+
                       onDelete: () async {
                         final mongoId = (widget.activity["_id"] ?? "")
                             .toString();
@@ -183,7 +232,7 @@ class _DetailedUserActivityScreenState
                             ),
                           );
 
-                          Navigator.pop(context, true); // ✅ return to list page
+                          Navigator.pop(context, true);
                         } catch (e) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -192,31 +241,55 @@ class _DetailedUserActivityScreenState
                         }
                       },
 
-                      onSave: () {
-                        // TODO: call update/save API
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Save pressed")),
-                        );
+                      onSave: () async {
+                        final mongoId = (widget.activity["_id"] ?? "")
+                            .toString();
+                        if (mongoId.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Cannot save: missing _id"),
+                            ),
+                          );
+                          return;
+                        }
+
+                        try {
+                          final res =
+                              await UserActivityService.updateUserActivityProgress(
+                                mongoId: mongoId,
+                                steps: _stepsPayload(),
+                                completedDurationMinutes: completedMinutes,
+                              );
+
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res["message"] ?? "Saved")),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Save failed: $e")),
+                          );
+                        }
                       },
+
                       onEdit: () async {
                         final updated = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => UpdateUserActivityScreen(
-                              activity:
-                                  widget.activity, // 👈 pass current activity
+                              activity: widget.activity,
                             ),
                           ),
                         );
 
-                        // Optional: refresh detail page if updated
                         if (updated == true && mounted) {
-                          Navigator.pop(context, true); // refresh list page
+                          Navigator.pop(context, true);
                         }
                       },
                     ),
 
-                    const SizedBox(height: 90),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),
@@ -226,6 +299,17 @@ class _DetailedUserActivityScreenState
       ),
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
+  }
+
+  List<Map<String, dynamic>> _stepsPayload() {
+    return List.generate(steps.length, (i) {
+      final s = steps[i];
+      return {
+        "step_number": s["step_number"] ?? (i + 1),
+        "instruction": (s["instruction"] ?? "").toString(),
+        "status": stepDone[i],
+      };
+    });
   }
 }
 
@@ -249,6 +333,13 @@ class _DetailCard extends StatelessWidget {
     required this.onDelete,
     required this.onSave,
     required this.onEdit,
+
+    // ✅ TTS
+    required this.onSpeakTitle,
+    required this.onSpeakDescription,
+    required this.onSpeakAllSteps,
+    required this.onSpeakSingleStep, // ✅ NEW
+    required this.onStopTts,
   });
 
   final String title;
@@ -271,6 +362,13 @@ class _DetailCard extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onEdit;
 
+  // ✅ TTS
+  final VoidCallback onSpeakTitle;
+  final VoidCallback onSpeakDescription;
+  final VoidCallback onSpeakAllSteps;
+  final Future<void> Function(int index) onSpeakSingleStep; // ✅ NEW
+  final VoidCallback onStopTts;
+
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
@@ -290,9 +388,17 @@ class _DetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // top row: edit icon
+          // top row: edit (stop TTS optional)
           Row(
             children: [
+              // InkWell(
+              //   onTap: onStopTts,
+              //   borderRadius: BorderRadius.circular(10),
+              //   child: const Padding(
+              //     padding: EdgeInsets.all(6),
+              //     child: Icon(Icons.stop_circle_outlined, color: stroke, size: 26),
+              //   ),
+              // ),
               const Spacer(),
               InkWell(
                 onTap: onEdit,
@@ -309,7 +415,7 @@ class _DetailCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // status + progress bar row
+
           Row(
             children: [
               Expanded(
@@ -334,7 +440,6 @@ class _DetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
-          // progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
@@ -347,18 +452,32 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // title
-          Text(
-            title,
-            style: const TextStyle(
-              color: stroke,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
+          // title + speaker
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: stroke,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: onSpeakTitle,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 26),
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 8),
 
-          // estimated duration row
           Row(
             children: [
               const Icon(Icons.timer_outlined, color: stroke, size: 18),
@@ -376,7 +495,6 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // big image center
           Center(
             child: SizedBox(
               height: 220,
@@ -391,31 +509,61 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // description paragraph
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: stroke.withOpacity(0.75),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.5,
-            ),
+          // description + speaker
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: stroke.withOpacity(0.75),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: onSpeakDescription,
+                borderRadius: BorderRadius.circular(10),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 18),
 
-          const Text(
-            "STEPS:",
-            style: TextStyle(
-              color: stroke,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
+          // steps header + speaker (all steps)
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "STEPS:",
+                  style: TextStyle(
+                    color: stroke,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              // InkWell(
+              //   onTap: onSpeakAllSteps,
+              //   borderRadius: BorderRadius.circular(10),
+              //   child: const Padding(
+              //     padding: EdgeInsets.all(6),
+              //     child: Icon(Icons.volume_up_rounded, color: stroke, size: 24),
+              //   ),
+              // ),
+            ],
           ),
           const SizedBox(height: 10),
 
-          // steps list (numbers left, checkbox right)
+          // ✅ steps list with per-step speaker icon + checkbox
           ...List.generate(steps.length, (i) {
             final s = steps[i];
             final n = (s["step_number"] ?? (i + 1)).toString();
@@ -436,30 +584,41 @@ class _DetailCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+
+                  const SizedBox(width: 8),
+
+                  // ✅ step speaker
+                  InkWell(
+                    onTap: () => onSpeakSingleStep(i),
+                    borderRadius: BorderRadius.circular(10),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.volume_up_rounded,
+                        color: stroke,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
                   SizedBox(
                     width: 22,
                     height: 22,
                     child: Checkbox(
                       value: stepDone[i],
                       onChanged: (v) => onStepChanged(i, v),
-
-                      // ✅ WHITE background always
                       fillColor: MaterialStateProperty.resolveWith<Color>((
                         states,
                       ) {
-                        return Colors.white;
+                        return Colors.white; // ✅ white background
                       }),
-
-                      // ✅ Border color
                       side: BorderSide(
                         color: stroke.withOpacity(0.9),
                         width: 1.2,
                       ),
-
-                      // ✅ Tick color
                       checkColor: stroke,
-
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
@@ -470,7 +629,6 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // completed duration row (input + up/down)
           Row(
             children: [
               Text(
@@ -483,7 +641,6 @@ class _DetailCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // number box
               Container(
                 width: 52,
                 height: 36,
@@ -501,10 +658,8 @@ class _DetailCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(width: 8),
 
-              // up/down
               Container(
                 width: 28,
                 height: 36,
@@ -553,7 +708,6 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 22),
 
-          // buttons
           Row(
             children: [
               Expanded(
@@ -585,7 +739,6 @@ class _ActionButton extends StatelessWidget {
     required this.bg,
     required this.onTap,
   });
-
   final String text;
   final Color bg;
   final VoidCallback onTap;
@@ -611,9 +764,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// =======================================================
-// Small circle icon button (back)
-// =======================================================
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({required this.icon, required this.onTap});
 
