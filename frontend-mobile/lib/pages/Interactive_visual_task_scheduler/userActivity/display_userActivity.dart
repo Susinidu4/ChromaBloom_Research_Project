@@ -33,6 +33,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   static const String hardcodedAgeGroup = "5";
 
   String? suggestedPlanMongoId;
+  DateTime? suggestedStart;
+  DateTime? suggestedEnd;
 
   bool isSuggested = true;
   DateTime selectedDate = DateTime.now();
@@ -47,11 +49,37 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   List<Map<String, dynamic>> yourTasks = [];
 
+  bool _isWithinSuggestedCycle(DateTime day) {
+    if (suggestedStart == null || suggestedEnd == null) return false;
+
+    final d = DateTime(day.year, day.month, day.day);
+    final s = DateTime(
+      suggestedStart!.year,
+      suggestedStart!.month,
+      suggestedStart!.day,
+    );
+    final e = DateTime(
+      suggestedEnd!.year,
+      suggestedEnd!.month,
+      suggestedEnd!.day,
+    );
+
+    return !d.isBefore(s) && !d.isAfter(e);
+  }
+
   void _onDateSelected(DateTime d) {
     setState(() => selectedDate = d);
 
     if (isSuggested) {
-      _refreshSuggestedProgressForDay(); // ✅ refresh suggested day progress
+      if (_isWithinSuggestedCycle(selectedDate)) {
+        _refreshSuggestedProgressForDay();
+      } else {
+        // outside cycle → show empty
+        setState(() {
+          // keep the plan loaded, but don't show tasks for this date
+          // you can either clear list OR show message using UI condition
+        });
+      }
     } else {
       _fetchYourTasks();
     }
@@ -143,6 +171,14 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       final plan = (res["data"] as Map?) ?? {};
       final acts = (plan["activities"] as List?) ?? [];
 
+      final startStr = (plan["cycle_start_date"] ?? "").toString();
+      final endStr = (plan["cycle_end_date"] ?? "").toString();
+
+      suggestedStart = startStr.isEmpty
+          ? null
+          : DateTime.parse(startStr).toLocal();
+      suggestedEnd = endStr.isEmpty ? null : DateTime.parse(endStr).toLocal();
+
       suggestedPlanMongoId = (plan["_id"] ?? "").toString();
 
       // activities[] -> activityId populated object
@@ -189,7 +225,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         }
       }
       setState(() => suggestedTasks = list);
-
     } catch (e) {
       setState(() => suggestedError = e.toString());
     } finally {
@@ -258,7 +293,12 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = isSuggested ? suggestedTasks : yourTasks;
+    final bool showSuggestedForThisDate =
+        isSuggested && _isWithinSuggestedCycle(selectedDate);
+
+    final tasks = showSuggestedForThisDate
+        ? suggestedTasks
+        : (isSuggested ? [] : yourTasks);
 
     final filteredTasks = tasks.where((t) {
       final title = (t["title"] ?? "").toString().toLowerCase();
