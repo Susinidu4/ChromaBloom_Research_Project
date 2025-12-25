@@ -5,16 +5,18 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
+import '../api_config.dart';
 
 class UserActivityService {
-  static const String _baseUrl = "http://10.0.2.2:5000";
-  // static const String _baseUrl = "http://localhost:5000";
+  static final String _base = ApiConfig.baseUrl;
+
   static const String _createPath =
       "/chromabloom/userActivities/createUserActivity";
 
-  // GET BY DATE
-  static const String _getByDatePath = "/chromabloom/userActivities/getByDate";
+  static const String _getByDatePath = 
+      "/chromabloom/userActivities/getByDate";
 
+  // CREATE USER ACTIVITY
   static Future<Map<String, dynamic>> createUserActivity({
     required String createdBy,
     required String title,
@@ -27,7 +29,7 @@ class UserActivityService {
     required List<Map<String, dynamic>> steps,
     File? mediaImage,
   }) async {
-    final uri = Uri.parse("$_baseUrl$_createPath");
+    final uri = Uri.parse("$_base$_createPath");
     final request = http.MultipartRequest("POST", uri);
 
     request.fields["created_by"] = createdBy;
@@ -70,12 +72,12 @@ class UserActivityService {
     }
   }
 
-  // ✅ FETCH ACTIVITIES FOR A CAREGIVER + DATE
+  // FETCH ACTIVITIES FOR A CAREGIVER + DATE
   static Future<List<Map<String, dynamic>>> getByDate({
     required String caregiverId,
     required DateTime date,
   }) async {
-    final uri = Uri.parse("$_baseUrl/chromabloom/userActivities/getByDate");
+    final uri = Uri.parse("$_base/chromabloom/userActivities/getByDate");
 
     final response = await http.post(
       uri,
@@ -102,12 +104,12 @@ class UserActivityService {
     }
   }
 
-// DELETE USER ACTIVITY
+  // DELETE USER ACTIVITY
   static Future<Map<String, dynamic>> deleteUserActivity({
     required String mongoId, // ✅ must be _id
   }) async {
     final uri = Uri.parse(
-      "$_baseUrl/chromabloom/userActivities/deleteUserActivity/$mongoId",
+      "$_base/chromabloom/userActivities/deleteUserActivity/$mongoId",
     );
 
     final res = await http.delete(uri);
@@ -124,7 +126,7 @@ class UserActivityService {
     }
   }
 
-// UPDATE USER ACTIVITY
+  // UPDATE USER ACTIVITY
   static Future<Map<String, dynamic>> updateUserActivity({
     required String activityId,
     required String createdBy,
@@ -138,7 +140,9 @@ class UserActivityService {
     required List<Map<String, dynamic>> steps,
     String? mediaImageBase64, // optional
   }) async {
-    final uri = Uri.parse("$_baseUrl/chromabloom/userActivities/updateUserActivity/$activityId");
+    final uri = Uri.parse(
+      "$_base/chromabloom/userActivities/updateUserActivity/$activityId",
+    );
 
     final body = {
       "created_by": createdBy,
@@ -170,4 +174,36 @@ class UserActivityService {
       }
     }
   }
+
+  // PATCH update progress
+  static Future<Map<String, dynamic>> updateUserActivityProgress({
+    required String mongoId,
+    required List<Map<String, dynamic>> steps,
+    required int completedDurationMinutes,
+  }) async {
+    final uri = Uri.parse(
+      "$_base/chromabloom/userActivities/updateProgress/$mongoId",
+    );
+
+    final res = await http.patch(
+      uri,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "steps": steps,
+        "completed_duration_minutes": completedDurationMinutes,
+      }),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      try {
+        final parsed = jsonDecode(res.body);
+        throw Exception(parsed["error"] ?? parsed["message"] ?? res.body);
+      } catch (_) {
+        throw Exception(res.body);
+      }
+    }
+  }
+
 }

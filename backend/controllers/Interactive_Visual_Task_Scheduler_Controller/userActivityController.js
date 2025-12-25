@@ -1,4 +1,4 @@
-import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/userActivityModel.js";
+import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/UserActivityModel.js";
 import cloudinary from "../../config/cloudinary.js";
 
 // helper: upload buffer to Cloudinary using upload_stream
@@ -323,3 +323,51 @@ export const updateUserActivity = async (req, res) => {
     });
   }
 };
+
+// update User Activity Progress
+export const updateUserActivityProgress = async (req, res) => {
+  try {
+    const { activityId } = req.params;
+    const { steps, completed_duration_minutes } = req.body;
+
+    if (!activityId) {
+      return res.status(400).json({ error: "Activity ID is required" });
+    }
+
+    const existing = await UserActivity.findById(activityId);
+    if (!existing) {
+      return res.status(404).json({ error: "User activity not found" });
+    }
+
+    if (steps !== undefined) {
+      if (!Array.isArray(steps)) {
+        return res.status(400).json({ error: "steps must be an array" });
+      }
+      // keep only required fields, avoid bad data
+      existing.steps = steps.map((s) => ({
+        step_number: s.step_number,
+        instruction: s.instruction,
+        status: !!s.status,
+      }));
+    }
+
+    if (completed_duration_minutes !== undefined) {
+      existing.completed_duration_minutes = Number(completed_duration_minutes) || 0;
+    }
+
+    await existing.save();
+
+    return res.status(200).json({
+      message: "Progress updated successfully",
+      data: existing,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// display progress of an activity
+
