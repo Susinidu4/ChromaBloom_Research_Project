@@ -27,7 +27,7 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/display_DrawingLesson.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/improvment.dart';
-
+import 'pages/Gamified_Knowlage_Builder/problemSolving/lessons.dart';
 
 void main() {
   runApp(
@@ -69,6 +69,8 @@ class MyApp extends StatelessWidget {
         '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
         '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(),
         '/lessonComplete': (context) => const LessonCompletePage(),
+        '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
+        
         
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),

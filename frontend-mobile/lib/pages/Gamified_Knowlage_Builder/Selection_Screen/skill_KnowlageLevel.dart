@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -6,6 +8,20 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
   const SkillKnowledgeLevelPage({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
+
+  static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
+  static const String _prefKeyDrawingLevelValue = "drawing_skill_level_value";
+
+  Future<void> _saveLevelAndGo(BuildContext context, String level) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKeyDrawingLevelSet, true);
+    await prefs.setString(_prefKeyDrawingLevelValue, level);
+
+    if (!context.mounted) return;
+
+    // ✅ Go to Unit Start page after selecting level
+    Navigator.pushReplacementNamed(context, '/unitStart');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,28 +35,20 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 6),
-
                     _BackCircleButton(
                       onTap: () => Navigator.pop(context),
                     ),
-
                     const SizedBox(height: 10),
-
                     _KnowledgeCard(
-                      onSelect: (level) {
-                        debugPrint("Selected level: $level");
-                      },
+                      onSelect: (level) => _saveLevelAndGo(context, level),
                     ),
-
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -49,7 +57,6 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
           ],
         ),
       ),
-
       bottomNavigationBar: const MainNavBar(currentIndex: 2),
     );
   }
@@ -125,7 +132,6 @@ class _KnowledgeCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 4),
-
               const Text(
                 "How much skill knowledge\n does your child have?",
                 textAlign: TextAlign.center,
@@ -136,9 +142,7 @@ class _KnowledgeCard extends StatelessWidget {
                   height: 1.2,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Image.asset(
                 "assets/skill_level.png",
                 height: 150,
@@ -157,7 +161,6 @@ class _KnowledgeCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 14),
 
               _ChoiceButton(

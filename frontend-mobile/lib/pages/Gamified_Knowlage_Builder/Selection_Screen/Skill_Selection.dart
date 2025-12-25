@@ -1,16 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class SkillSelectionPage extends StatelessWidget {
+class SkillSelectionPage extends StatefulWidget {
   const SkillSelectionPage({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
 
   @override
+  State<SkillSelectionPage> createState() => _SkillSelectionPageState();
+}
+
+class _SkillSelectionPageState extends State<SkillSelectionPage> {
+  static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
+
+  Future<void> _handleDrawingTap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool levelSet = prefs.getBool(_prefKeyDrawingLevelSet) ?? false;
+
+    if (!mounted) return;
+
+    if (!levelSet) {
+      Navigator.pushNamed(context, '/skillKnowlageLevel');
+    } else {
+      Navigator.pushNamed(context, '/drawingUnit1');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: SkillSelectionPage.pageBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -19,13 +41,11 @@ class SkillSelectionPage extends StatelessWidget {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: LearnContent(
-                  onTapDrawing: () =>
-                      Navigator.pushNamed(context, '/drawingTutorial'),
+                  onTapDrawing: _handleDrawingTap,
                   onTapProblemSolving: () =>
                       Navigator.pushNamed(context, '/problemSolvingTutorial'),
                 ),
@@ -74,7 +94,6 @@ class LearnContent extends StatelessWidget {
                   text: "What would you like to\nLearn ?",
                 ),
               ),
-
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
@@ -185,7 +204,6 @@ class _LearnTile extends StatelessWidget {
                   ),
                 ),
 
-                // CONTENT
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
