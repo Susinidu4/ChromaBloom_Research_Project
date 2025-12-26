@@ -246,7 +246,9 @@ class _HomePageState extends State<HomePage> {
             title: 'Cognitive\nProfiling &\nProgress',
             imagePath: 'assets/h4.png',
             bgColor: const Color(0xFF6993AB),
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, '/cognitive_prediction');
+            },
           ),
         ],
       ),
