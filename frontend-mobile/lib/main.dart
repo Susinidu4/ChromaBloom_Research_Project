@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction_screen.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +19,6 @@ import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
 import 'pages/auth/signup/therapist_register_screen.dart';
 
-import 'pages/Cognitive_Progress_Prediction/prediction_screen.dart';
 
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
@@ -79,7 +79,7 @@ class MyApp extends StatelessWidget {
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
 
-        '/cognitive_prediction': (context) => const PredictionScreen(),
+        '/progress_prediction': (context) => const ProgressPredictionScreen(),
 
       },
     );
