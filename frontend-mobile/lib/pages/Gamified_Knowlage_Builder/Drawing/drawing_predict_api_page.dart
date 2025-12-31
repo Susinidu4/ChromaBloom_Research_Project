@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../Gemified/drawing_ml_api_service.dart';
+import '../../../services/Gemified/drawing_ml_api_service.dart';
 
 class DrawingPredictApiPage extends StatefulWidget {
   const DrawingPredictApiPage({super.key});
