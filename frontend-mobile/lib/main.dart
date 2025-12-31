@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction_screen.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
+import 'package:frontend/services/Gemified/drawing_predict_api_page.dart';
 import 'package:provider/provider.dart';
 
 import 'state/session_provider.dart';
@@ -30,6 +31,8 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/improvment.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/lessons.dart';
+
+
 
 void main() {
   runApp(
@@ -80,6 +83,8 @@ class MyApp extends StatelessWidget {
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
+
+        '/drawingperdcit' : (context) => const DrawingPredictApiPage(),
 
       },
     );

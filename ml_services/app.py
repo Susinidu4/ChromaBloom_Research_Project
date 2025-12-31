@@ -1,104 +1,137 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Dict, Any, List
-import joblib
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
 import numpy as np
-import shap
-import pandas as pd
+import tensorflow as tf
+import json
+import io
 from pathlib import Path
 
-app = FastAPI(title="Cognitive Progress ML Service")
+app = FastAPI()
 
+# -----------------------------
+# CORS (allow Flutter Web/Mobile)
+# -----------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # DEV ONLY. Later: ["http://localhost:xxxx", "https://yourdomain.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -----------------------------
+# Paths (based on app.py location)
+# -----------------------------
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_DIR = BASE_DIR / "cognitive_progress_prediction"
-MODEL_PATH = MODEL_DIR / "best_cognitive_progress_model.pkl"
+MODEL_PATH = BASE_DIR / "gemified" / "chromabloom_model.tflite"
+LABELS_PATH = BASE_DIR / "gemified" / "class_labels.json"
 
-try:
-    pipe = joblib.load(MODEL_PATH)
-except Exception as e:
-    raise RuntimeError(f"❌ Failed to load model from {MODEL_PATH}: {e}")
+print("✅ BASE_DIR   :", BASE_DIR)
+print("✅ MODEL_PATH :", MODEL_PATH)
+print("✅ LABELS_PATH:", LABELS_PATH)
 
-prep = pipe.named_steps["prep"]
-model = pipe.named_steps["model"]
+# -----------------------------
+# Load labels (supports many JSON formats)
+# -----------------------------
+def load_labels(path: Path):
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-explainer = shap.TreeExplainer(model)
+    # Case 1: direct list ["a.apple","b.bag",...]
+    if isinstance(data, list):
+        return [str(x) for x in data]
 
-class PredictRequest(BaseModel):
-    features: Dict[str, Any]
-    top_k: int = 10
+    # Case 2: wrapped list {"classes":[...]} or {"labels":[...]} or {"class_names":[...]}
+    if isinstance(data, dict):
+        for key in ["classes", "labels", "class_names"]:
+            if key in data and isinstance(data[key], list):
+                return [str(x) for x in data[key]]
 
+        # Case 3: idx_to_class dict {"0":"a.apple","1":"b.bag"}
+        if "idx_to_class" in data and isinstance(data["idx_to_class"], dict):
+            m = data["idx_to_class"]
+            return [v for k, v in sorted(((int(k), str(v)) for k, v in m.items()), key=lambda x: x[0])]
+
+        # Case 4: class_to_idx dict {"a.apple":0,"b.bag":1}
+        if "class_to_idx" in data and isinstance(data["class_to_idx"], dict):
+            m = data["class_to_idx"]
+            return [k for k, v in sorted(((str(k), int(v)) for k, v in m.items()), key=lambda x: x[1])]
+
+        # Case 5a: plain dict index->label
+        if all(str(k).isdigit() for k in data.keys()):
+            return [v for k, v in sorted(((int(k), str(v)) for k, v in data.items()), key=lambda x: x[0])]
+
+        # Case 5b: plain dict label->index
+        try:
+            return [k for k, v in sorted(((str(k), int(v)) for k, v in data.items()), key=lambda x: x[1])]
+        except Exception:
+            pass
+
+    raise ValueError(f"Unsupported labels JSON format: {path}")
+
+
+# -----------------------------
+# Validate files exist
+# -----------------------------
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(f"❌ Model file not found: {MODEL_PATH}")
+
+if not LABELS_PATH.exists():
+    raise FileNotFoundError(f"❌ Labels file not found: {LABELS_PATH}")
+
+labels = load_labels(LABELS_PATH)
+print(f"✅ Loaded labels: {len(labels)} classes")
+
+# -----------------------------
+# Load TFLite interpreter
+# -----------------------------
+interpreter = tf.lite.Interpreter(model_path=str(MODEL_PATH))
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# Expect [1,224,224,3] float input usually
+print("✅ Input details :", input_details)
+print("✅ Output details:", output_details)
+
+# -----------------------------
+# Image preprocessing
+# -----------------------------
+def preprocess_image(image_bytes: bytes):
+    im = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    im = im.resize((224, 224))
+    arr = np.array(im).astype(np.float32) / 255.0  # normalize like training
+    arr = np.expand_dims(arr, axis=0)              # [1,224,224,3]
+    return arr
+
+# -----------------------------
+# Routes
+# -----------------------------
 @app.get("/health")
 def health():
     return {
         "status": "ok",
-        "model_loaded": True,
-        "model_path": str(MODEL_PATH),
+        "model_found": MODEL_PATH.exists(),
+        "labels_found": LABELS_PATH.exists(),
+        "labels_count": len(labels),
     }
 
-def get_expected_input_columns(pipeline) -> List[str]:
-    # sklearn pipelines store original training columns here (if available)
-    cols = getattr(pipeline, "feature_names_in_", None)
-    if cols is None:
-        return []
-    return list(cols)
-
-def get_feature_names(preprocessor):
-    feature_names = []
-    for name, transformer, columns in preprocessor.transformers_:
-        if name == "cat":
-            ohe = transformer
-            feature_names.extend(list(ohe.get_feature_names_out(columns)))
-        elif name == "num":
-            feature_names.extend(list(columns))
-    return feature_names
-
 @app.post("/predict")
-def predict(req: PredictRequest):
-    try:
-        X = pd.DataFrame([req.features])
+async def predict(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    x = preprocess_image(image_bytes)
 
-        # ✅ Validate missing columns against training schema
-        expected_cols = get_expected_input_columns(pipe)
-        if expected_cols:
-            missing_cols = [c for c in expected_cols if c not in X.columns]
-            if missing_cols:
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "message": "columns are missing",
-                        "missing": missing_cols,
-                        "expected_count": len(expected_cols),
-                        "received_count": len(X.columns),
-                    },
-                )
+    # Run inference
+    interpreter.set_tensor(input_details[0]["index"], x)
+    interpreter.invoke()
+    preds = interpreter.get_tensor(output_details[0]["index"])[0]  # [num_classes]
 
-        prediction = float(pipe.predict(X)[0])
+    # Top-3
+    top3_idx = np.argsort(preds)[-3:][::-1].tolist()
+    top3 = [
+        {"label": labels[i], "confidence": float(preds[i] * 100.0)}
+        for i in top3_idx
+    ]
 
-        X_encoded = prep.transform(X)
-        shap_values = explainer.shap_values(X_encoded)
-
-        shap_row = np.array(shap_values)[0]
-        feature_names = get_feature_names(prep)
-
-        idx_sorted = np.argsort(np.abs(shap_row))[::-1][: req.top_k]
-
-        factors = [
-            {"feature": feature_names[i], "shap_value": float(shap_row[i])}
-            for i in idx_sorted
-        ]
-
-        positive = [f for f in factors if f["shap_value"] > 0]
-        negative = [f for f in factors if f["shap_value"] < 0]
-
-        return {
-            "predicted_score_next_14_days": prediction,
-            "explainability": {
-                "top_positive_factors": positive,
-                "top_negative_factors": negative,
-            },
-        }
-
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return {"top1": top3[0], "top3": top3}
