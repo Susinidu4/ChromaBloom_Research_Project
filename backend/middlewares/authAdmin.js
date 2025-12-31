@@ -17,7 +17,7 @@ export const protectAdmin = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized, admin not found" });
     }
 
-    req.admin = admin; // attach admin object
+    req.admin = admin;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Not authorized, token invalid" });

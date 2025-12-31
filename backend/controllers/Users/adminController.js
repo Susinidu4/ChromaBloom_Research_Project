@@ -1,5 +1,8 @@
 // controllers/admin.controller.js
 import Admin from "../../models/Users/admin.model.js";
+import bcrypt from "bcryptjs";
+import { generateToken } from "../../utils/generateToken.js";
+
 
 // Create new admin
 export const createAdmin = async (req, res) => {
@@ -15,21 +18,40 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: "Admin with this email already exists" });
     }
 
-    const admin = await Admin.create({ full_name, email, password }); // password will be hashed in pre('save')
+    const admin = await Admin.create({ full_name, email, password });
 
     const adminObj = admin.toObject();
     delete adminObj.password;
 
-    res.status(201).json({
-      message: "Admin created successfully",
-      admin: adminObj,
-    });
+    res.status(201).json({ message: "Admin created successfully", admin: adminObj });
   } catch (error) {
     console.error("Error creating admin:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+// Admin login
+export const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
+
+    const token = generateToken(admin);
+
+    const adminObj = admin.toObject();
+    delete adminObj.password;
+
+    res.json({ message: "Login successful", admin: adminObj, token });
+  } catch (error) {
+    console.error("Error logging in admin:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 // Get all admins
 export const getAdmins = async (req, res) => {
   try {

@@ -71,9 +71,9 @@ class MyApp extends StatelessWidget {
         '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
-        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
-        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(),
-        '/lessonComplete': (context) => const LessonCompletePage(),
+        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
+        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload
+        '/lessonComplete': (context) => const LessonCompletePage(), //drawing lesson correctness & improvment
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
         
         
