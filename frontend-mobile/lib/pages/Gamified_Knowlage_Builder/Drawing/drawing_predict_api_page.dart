@@ -150,23 +150,23 @@ class _DrawingPredictApiPageState extends State<DrawingPredictApiPage> {
                     const SizedBox(height: 18),
                   ],
 
-                  if (_top3.isNotEmpty) ...[
-                    const Text(
-                      "Top 3 Predictions",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    ..._top3.map((item) {
-                      final map = (item as Map).cast<String, dynamic>();
-                      final label = _prettyLabel(map["label"]?.toString() ?? "-");
-                      final conf = (map["confidence"] as num?)?.toDouble() ?? 0;
+                  // if (_top3.isNotEmpty) ...[
+                  //   const Text(
+                  //     "Top 3 Predictions",
+                  //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  //   ),
+                  //   const SizedBox(height: 10),
+                  //   ..._top3.map((item) {
+                  //     final map = (item as Map).cast<String, dynamic>();
+                  //     final label = _prettyLabel(map["label"]?.toString() ?? "-");
+                  //     final conf = (map["confidence"] as num?)?.toDouble() ?? 0;
 
-                      return _ResultTile(label: label, confidence: conf);
-                    }),
-                  ],
+                  //     return _ResultTile(label: label, confidence: conf);
+                  //   }),
+                  // ],
 
-                  if (_top1 == null && _top3.isEmpty)
-                    const Text("No predictions yet."),
+                  // if (_top1 == null && _top3.isEmpty)
+                  //   const Text("No predictions yet."),
                 ],
               ),
             ),
