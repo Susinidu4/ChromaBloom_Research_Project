@@ -18,7 +18,7 @@ const stressScoreSchema = new Schema(
         },
         stress_level: {
             type: String,
-            enum: ["low", "moderate", "high"],
+            enum: ["Low", "Medium", "High", "Critical"],
             required: true,
         },
         stress_probability: {
