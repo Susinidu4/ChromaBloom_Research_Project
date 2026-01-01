@@ -141,9 +141,9 @@ class _HomePageState extends State<HomePage> {
           clipBehavior: Clip.none, // allows overlap
           children: [
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               width: 500,
-              height: 200,
+              height: 250,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
@@ -175,7 +175,7 @@ class _HomePageState extends State<HomePage> {
                       Text(
                         "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontFamily: 'Poppins',
                           color: Color(0xFFBD9A6B), // <-- text color
                         ),
@@ -189,11 +189,11 @@ class _HomePageState extends State<HomePage> {
             // Image overlapping the right border
             Positioned(
               right: -30,
-              top: 25,
+              top: 100,
               child: Image.asset(
                 "assets/images/banner_image.png",
-                width: 200,
-                height: 200,
+                width: 170,
+                height: 170,
               ),
             ),
           ],
