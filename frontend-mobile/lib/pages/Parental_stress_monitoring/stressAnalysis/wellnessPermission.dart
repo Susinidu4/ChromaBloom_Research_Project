@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Call this from your Home tile onTap:
-/// await showDigitalWellbeingPermissionGate(
-///   context: context,
-///   onCancel: () async { ...save consent "cancel"... },
-///   onAllow: () async { ...save consent "allow"... Navigator.pushNamed(...); },
-/// );
 Future<void> showDigitalWellbeingPermissionGate({
   required BuildContext context,
   required Future<void> Function() onCancel,
@@ -182,11 +176,14 @@ class _DigitalWellbeingPermissionDialogState
                               fg: Colors.white,
                               onTap: _loading
                                   ? null
-                                  : () => _safeRun(() async {
-                                      await widget.onCancel();
-                                      if (!mounted) return;
-                                      Navigator.pop(context); // close dialog
-                                    }),
+                                  : () async {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop(); // CLOSE dialog first
+                                      await widget
+                                          .onCancel(); // THEN run your cancel logic
+                                    },
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -197,11 +194,14 @@ class _DigitalWellbeingPermissionDialogState
                               fg: Colors.white,
                               onTap: _loading
                                   ? null
-                                  : () => _safeRun(() async {
-                                      await widget.onAllow();
-                                      if (!mounted) return;
-                                      Navigator.pop(context); // close dialog
-                                    }),
+                                  : () async {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop(); // CLOSE dialog first
+                                      await widget
+                                          .onAllow(); // THEN run your allow logic
+                                    },
                             ),
                           ),
                         ],
