@@ -60,5 +60,10 @@ const digitalWellbeingLogSchema = new Schema(
     }
 )
 
+digitalWellbeingLogSchema.index(
+  { caregiverId: 1, log_date: 1 },
+  { unique: true }
+);
+
 const DigitalWellbeingLog = model("DigitalWellbeingLog", digitalWellbeingLogSchema);
 export default DigitalWellbeingLog;
