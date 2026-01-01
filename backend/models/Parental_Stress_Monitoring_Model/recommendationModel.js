@@ -27,7 +27,7 @@ const recommendationSchema = new Schema(
     },
     level: {
       type: String,
-      enum: ["low", "medium", "high", "critical"],
+      enum: ["Low", "Medium", "High", "Critical"],
       required: true,
     },
     category: {
