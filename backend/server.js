@@ -13,8 +13,9 @@ import therapistRoutes from "./routes/Users/therapistRoutes.js";
 import userActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/userActivityRoute.js";
 import systemActivityRoutes from "./routes/Interactive_Visual_Task_Scheduler_Route/systemActivityRoute.js";
 // parental stress monitoring
-import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntry.js";
-
+import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalEntryRoute.js";
+import consentRoutes from "./routes/Parent_Stress_Monitoring_Route/consentRoute.js";
+import digitalWellbeingLogRoutes from "./routes/Parent_Stress_Monitoring_Route/digitalWellbeingLogRoute.js";
 // gemified knowledge builder
 import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
 import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js";
@@ -53,6 +54,8 @@ app.use("/chromabloom/userActivities", userActivityRoutes);
 app.use("/chromabloom/systemActivities", systemActivityRoutes);
 // Parent Stress Monitoring 
 app.use("/chromabloom/journalEntries", journalEntryRoutes);
+app.use("/chromabloom/consent", consentRoutes);
+app.use("/chromabloom/digitalWellbeingLog", digitalWellbeingLogRoutes);
 // Gemified Knowledge Builder
 app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
