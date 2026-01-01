@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../others/profile_options_dialog.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/pages/Parental_stress_monitoring/stressAnalysis/wellnessPermission.dart';
+
+import '../../services/Parental_stress_monitoring/consent_service.dart';
+import '../Parental_stress_monitoring/stressAnalysis/wellnessPermission.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,9 +15,6 @@ class _HomePageState extends State<HomePage> {
   // ---- Colors ----
   final Color _primaryBlue = const Color(0xFF235870);
   final Color _lightBackground = const Color(0xFFF7EDE4);
-
-  // ✅ local cache key (to avoid showing popup repeatedly)
-  static const String _prefKeyWellnessConsentGranted = "dw_consent_granted";
 
   @override
   Widget build(BuildContext context) {
@@ -148,8 +146,8 @@ class _HomePageState extends State<HomePage> {
         children: [
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-            width: 500,
-            height: 200,
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 200),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
@@ -224,7 +222,57 @@ class _HomePageState extends State<HomePage> {
             title: 'Parental Stress\nMonitoring &\nSupport System',
             imagePath: 'assets/h1.png',
             bgColor: const Color(0xFF6993AB),
-            onTap: _handleParentalStressTap,
+            onTap: () async {
+              try {
+                final caregiverId =
+                    "p-0001"; // TODO: replace with real logged-in ID
+                final consentApi = ConsentService();
+
+                // 1️⃣ Check existing consent from DB
+                final consent = await consentApi.getConsent(caregiverId);
+                final bool alreadyAllowed =
+                    consent != null &&
+                    consent["digital_wellbeing_consent"] == true;
+
+                // 2️⃣ If already allowed → skip dialog completely
+                if (alreadyAllowed) {
+                  if (!context.mounted) return;
+                  Navigator.pushNamed(context, '/WellnessHome');
+                  return;
+                }
+
+                // 3️⃣ Otherwise show permission dialog
+                await showDigitalWellbeingPermissionGate(
+                  context: context,
+
+                  // ❌ CANCEL → save cancel → go wellnessHome
+                  onCancel: () async {
+                    await consentApi.saveDecision(
+                      caregiverId: caregiverId,
+                      decision: "cancel",
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pushNamed(context, '/WellnessHome');
+                  },
+
+                  // ✅ ALLOW → save allow → go wellnessHome
+                  onAllow: () async {
+                    await consentApi.saveDecision(
+                      caregiverId: caregiverId,
+                      decision: "allow",
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pushNamed(context, '/WellnessHome');
+                  },
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                Navigator.pushNamed(context, '/WellnessHome');
+              }
+            },
           ),
 
           // 2. Task Scheduler - BEIGE
@@ -254,30 +302,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    );
-  }
-
-  // ================= PERMISSION FLOW HANDLER =================
-  Future<void> _handleParentalStressTap() async {
-    debugPrint("✅ Parental stress tile tapped");
-
-    debugPrint("✅ Tile tapped - opening permission dialog");
-    // Get preferences
-    final prefs = await SharedPreferences.getInstance();
-
-    // FOR NOW: always show permission page
-    await prefs.setBool("dw_consent_granted", false);
-
-    // Open permission dialog
-    await showDigitalWellbeingPermissionGate(
-      context: context,
-      onCancel: () async {
-        debugPrint("❌ Permission cancelled");
-      },
-      onAllow: () async {
-        debugPrint("✅ Permission allowed");
-        Navigator.pushNamed(context, '/WellnessHome');
-      },
     );
   }
 }
