@@ -2,7 +2,7 @@ import axios from "axios";
 import FormData from "form-data";
 
 // Put in .env like: FASTAPI_BASE_URL=http://127.0.0.1:8000
-const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://127.0.0.1:8000";
+const FASTAPI_BASE_URL = "http://localhost:8000";
 
 /**
  * POST /api/gamified/drawing/predict

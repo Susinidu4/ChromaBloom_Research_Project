@@ -1,10 +1,12 @@
+import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import './improvment.dart'; // ✅ update to your actual path
+import './improvment.dart'; // ✅ change to your actual path
 
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
@@ -38,18 +40,24 @@ class _DrawingImprovementCheckPageState
     extends State<DrawingImprovementCheckPage> {
   final ImagePicker _picker = ImagePicker();
 
-  Uint8List? _imageBytes;
+  Uint8List? _imageBytes; // for preview
+  File? _imageFile; // ✅ for API call
 
   Future<void> _pickImage(ImageSource source) async {
     final xfile = await _picker.pickImage(source: source, imageQuality: 95);
     if (xfile == null) return;
 
     final bytes = await xfile.readAsBytes();
-    setState(() => _imageBytes = bytes);
+
+    setState(() {
+      _imageBytes = bytes;
+      _imageFile = File(xfile.path);
+    });
   }
 
   Future<void> _showPickOptions() async {
     if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -97,13 +105,13 @@ class _DrawingImprovementCheckPageState
   }
 
   void _goToCompletePage() {
-    if (_imageBytes == null) return;
+    if (_imageFile == null) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => LessonCompletePage(
-          imageBytes: _imageBytes!,
+          imageFile: _imageFile!, // ✅ pass File
           previousCorrectness: widget.previousCorrectness ?? 0.0,
         ),
       ),
@@ -112,7 +120,7 @@ class _DrawingImprovementCheckPageState
 
   @override
   Widget build(BuildContext context) {
-    final canContinue = _imageBytes != null;
+    final canContinue = _imageFile != null;
 
     return Scaffold(
       backgroundColor: DrawingImprovementCheckPage.pageBg,
@@ -149,7 +157,6 @@ class _DrawingImprovementCheckPageState
                       ],
                     ),
                     const SizedBox(height: 18),
-
                     const Center(
                       child: Text(
                         "Check Child improvement ...",

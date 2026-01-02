@@ -1,18 +1,19 @@
-import 'dart:typed_data';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import '../../../services/Gemified/drawing_ml_api_service.dart';
+import '../../../services/Gemified/drawing_predict_service.dart'; // ✅ your service file
 
 class LessonCompletePage extends StatefulWidget {
   const LessonCompletePage({
     super.key,
-    required this.imageBytes,
+    required this.imageFile,
     required this.previousCorrectness, // 0.0 - 1.0
   });
 
-  final Uint8List imageBytes;
+  final File imageFile;
   final double previousCorrectness;
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -30,12 +31,8 @@ class LessonCompletePage extends StatefulWidget {
 }
 
 class _LessonCompletePageState extends State<LessonCompletePage> {
-  // ✅ UPDATE THIS BASE URL (same as your reference)
-  // Emulator: "http://10.0.2.2:8000"
-  // Phone: "http://192.168.1.5:8000"
-  final MlApiService _api = MlApiService(baseUrl: "http://localhost:8000");
-
   bool _loading = true;
+
   String _predictedLabel = "-";
   double _confidencePercent = 0; // 0 - 100
   double _correctness = 0; // 0.0 - 1.0
@@ -49,10 +46,14 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
   Future<void> _predictOnLoad() async {
     setState(() => _loading = true);
-    try {
-      final res = await _api.predict(widget.imageBytes);
 
-      final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
+    try {
+      // ✅ Node returns: { message, data: { top1, top3 } }
+      final res = await DrawingPredictService.predictDrawing(widget.imageFile);
+
+      final data = (res["data"] as Map?)?.cast<String, dynamic>();
+      final top1 = (data?["top1"] as Map?)?.cast<String, dynamic>();
+
       final rawLabel = top1?["label"]?.toString() ?? "-";
       final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
 
@@ -61,7 +62,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       final correctness = (conf.clamp(0, 100) / 100.0);
       final prev = widget.previousCorrectness.clamp(0.0, 1.0);
 
-      // ✅ Improvement = how much correctness increased from previous attempt
+      // Improvement = how much correctness increased from previous attempt
       final improvement = (correctness - prev).clamp(0.0, 1.0);
 
       if (!mounted) return;
@@ -169,7 +170,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 14),
 
-                    // ✅ Prediction summary card (loading vs result)
+                    // ✅ Prediction summary
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
