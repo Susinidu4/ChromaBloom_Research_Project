@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/welcome_screen');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          /// ---- Background Image ----
           Positioned.fill(
             child: Image.asset(
               "assets/splash_screen_image.png",
               fit: BoxFit.cover,
             ),
           ),
-
-          /// ---- Center Logo ----
           Center(
             child: Image.asset(
               "assets/chromabloom1.png",
@@ -24,10 +36,8 @@ class SplashScreen extends StatelessWidget {
               height: 200,
             ),
           ),
-
-          /// ---- Bottom Center Image ----
           Positioned(
-            bottom: -15, // adjust as needed
+            bottom: -15,
             left: 0,
             right: 0,
             child: Center(
