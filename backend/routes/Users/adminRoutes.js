@@ -1,6 +1,7 @@
 // routes/admin.routes.js
 import express from "express";
 import {
+  adminLogin,
   createAdmin,
   getAdmins,
   getAdminById,
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // POST /api/admins          -> create admin
 router.post("/", createAdmin);
+
+// POST /api/admins/login   -> login admin
+router.post("/login", adminLogin);
 
 // GET /api/admins           -> view all admins
 router.get("/", getAdmins);

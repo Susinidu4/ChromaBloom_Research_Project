@@ -1,9 +1,8 @@
 // controllers/child.controller.js
-import Child from "../../models/Users/childModel.js";
+import Child from "../../models/Users/child.model.js";
 
-// ==================================
+
 // CREATE / REGISTER CHILD
-// ==================================
 export const createChild = async (req, res) => {
   try {
     const {
@@ -46,9 +45,7 @@ export const createChild = async (req, res) => {
   }
 };
 
-// ==================================
 // GET ALL CHILDREN
-// ==================================
 export const getAllChildren = async (req, res) => {
   try {
     const children = await Child.find()
@@ -63,9 +60,7 @@ export const getAllChildren = async (req, res) => {
   }
 };
 
-// ==================================
 // GET CHILD BY ID (c-0001)
-// ==================================
 export const getChildById = async (req, res) => {
   try {
     const { id } = req.params; // e.g. "c-0001"
@@ -85,9 +80,7 @@ export const getChildById = async (req, res) => {
   }
 };
 
-// ==================================
 // GET CHILDREN BY CAREGIVER ID (p-0001)
-// ==================================
 export const getChildrenByCaregiver = async (req, res) => {
   try {
     const { caregiverId } = req.params; // e.g. "p-0001"
@@ -104,9 +97,7 @@ export const getChildrenByCaregiver = async (req, res) => {
   }
 };
 
-// ==================================
 // UPDATE CHILD
-// ==================================
 export const updateChild = async (req, res) => {
   try {
     const { id } = req.params;
@@ -130,9 +121,7 @@ export const updateChild = async (req, res) => {
   }
 };
 
-// ==================================
 // DELETE CHILD
-// ==================================
 export const deleteChild = async (req, res) => {
   try {
     const { id } = req.params;

@@ -1,4 +1,3 @@
-// lib/pages/auth/signup/caregiver_step.dart
 import 'package:flutter/material.dart';
 import 'form_fields.dart';
 
@@ -12,6 +11,10 @@ class CaregiverStep extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController addressController;
 
+  // ✅ NEW
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+
   final ValueChanged<String?> onGenderChanged;
   final VoidCallback onDobTap;
 
@@ -24,6 +27,11 @@ class CaregiverStep extends StatelessWidget {
     required this.mobileController,
     required this.emailController,
     required this.addressController,
+
+    // ✅ NEW
+    required this.passwordController,
+    required this.confirmPasswordController,
+
     required this.onGenderChanged,
     required this.onDobTap,
   });
@@ -43,6 +51,7 @@ class CaregiverStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+
         const Text(
           "Basic Information",
           style: TextStyle(
@@ -74,7 +83,7 @@ class CaregiverStep extends StatelessWidget {
         const SizedBox(height: 12),
 
         RoundedTextField(
-          label: "No fo Children",
+          label: "No of Children",
           controller: childrenCountController,
           keyboardType: TextInputType.number,
         ),
@@ -107,6 +116,31 @@ class CaregiverStep extends StatelessWidget {
           label: "Address",
           controller: addressController,
           maxLines: 2,
+        ),
+
+        const SizedBox(height: 24),
+
+        // ✅ NEW SECTION
+        const Text(
+          "Security",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFFC3A27F),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        RoundedTextField(
+          label: "Password",
+          controller: passwordController,
+          obscureText: true,
+        ),
+        const SizedBox(height: 12),
+
+        RoundedTextField(
+          label: "Confirm Password",
+          controller: confirmPasswordController,
+          obscureText: true,
         ),
       ],
     );
