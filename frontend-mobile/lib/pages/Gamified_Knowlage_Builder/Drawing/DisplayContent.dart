@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+import '../../../services/Gemified/drawing_lesson_service.dart';
 
-class DrawingLessonDetailPage extends StatelessWidget {
+// ✅ one import works on both platforms (conditional)
+import '../../../widgets/hybrid_video_player/hybrid_video_player.dart';
+
+class DrawingLessonDetailPage extends StatefulWidget {
   const DrawingLessonDetailPage({super.key});
 
   static const Color pageBg = Color(0xFFF5ECEC);
 
-  // UI palette (same family as your other pages)
   static const Color topRowBlue = Color(0xFF3D6B86);
 
   static const Color bubbleBg = Color(0xFFF8F2E8);
@@ -17,15 +22,60 @@ class DrawingLessonDetailPage extends StatelessWidget {
   static const Color titleColor = Color(0xFFA07E6A);
   static const Color bodyColor = Color(0xFFB79B86);
 
-  static const Color videoBoxBg = Color(0xFFE0E0E0);
-  static const Color videoBorder = Color(0xFFD8C6B4);
-
   static const Color buttonBg = Color(0xFFB89A76);
+
+  @override
+  State<DrawingLessonDetailPage> createState() => _DrawingLessonDetailPageState();
+}
+
+class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
+  late final DrawingLessonService _service;
+  Future<Map<String, dynamic>>? _futureLesson;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ baseUrl depends on platform
+    final apiBase = kIsWeb
+        ? "http://localhost:5000/chromabloom/drawing-lessons"
+        : "http://localhost:5000/chromabloom/drawing-lessons";
+
+    _service = DrawingLessonService(
+      baseUrl: apiBase,
+      // token: "YOUR_JWT_IF_NEEDED",
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final lessonId = args?.toString() ?? "";
+
+    if (lessonId.isNotEmpty && _futureLesson == null) {
+      _futureLesson = _service.getLessonById(lessonId);
+    }
+  }
+
+  String _tipsToText(dynamic tips) {
+    if (tips == null) return "No tips available.";
+    if (tips is List) {
+      if (tips.isEmpty) return "No tips available.";
+      final lines = <String>[];
+      for (int i = 0; i < tips.length; i++) {
+        lines.add("${i + 1}. ${tips[i].toString()}");
+      }
+      return lines.join("\n\n");
+    }
+    return tips.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: DrawingLessonDetailPage.pageBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -34,71 +84,108 @@ class DrawingLessonDetailPage extends StatelessWidget {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ===== Back + centered unit title =====
-                    Row(
-                      children: [
-                        _BackCircleButton(onTap: () => Navigator.pop(context)),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            "Drawing UNIT 1 Lesson 1",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: topRowBlue,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _futureLesson,
+                builder: (context, snapshot) {
+                  if (_futureLesson == null) {
+                    return const Center(child: Text("Lesson ID not provided."));
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 28),
+                            const SizedBox(height: 10),
+                            Text(
+                              "Failed to load lesson.\n${snapshot.error}",
+                              textAlign: TextAlign.center,
                             ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final lesson = snapshot.data ?? {};
+                  final title = (lesson["title"] ?? "Untitled").toString();
+                  final description = (lesson["description"] ?? "").toString();
+                  final videoUrl = (lesson["video_url"] ?? "").toString();
+                  final tipsText = _tipsToText(lesson["tips"]);
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _BackCircleButton(
+                              onTap: () => Navigator.pop(context),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: DrawingLessonDetailPage.topRowBlue,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 40),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(width: 40), // balance right side
+                        const SizedBox(height: 6),
+                        if (description.isNotEmpty)
+                          Text(
+                            description,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 11,
+                              height: 1.25,
+                            ),
+                          ),
+
+                        const SizedBox(height: 12),
+
+                        // ✅ Hybrid player: web uses <video>, mobile uses video_player
+                        HybridVideoPlayer(videoUrl: videoUrl, height: 180),
+
+                        const SizedBox(height: 14),
+
+                        _TipCard(
+                          tipText: tipsText,
+                          onContinue: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/drawingImprovementCheck',
+                              arguments: lesson["id"].toString(),
+                            );
+                          },
+                        ),
                       ],
                     ),
-
-                    const SizedBox(height: 14),
-
-                    // ===== Lesson title =====
-                    const Text(
-                      "How to draw a Circle",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // ===== Video placeholder =====
-                    _VideoBox(
-                      onTap: () {
-                        // TODO: play video / open player
-                      },
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // ===== Tip card =====
-                    _TipCard(
-                      tipText:
-                          "1. Trace an Object - Use a cup or lid and trace around it to make an easy circle.\n\n"
-                          "2. Finger Circle in Sand - Let the child draw a circle using their finger in sand/soil to slowly learn making circles.\n\n"
-                          "3. Sticker Shape - Place round stickers in a loop to form a circle shape.\n\n"
-                          "4. Spin & Trace - Spin a round object (like a lid) and trace around it once it stops.\n\n"
-                          "5. Circle Movement - Draw a big circle in the air with your arm, then draw the same on paper.",
-                      onContinue: () {
-                        // TODO: go next
-                        // Navigator.pushNamed(context, '/nextLesson');
-                      },
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -147,42 +234,6 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/* ===================== VIDEO BOX ===================== */
-
-class _VideoBox extends StatelessWidget {
-  const _VideoBox({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(2),
-          child: Container(
-            width: double.infinity,
-            height: 150,
-            decoration: BoxDecoration(
-              color: DrawingLessonDetailPage.videoBoxBg,
-              border: Border.all(color: DrawingLessonDetailPage.videoBorder),
-              borderRadius: BorderRadius.circular(2),
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.play_arrow_rounded,
-                size: 56,
-                color: Colors.black,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /* ===================== TIP CARD ===================== */
 
 class _TipCard extends StatelessWidget {
@@ -212,7 +263,6 @@ class _TipCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tip title
           const Text(
             "Tip",
             style: TextStyle(
@@ -221,13 +271,10 @@ class _TipCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // Illustration
           Center(
             child: Image.asset(
-              "assets/tip_illustration.png", 
+              "assets/tip_illustration.png",
               height: 120,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Container(
@@ -245,10 +292,7 @@ class _TipCard extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // Tip text
           Text(
             tipText,
             style: const TextStyle(
@@ -258,10 +302,7 @@ class _TipCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-
           const SizedBox(height: 14),
-
-          // Continue button (center)
           Center(
             child: _PrimaryButton(
               label: "Continue",
