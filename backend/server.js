@@ -60,7 +60,7 @@ app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
 app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
 app.use("/chromabloom/complete-problem-solving-sessions", completeProblemSolvingSessionRoutes);
-app.use("/api/gamified/drawing", predictDrawingRoutes);
+app.use("/chromabloom/gamified/drawing", predictDrawingRoutes);
 // Cognitive Progress Prediction
 app.use("/chromabloom/cognitiveProgress_2", cognitiveProgressRoutes_2);
 

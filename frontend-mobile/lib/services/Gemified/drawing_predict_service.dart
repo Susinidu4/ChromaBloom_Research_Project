@@ -13,7 +13,7 @@ class DrawingPredictService {
   static const String _baseUrl = "http://localhost:5000";
 
   // Node route base
-  static const String _path = "/api/gamified/drawing";
+  static const String _path = "/chromabloom/gamified/drawing";
 
   static Future<Map<String, dynamic>> health() async {
     final url = Uri.parse("$_baseUrl$_path/health");
