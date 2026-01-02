@@ -115,7 +115,7 @@ class _HomePageState extends State<HomePage> {
               // right side: profile icon
               GestureDetector(
                 onTap: () {
-                  showProfileOptionsDialog(context);
+                  Navigator.pushNamed(context, '/profile_page');
                 },
                 child: Container(
                   width: 50,
