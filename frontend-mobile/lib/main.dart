@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:frontend/pages/others/SplashScreen.dart';
 import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
+
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
+
 import 'pages/Parental_stress_monitoring/wellnessHome.dart';
 import 'pages/Parental_stress_monitoring/journalEntry/display_journalEntry.dart';
 import 'pages/Parental_stress_monitoring/journalEntry/create_journalEntry.dart';
 import 'pages/Parental_stress_monitoring/stressAnalysis/stressAnalysis.dart';
+
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
