@@ -17,6 +17,7 @@ import journalEntryRoutes from "./routes/Parent_Stress_Monitoring_Route/journalE
 import consentRoutes from "./routes/Parent_Stress_Monitoring_Route/consentRoute.js";
 import digitalWellbeingLogRoutes from "./routes/Parent_Stress_Monitoring_Route/digitalWellbeingLogRoute.js";
 import stressAnalysisRoutes from "./routes/Parent_Stress_Monitoring_Route/stressAnalysisRoute.js"
+import recommendationRoutes from "./routes/Parent_Stress_Monitoring_Route/recommendationRoutes.js";
 // gemified knowledge builder
 import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
 import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js";
@@ -58,6 +59,7 @@ app.use("/chromabloom/journalEntries", journalEntryRoutes);
 app.use("/chromabloom/consent", consentRoutes);
 app.use("/chromabloom/digitalWellbeingLog", digitalWellbeingLogRoutes);
 app.use("/chromabloom/stressAnalysis", stressAnalysisRoutes);
+app.use("/chromabloom/recommendations", recommendationRoutes);
 // Gemified Knowledge Builder
 app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
