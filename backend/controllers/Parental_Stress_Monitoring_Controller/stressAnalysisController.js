@@ -9,12 +9,43 @@ import RecommendationModel from "../../models/Parental_Stress_Monitoring_Model/r
 const ML_URL = process.env.ML_URL || "http://127.0.0.1:8000/predict";
 
 function toUtcMidnight(dateObj = new Date()) {
-  return new Date(Date.UTC(
-    dateObj.getUTCFullYear(),
-    dateObj.getUTCMonth(),
-    dateObj.getUTCDate(),
-    0, 0, 0, 0
-  ));
+  return new Date(
+    Date.UTC(
+      dateObj.getUTCFullYear(),
+      dateObj.getUTCMonth(),
+      dateObj.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  );
+}
+
+function utcDayRange(dateObj = new Date()) {
+  const start = new Date(
+    Date.UTC(
+      dateObj.getUTCFullYear(),
+      dateObj.getUTCMonth(),
+      dateObj.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  );
+  const end = new Date(
+    Date.UTC(
+      dateObj.getUTCFullYear(),
+      dateObj.getUTCMonth(),
+      dateObj.getUTCDate() + 1,
+      0,
+      0,
+      0,
+      0
+    )
+  );
+  return { start, end };
 }
 
 function isHighOrCriticalTitle(levelTitle) {
@@ -24,26 +55,34 @@ function isHighOrCriticalTitle(levelTitle) {
 export const computeStressAndRecommendation = async (req, res) => {
   try {
     const { caregiverId } = req.params;
-    if (!caregiverId) return res.status(400).json({ error: "caregiverId required" });
+    if (!caregiverId)
+      return res.status(400).json({ error: "caregiverId required" });
 
     // 1) latest digital wellbeing
-    const wellbeing = await DigitalWellbeingLog
-      .findOne({ caregiverId })
+    const wellbeing = await DigitalWellbeingLog.findOne({ caregiverId })
       .sort({ log_date: -1 })
       .lean();
 
     if (!wellbeing) {
-      return res.status(404).json({ error: "No DigitalWellbeingLog found for this caregiver" });
+      return res
+        .status(404)
+        .json({ error: "No DigitalWellbeingLog found for this caregiver" });
     }
 
-    // 2) latest journal
-    const journal = await JournalEntry
-      .findOne({ caregiver_ID: caregiverId })
+    // 2) latest journal entry for TODAY only
+    const { start: todayStart, end: todayEnd } = utcDayRange(new Date());
+
+    const journal = await JournalEntry.findOne({
+      caregiver_ID: caregiverId,
+      created_at: { $gte: todayStart, $lt: todayEnd },
+    })
       .sort({ created_at: -1 })
       .lean();
 
     if (!journal) {
-      return res.status(404).json({ error: "No JournalEntry found for this caregiver" });
+      return res.status(404).json({
+        error: "No JournalEntry found for TODAY for this caregiver",
+      });
     }
 
     // 3) ML payload (your 10 features)
@@ -69,14 +108,16 @@ export const computeStressAndRecommendation = async (req, res) => {
 
     if (!mlResp.ok) {
       const errText = await mlResp.text();
-      return res.status(500).json({ error: "ML service error", details: errText });
+      return res
+        .status(500)
+        .json({ error: "ML service error", details: errText });
     }
 
     const ml = await mlResp.json();
 
     // ✅ your requested outputs
-    const stress_score = Number(ml.stress_score);     // 0..3
-    const stress_level = ml.stress_level;             // "Low" | "Medium" | "High" | "Critical"
+    const stress_score = Number(ml.stress_score); // 0..3
+    const stress_level = ml.stress_level; // "Low" | "Medium" | "High" | "Critical"
     const stress_probability = Number(ml.stress_probability ?? 0);
 
     if (![0, 1, 2, 3].includes(stress_score) || !stress_level) {
@@ -86,8 +127,7 @@ export const computeStressAndRecommendation = async (req, res) => {
     // 5) consecutive high/critical days
     const today = toUtcMidnight(new Date());
 
-    const recentScores = await StressScoreModel
-      .find({ caregiverId })
+    const recentScores = await StressScoreModel.find({ caregiverId })
       .sort({ score_date: -1 })
       .limit(14)
       .lean();
@@ -103,7 +143,7 @@ export const computeStressAndRecommendation = async (req, res) => {
 
     // 6) escalation rule
     const escalation_triggered =
-      (stress_level === "Critical") ||
+      stress_level === "Critical" ||
       (stress_level === "High" && consecutive_high_days >= 3);
 
     // 7) save / upsert today’s score
@@ -115,8 +155,8 @@ export const computeStressAndRecommendation = async (req, res) => {
         caregiverId,
         score_date: today,
         computed_at,
-        stress_score,          // ✅ store numeric too
-        stress_level,          // ✅ "Low/Medium/High/Critical"
+        stress_score, // ✅ store numeric too
+        stress_level, // ✅ "Low/Medium/High/Critical"
         stress_probability,
         consecutive_high_days,
         escalation_triggered,
@@ -127,7 +167,7 @@ export const computeStressAndRecommendation = async (req, res) => {
     // 8) recommendation pick (IMPORTANT: match DB casing)
     // Your JSON recommendations use "Level": "Low/Medium/High/Critical" :contentReference[oaicite:2]{index=2}
     const recPool = await RecommendationModel.find({
-      level: stress_level,   // ✅ Title Case
+      level: stress_level, // ✅ Title Case
       is_active: true,
     }).lean();
 
@@ -135,8 +175,15 @@ export const computeStressAndRecommendation = async (req, res) => {
     if (recPool.length > 0) {
       chosen = recPool[Math.floor(Math.random() * recPool.length)];
     } else {
-      chosen = await RecommendationModel.findOne({ level: "Medium", is_active: true }).lean();
-      if (!chosen) chosen = await RecommendationModel.findOne({ level: "Low", is_active: true }).lean();
+      chosen = await RecommendationModel.findOne({
+        level: "Medium",
+        is_active: true,
+      }).lean();
+      if (!chosen)
+        chosen = await RecommendationModel.findOne({
+          level: "Low",
+          is_active: true,
+        }).lean();
     }
 
     return res.json({
@@ -147,9 +194,10 @@ export const computeStressAndRecommendation = async (req, res) => {
         raw: ml.raw,
       },
     });
-
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Server error", details: String(err.message || err) });
+    return res
+      .status(500)
+      .json({ error: "Server error", details: String(err.message || err) });
   }
 };
