@@ -1,17 +1,45 @@
 import 'package:flutter/material.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class WellnessRecommendationDetailPage extends StatelessWidget {
-  const WellnessRecommendationDetailPage({super.key});
+import 'package:quickalert/quickalert.dart';
+import '../../../services/Parental_stress_monitoring/recommendation_service.dart';
+import '../journalEntry/create_journalEntry.dart';
+
+class WellnessRecommendationDetailPage extends StatefulWidget {
+  final String caregiverId;
+
+  const WellnessRecommendationDetailPage({
+    super.key,
+    required this.caregiverId,
+  });
 
   static const Color pageBg = Color(0xFFF3E8E8);
-  static const Color gold = Color(0xFFBD9A6B);
+
+  @override
+  State<WellnessRecommendationDetailPage> createState() =>
+      _WellnessRecommendationDetailPageState();
+}
+
+class _WellnessRecommendationDetailPageState
+    extends State<WellnessRecommendationDetailPage> {
+  late Future<Map<String, dynamic>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = WellnessRecommendationService.fetchRecommendation(
+      widget.caregiverId,
+    );
+  }
+
+  bool _handledError = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: WellnessRecommendationDetailPage.pageBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -21,24 +49,86 @@ class WellnessRecommendationDetailPage extends StatelessWidget {
               notificationCount: 5,
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 24, 18, 24),
-                child: Center(
-                  child: _RecommendationCard(
-                    title: "Deep Breath Pause",
-                    durationText: "1 min",
-                    description:
-                        "Take a few deep breaths to clear\nyour mind and calm your body\nbefore reacting.",
-                    steps: const [
-                      "Inhale slowly for 4s",
-                      "Exhale for 4s",
-                      "Repeat 4 – 5 times",
-                    ],
-                    imagePath:
-                        "assets/recomendation_1.png", // change to your asset
-                    onDone: () => Navigator.pop(context),
-                  ),
-                ),
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    if (!_handledError) {
+                      _handledError = true;
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        if (!mounted) return;
+
+                        await QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.error,
+                          title: "Journal Needed",
+                          text:
+                              "You haven't created a journal entry for today.\nPlease create it to get recommendations.",
+                          confirmBtnText: "Create Journal",
+                          cancelBtnText: "Cancel",
+                          showCancelBtn: true,
+                          confirmBtnColor: const Color(0xFFBD9A6B),
+                          barrierDismissible: false,
+
+                          // ✅ IMPORTANT: do navigation AFTER closing dialog
+                          onConfirmBtnTap: () {
+                            Navigator.of(
+                              context,
+                              rootNavigator: true,
+                            ).pop(); // close alert
+
+                            // ✅ Navigate directly (avoids named-route + nested navigator issues)
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const CreateJournalEntryScreen(),
+                              ),
+                            );
+                          },
+
+                          onCancelBtnTap: () {
+                            Navigator.of(
+                              context,
+                              rootNavigator: true,
+                            ).pop(); // close alert
+                            Navigator.pop(
+                              context,
+                            ); // go back from recommendation page
+                          },
+                        );
+                      });
+                    }
+
+                    return const Center(
+                      child: Text(
+                        "Unable to load recommendation",
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    );
+                  }
+
+                  final data = snapshot.data!;
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 24, 18, 24),
+                    child: Center(
+                      child: _RecommendationCard(
+                        title: data["title"],
+                        durationText: "${data["duration"]} min",
+                        description: data["message"],
+                        steps: List<String>.from(data["steps"]),
+                        imagePath: "assets/recomendation_1.png",
+                        onDone: () => Navigator.pop(context),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -157,7 +247,7 @@ class _RecommendationCard extends StatelessWidget {
             const SizedBox(height: 10),
 
             Padding(
-              padding: const EdgeInsets.only(left: 20), 
+              padding: const EdgeInsets.only(left: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: List.generate(steps.length, (i) {
@@ -249,4 +339,3 @@ class _RecommendationCard extends StatelessWidget {
     );
   }
 }
-
