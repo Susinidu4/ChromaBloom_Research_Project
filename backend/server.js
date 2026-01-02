@@ -19,11 +19,13 @@ import digitalWellbeingLogRoutes from "./routes/Parent_Stress_Monitoring_Route/d
 import stressAnalysisRoutes from "./routes/Parent_Stress_Monitoring_Route/stressAnalysisRoute.js"
 import recommendationRoutes from "./routes/Parent_Stress_Monitoring_Route/recommendationRoutes.js";
 // gemified knowledge builder
-import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLesson.routes.js";
-import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js";
-import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLesson.routes.js";
-import completeProblemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingLesson.routes.js";
-
+import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawingLessonRoutes.js";
+import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLessonRoutes.js";
+import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLessonRoutes.js";
+import completeProblemSolvingSessionRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingSessonRoutes.js";
+import predictDrawingRoutes from "./routes/Gemified_Knowlage_Builder_Route/predictDrawingRoutes.js";
+// cognitive progress prediction
+import cognitiveProgressRoutes_2 from "./routes/Cognitive_Progress_Prediction/cognitiveProgressRoute.js";
 
 dotenv.config();
 
@@ -64,7 +66,12 @@ app.use("/chromabloom/recommendations", recommendationRoutes);
 app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
 app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
-app.use("/chromabloom/completed-problem-solving-lessons",completeProblemSolvingLessonRoutes);
+app.use("/chromabloom/complete-problem-solving-sessions", completeProblemSolvingSessionRoutes);
+app.use("/chromabloom/gamified/drawing", predictDrawingRoutes);
+// Cognitive Progress Prediction
+app.use("/chromabloom/cognitiveProgress_2", cognitiveProgressRoutes_2);
+
+
 
 //  ERROR HANDLER (JSON, not HTML)
 app.use((err, req, res, next) => {
