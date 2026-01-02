@@ -1,0 +1,20 @@
+{
+  "feature_cols": [
+    "total_screen_time_min",
+    "night_usage_min",
+    "unlock_count",
+    "app_opened_times_count",
+    "social_media_min",
+    "video_apps_min",
+    "late_night_usage_flag",
+    "mood",
+    "sleep_quality",
+    "journal_sentiment"
+  ],
+  "label_map": {
+    "0": "Low",
+    "1": "Medium",
+    "2": "High",
+    "3": "Critical"
+  }
+}

@@ -22,7 +22,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final JournalEntryService _journalService = JournalEntryService();
 
   // ✅ Replace this with your real logged-in caregiver id later
-  final String _caregiverId = "u-0001";
+  final String _caregiverId = "p-0001";
 
   // Mood list (with emoji like your image)
   final List<Map<String, String>> _moods = const [
@@ -56,17 +56,17 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     if (_saving) return;
 
     if (_selectedMood == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select your mood")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please select your mood")));
       return;
     }
 
     final text = _noteCtrl.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please write something")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please write something")));
       return;
     }
 
@@ -90,12 +90,15 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
         const SnackBar(content: Text("Journal saved successfully")),
       );
 
-      Navigator.pop(context);
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Save failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Save failed: $e")));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -119,10 +122,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
         child: Column(
           children: [
             // Header
-            const MainHeader(
-              title: "Hello !",
-              subtitle: "Welcome Back.",
-            ),
+            const MainHeader(title: "Hello !", subtitle: "Welcome Back."),
 
             // Body
             Expanded(
@@ -144,7 +144,15 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _DateChip(text: _formatDate(_today)),
-                            _CloseCircle(onTap: () => Navigator.pop(context)),
+                            _CloseCircle(
+                              onTap: () {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/WellnessHome',
+                                  (route) => false,
+                                );
+                              },
+                            ),
                           ],
                         ),
 
@@ -224,7 +232,9 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                             color: _CColors.inputBg,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: _CColors.inputBorder, width: 1.5),
+                              color: _CColors.inputBorder,
+                              width: 1.5,
+                            ),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color(0x16000000),
@@ -247,8 +257,12 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                                 color: Color(0xFFBFA780),
                                 fontWeight: FontWeight.w600,
                               ),
-                              contentPadding:
-                                  EdgeInsets.fromLTRB(14, 14, 14, 14),
+                              contentPadding: EdgeInsets.fromLTRB(
+                                14,
+                                14,
+                                14,
+                                14,
+                              ),
                               border: InputBorder.none,
                             ),
                           ),
@@ -329,8 +343,11 @@ class _DateChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.calendar_month_rounded,
-              color: _CColors.goldText, size: 18),
+          const Icon(
+            Icons.calendar_month_rounded,
+            color: _CColors.goldText,
+            size: 18,
+          ),
         ],
       ),
     );
@@ -360,8 +377,11 @@ class _CloseCircle extends StatelessWidget {
             ),
           ],
         ),
-        child: const Icon(Icons.close_rounded,
-            color: _CColors.goldText, size: 26),
+        child: const Icon(
+          Icons.close_rounded,
+          color: _CColors.goldText,
+          size: 26,
+        ),
       ),
     );
   }
@@ -399,8 +419,10 @@ class _MoodDropdown extends StatelessWidget {
         child: DropdownButton<Map<String, String>>(
           value: value,
           hint: const Text(""),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-              color: _CColors.goldText),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _CColors.goldText,
+          ),
           items: moods.map((m) {
             final label = m["label"]!;
             final emoji = m["emoji"]!;

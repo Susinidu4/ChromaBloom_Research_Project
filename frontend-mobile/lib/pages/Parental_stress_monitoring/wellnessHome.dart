@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
 
-// ✅ import your shared widgets (update paths to match your folders)
 import '../../pages/others/header.dart';
 import '../../pages/others/navBar.dart';
 
-/// File: wellnessHome.dart
-/// Screen: Wellness Home (WITH header + bottom nav bar)
+import '../Parental_stress_monitoring/stressAnalysis/wellnessPermission.dart';
+import '../../services/Parental_stress_monitoring/consent_service.dart';
+import '../../services/Parental_stress_monitoring/digital_wellbeing_log_service.dart';
+import '../../platform/digital_wellbeing_usage_access.dart';
+import 'stressAnalysis/recommendation.dart';
 
 class WellnessHomeScreen extends StatelessWidget {
   const WellnessHomeScreen({super.key});
@@ -25,7 +28,6 @@ class WellnessHomeScreen extends StatelessWidget {
               notificationCount: 5,
             ),
 
-            
             // ✅ CONTENT AREA WITH GRADIENT
             Expanded(
               child: Container(
@@ -72,7 +74,141 @@ class WellnessHomeScreen extends StatelessWidget {
 
                       const SizedBox(height: 22),
 
-                      _SuggestionCard(onView: () {}),
+                      _SuggestionCard(
+                        onView: () async {
+                          final caregiverId =
+                              "p-0001"; // TODO: replace with your real logged-in id
+
+                          final consentService = ConsentService();
+                          final logService = DigitalWellbeingService();
+
+                          // helper function: read stats + store in DB
+                          Future<void> readAndStore() async {
+                            // Android permission check
+                            var granted = await UsageAccess.isGranted();
+
+                            if (!granted) {
+                              await UsageAccess.openSettings();
+                              granted = await UsageAccess.isGranted();
+                            }
+
+                            if (!granted) {
+                              // user did not grant Android usage access
+                              if (!context.mounted) return;
+                              await QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.error,
+                                title: "Permission Needed",
+                                text:
+                                    "Usage access is not enabled. Cannot read Digital Wellbeing data.",
+                                confirmBtnText: "OK",
+                              );
+                              return;
+                            }
+
+                            final stats = await UsageAccess.readTodayStats();
+                            print("STATS FROM ANDROID => $stats");
+
+                            final now = DateTime.now();
+                            final logDate = DateTime(
+                              now.year,
+                              now.month,
+                              now.day,
+                            ); // today 00:00
+
+                            final payload = {
+                              "caregiverId": caregiverId,
+
+                              // used to find the ONE doc for the day
+                              "log_date": logDate.toIso8601String(),
+
+                              // optional but recommended
+                              "window_start": logDate.toIso8601String(),
+                              "window_end": now.toIso8601String(),
+
+                              "total_screen_time_min":
+                                  stats["total_screen_time_min"] ?? 0,
+                              "night_usage_min": stats["night_usage_min"] ?? 0,
+                              "unlock_count": stats["unlock_count"] ?? 0,
+                              "app_opened_times_count":
+                                  stats["app_opened_times_count"] ?? 0,
+                              "social_media_min":
+                                  stats["social_media_min"] ?? 0,
+                              "video_apps_min": stats["video_apps_min"] ?? 0,
+                              "late_night_usage_flag":
+                                  stats["late_night_usage_flag"] ?? false,
+                            };
+
+                            await logService.createLog(payload);
+
+                            if (!context.mounted) return;
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WellnessRecommendationDetailPage(
+                                  caregiverId:
+                                      caregiverId, // <-- pass actual caregiverId
+                                ),
+                              ),
+                            );
+                          }
+
+                          try {
+                            // 1) check consent from backend
+                            final consent = await consentService.getConsent(
+                              caregiverId,
+                            );
+                            final bool allowed =
+                                consent != null &&
+                                consent["digital_wellbeing_consent"] == true;
+
+                            // 2) if allowed -> read and store immediately
+                            if (allowed) {
+                              await readAndStore();
+                              return;
+                            }
+
+                            // 3) if canceled -> show dialog again
+                            await showDigitalWellbeingPermissionGate(
+                              context: context,
+
+                              // if user cancels again -> show error and stay on wellnessHome
+                              onCancel: () async {
+                                if (!context.mounted) return;
+                                await QuickAlert.show(
+                                  context: context,
+                                  type: QuickAlertType.error,
+                                  title: "Permission Denied",
+                                  text:
+                                      "You must allow permission to view recommendations based on Digital Wellbeing.",
+                                  confirmBtnText: "OK",
+                                );
+                                // stay on same page (no navigation)
+                              },
+
+                              // if user allows now -> save decision then read and store
+                              onAllow: () async {
+                                await consentService.saveDecision(
+                                  caregiverId: caregiverId,
+                                  decision: "allow",
+                                );
+                                await readAndStore();
+                              },
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            await QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.error,
+                              title: "Error",
+                              text: e.toString(),
+                              confirmBtnText: "OK",
+                            );
+                            // stay on WellnessHome
+                          }
+                        },
+                      ),
 
                       const SizedBox(height: 28),
 
@@ -91,7 +227,9 @@ class WellnessHomeScreen extends StatelessWidget {
                             child: _FeatureCard(
                               title: "Your Stress\nAnalysis",
                               imageAsset: _UiAssets.stressCardImg,
-                              onTap: () {},
+                              onTap: () async {
+                                Navigator.pushNamed(context, '/stressAnalysis');
+                              },
                             ),
                           ),
                           const SizedBox(width: 20),
@@ -100,7 +238,10 @@ class WellnessHomeScreen extends StatelessWidget {
                               title: "Journal\nEntry",
                               imageAsset: _UiAssets.journalCardImg,
                               onTap: () {
-                                Navigator.pushNamed(context, '/displayJournalEntry');
+                                Navigator.pushNamed(
+                                  context,
+                                  '/displayJournalEntry',
+                                );
                               },
                             ),
                           ),
@@ -124,7 +265,7 @@ class WellnessHomeScreen extends StatelessWidget {
 /* ===================== WIDGETS ===================== */
 
 class _SuggestionCard extends StatelessWidget {
-  final VoidCallback onView;
+  final Future<void> Function() onView;
 
   const _SuggestionCard({required this.onView});
 
@@ -162,7 +303,7 @@ class _SuggestionCard extends StatelessWidget {
                   width: 120,
                   height: 42,
                   child: OutlinedButton(
-                    onPressed: onView,
+                    onPressed: () async => onView(),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: _UiColors.btnBorder),
                       shape: RoundedRectangleBorder(

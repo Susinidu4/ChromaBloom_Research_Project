@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../others/profile_options_dialog.dart';
 
+import '../../services/Parental_stress_monitoring/consent_service.dart';
+import '../Parental_stress_monitoring/stressAnalysis/wellnessPermission.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -138,68 +141,68 @@ class _HomePageState extends State<HomePage> {
   // ================= HERO CARD =================
   Widget _buildHeroCard() {
     return Center(
-        child: Stack(
-          clipBehavior: Clip.none, // allows overlap
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-              width: 500,
+      child: Stack(
+        clipBehavior: Clip.none, // allows overlap
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 200),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFBD9A6B), // <-- new border color
+                width: 3,
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+
+              // reduce width of text column
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.6, // 60% width
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      "Designed for Caregivers. Loved by Children. ❤️",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B), // <-- text color
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Poppins',
+                        color: Color(0xFFBD9A6B), // <-- text color
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Image overlapping the right border
+          Positioned(
+            right: -30,
+            top: 25,
+            child: Image.asset(
+              "assets/images/banner_image.png",
+              width: 200,
               height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFFBD9A6B), // <-- new border color
-                  width: 3,
-                ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-
-                // reduce width of text column
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.6, // 60% width
-                  
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Designed for Caregivers. Loved by Children. ❤️",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFBD9A6B), // <-- text color
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'Poppins',
-                          color: Color(0xFFBD9A6B), // <-- text color
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
-
-            // Image overlapping the right border
-            Positioned(
-              right: -30,
-              top: 25,
-              child: Image.asset(
-                "assets/images/banner_image.png",
-                width: 200,
-                height: 200,
-              ),
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   // ================= FEATURE GRID =================
@@ -219,8 +222,56 @@ class _HomePageState extends State<HomePage> {
             title: 'Parental Stress\nMonitoring &\nSupport System',
             imagePath: 'assets/h1.png',
             bgColor: const Color(0xFF6993AB),
-            onTap: () {
-              Navigator.pushNamed(context, '/WellnessHome');
+            onTap: () async {
+              try {
+                final caregiverId =
+                    "p-0001"; // TODO: replace with real logged-in ID
+                final consentApi = ConsentService();
+
+                // 1️⃣ Check existing consent from DB
+                final consent = await consentApi.getConsent(caregiverId);
+                final bool alreadyAllowed =
+                    consent != null &&
+                    consent["digital_wellbeing_consent"] == true;
+
+                // 2️⃣ If already allowed → skip dialog completely
+                if (alreadyAllowed) {
+                  if (!context.mounted) return;
+                  Navigator.pushNamed(context, '/WellnessHome');
+                  return;
+                }
+
+                // 3️⃣ Otherwise show permission dialog
+                await showDigitalWellbeingPermissionGate(
+                  context: context,
+
+                  // ❌ CANCEL → save cancel → go wellnessHome
+                  onCancel: () async {
+                    await consentApi.saveDecision(
+                      caregiverId: caregiverId,
+                      decision: "cancel",
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pushNamed(context, '/WellnessHome');
+                  },
+
+                  // ✅ ALLOW → save allow → go wellnessHome
+                  onAllow: () async {
+                    await consentApi.saveDecision(
+                      caregiverId: caregiverId,
+                      decision: "allow",
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pushNamed(context, '/WellnessHome');
+                  },
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                Navigator.pushNamed(context, '/WellnessHome');
+              }
             },
           ),
 
@@ -263,76 +314,81 @@ class _FeatureCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final VoidCallback onTap;
-  final Color bgColor; 
+  final Color bgColor;
 
   const _FeatureCard({
     required this.title,
     required this.imagePath,
     required this.onTap,
-    required this.bgColor, 
+    required this.bgColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: bgColor, 
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-              color: Colors.black.withOpacity(0.07),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 10,
+                offset: const Offset(0, 6),
+                color: Colors.black.withOpacity(0.07),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
 
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      imagePath,
-                      width: 150,
-                      height: 150,
-                      fit: BoxFit.contain,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        imagePath,
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                    fontFamily: 'Poppins',
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

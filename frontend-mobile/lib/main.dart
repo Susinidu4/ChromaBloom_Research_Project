@@ -7,6 +7,7 @@ import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivit
 import 'pages/Parental_stress_monitoring/wellnessHome.dart';
 import 'pages/Parental_stress_monitoring/journalEntry/display_journalEntry.dart';
 import 'pages/Parental_stress_monitoring/journalEntry/create_journalEntry.dart';
+import 'pages/Parental_stress_monitoring/stressAnalysis/stressAnalysis.dart';
 import 'pages/auth/signup/signup_screen.dart';
 import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
@@ -35,7 +36,8 @@ class MyApp extends StatelessWidget {
         '/WellnessHome': (context) => const WellnessHomeScreen(),
         '/createJournalEntry': (context) => const CreateJournalEntryScreen(),
         '/displayJournalEntry': (context) => const JournalsScreen(),
-
+        '/stressAnalysis': (context) => const StressAnalysisPage(),
+        
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
