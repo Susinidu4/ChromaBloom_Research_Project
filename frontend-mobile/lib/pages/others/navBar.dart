@@ -82,10 +82,10 @@ class MainNavBar extends StatelessWidget {
       // Centralized navigation
       switch (index) {
         case 0:
-          Navigator.pushNamed(context, '/wellness');        // change if needed
+          Navigator.pushNamed(context, '/WellnessHome');        // change if needed
           break;
         case 1:
-          Navigator.pushNamed(context, '/displayRoutines');
+          Navigator.pushNamed(context, '/displayUserActivity');
           break;
         case 2:
           Navigator.pushNamed(context, '/');                // home

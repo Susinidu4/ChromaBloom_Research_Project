@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:quickalert/quickalert.dart';
 
 import '../../others/navBar.dart';
 import '../../others/header.dart';
@@ -52,7 +53,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   bool saving = false;
 
   // TEMP caregiver
-  static const String hardcodedCaregiverId = "u-005";
+  static const String hardcodedCaregiverId = "p-0001";
 
   @override
   void dispose() {
@@ -167,9 +168,18 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       );
 
       // Success
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(res["message"] ?? "Created!")));
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Success',
+        text: 'Activity created successfully',
+        confirmBtnText: 'OK',
+
+        backgroundColor: const Color(0xFF1E1E1E),
+        titleColor: Colors.white,
+        textColor: Colors.white70,
+        confirmBtnColor: const Color(0xFF00C853),
+      );
 
       // Reset UI
       titleCtrl.clear();

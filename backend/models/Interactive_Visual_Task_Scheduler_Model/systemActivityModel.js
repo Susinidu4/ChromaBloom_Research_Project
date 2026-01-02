@@ -11,8 +11,7 @@ const stepSchema = new Schema(
         type: String, 
         required: true 
     },
-  },
-  { _id: false} // no separate _id for each step (optional)
+  }
 );
 
 const systemActivitySchema = new Schema(

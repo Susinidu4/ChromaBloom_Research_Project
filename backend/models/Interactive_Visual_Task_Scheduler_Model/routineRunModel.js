@@ -1,34 +1,56 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
+const stepProgressSchema = new Schema(
+  {
+    step_number: {
+      type: Number,
+      required: true,
+    },
+
+    status: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
+    
+  },
+  { _id: false } // no separate _id for each step progress
+);
+
 const routineRunSchema = new Schema(
   {
     caregiverId: {
       type: String,
-      ref: "Caregiver",
+      ref: "caregivers",
       required: true,
     },
 
     childId: {
       type: String,
-      ref: "Child",
+      ref: "children",
       required: true,
     },
 
     activityId: {
-      type: String,    // Schema.Types.ObjectId
-      ref: "userActivity",
+      type: Schema.Types.ObjectId,
+      ref: "SystemActivity",
       required: true,
     },
 
     planId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "childRoutinePlan",
       required: true,
     },
 
-    date: {
+    run_date:{
       type: Date,
       required: true,
+    },
+
+    steps_progress:{
+      type: [stepProgressSchema],
     },
 
     total_steps: {
@@ -46,7 +68,7 @@ const routineRunSchema = new Schema(
       required: true,
     },
 
-    duration_minutes: {
+    completed_duration_minutes: {
       type: Number,
       required: true,
     },
@@ -55,6 +77,12 @@ const routineRunSchema = new Schema(
     collection: "routineRun",
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
+);
+
+// ✅ prevent duplicate progress for same day + activity + plan + caregiver + child
+routineRunSchema.index(
+  { caregiverId: 1, childId: 1, planId: 1, activityId: 1, run_date: 1 },
+  { unique: true }
 );
 
 const RoutineRunModel = mongoose.model("RoutineRun", routineRunSchema);
