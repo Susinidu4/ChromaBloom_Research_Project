@@ -8,6 +8,7 @@ import '../Parental_stress_monitoring/stressAnalysis/wellnessPermission.dart';
 import '../../services/Parental_stress_monitoring/consent_service.dart';
 import '../../services/Parental_stress_monitoring/digital_wellbeing_log_service.dart';
 import '../../platform/digital_wellbeing_usage_access.dart';
+import 'stressAnalysis/recommendation.dart';
 
 class WellnessHomeScreen extends StatelessWidget {
   const WellnessHomeScreen({super.key});
@@ -141,7 +142,16 @@ class WellnessHomeScreen extends StatelessWidget {
                             await logService.createLog(payload);
 
                             if (!context.mounted) return;
-                            Navigator.pushNamed(context, '/recommendation');
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WellnessRecommendationDetailPage(
+                                  caregiverId:
+                                      caregiverId, // <-- pass actual caregiverId
+                                ),
+                              ),
+                            );
                           }
 
                           try {
