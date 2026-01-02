@@ -23,7 +23,7 @@ export const predictDrawing = async (req, res) => {
     });
 
     // Call FastAPI
-    const response = await axios.post(`${FASTAPI_BASE_URL}/predict`, form, {
+    const response = await axios.post(`${FASTAPI_BASE_URL}/drawing/predict`, form, {
       headers: {
         ...form.getHeaders(),
       },
