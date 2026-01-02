@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction_screen.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
+import 'package:frontend/pages/Gamified_Knowlage_Builder/Drawing/drawing_predict_api_page.dart';
 import 'package:provider/provider.dart';
 
 import 'state/session_provider.dart';
@@ -18,7 +20,6 @@ import 'pages/auth/signup/caregiver_login_screen.dart';
 import 'pages/auth/signup/therapist_login_screen.dart';
 import 'pages/auth/signup/therapist_register_screen.dart';
 
-import 'pages/Cognitive_Progress_Prediction/prediction_screen.dart';
 
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
@@ -30,6 +31,8 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/improvment.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/lessons.dart';
+
+
 
 void main() {
   runApp(
@@ -68,9 +71,8 @@ class MyApp extends StatelessWidget {
         '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
-        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
-        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(),
-        '/lessonComplete': (context) => const LessonCompletePage(),
+        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
+        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload //drawing lesson correctness & improvment
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
         
         
@@ -79,7 +81,9 @@ class MyApp extends StatelessWidget {
         '/therapistLogin': (_) => const TherapistLoginScreen(),
         '/therapistRegister': (_) => const TherapistRegisterScreen(),
 
-        '/cognitive_prediction': (context) => const PredictionScreen(),
+        '/progress_prediction': (context) => const ProgressPredictionScreen(),
+
+        '/drawingperdcit' : (context) => const DrawingPredictApiPage(),
 
       },
     );
