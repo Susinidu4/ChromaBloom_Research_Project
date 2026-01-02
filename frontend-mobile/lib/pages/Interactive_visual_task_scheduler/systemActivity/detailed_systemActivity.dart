@@ -3,10 +3,11 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 import '../../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
+import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart';
 
 class DetailedSystemActivityScreen extends StatefulWidget {
   final String planMongoId;
-  final DateTime selectedDate; 
+  final DateTime selectedDate;
 
   const DetailedSystemActivityScreen({
     super.key,
@@ -42,6 +43,8 @@ class _DetailedSystemActivityScreenState
   void initState() {
     super.initState();
 
+    TtsService.init();
+
     // 1) Build steps FIRST
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
     steps = rawSteps.map<Map<String, dynamic>>((s) {
@@ -57,6 +60,12 @@ class _DetailedSystemActivityScreenState
 
     // 3) Load saved progress from RoutineRun collection
     _loadSavedProgress();
+  }
+
+  @override
+  void dispose() {
+    TtsService.stop(); // ✅ stop speaking when leaving page
+    super.dispose();
   }
 
   int _calcPercent() {
@@ -77,6 +86,35 @@ class _DetailedSystemActivityScreenState
         completedMinutes--;
       }
     });
+  }
+
+  String _title() => (widget.activity["title"] ?? "").toString();
+  String _desc() =>
+      (widget.activity["description"] ?? widget.activity["desc"] ?? "")
+          .toString();
+
+  Future<void> _speakTitle() async => TtsService.speak(_title());
+  Future<void> _speakDescription() async => TtsService.speak(_desc());
+
+  Future<void> _speakStep(int index) async {
+    await TtsService.stop(); // stop speaking before speaking next step
+    final n = (steps[index]["step_number"] ?? (index + 1)).toString();
+    final instruction = (steps[index]["instruction"] ?? "").toString().trim();
+    if (instruction.isEmpty) return;
+    await TtsService.speak("Step $n. $instruction");
+  }
+
+  Future<void> _speakAllSteps() async {
+    if (steps.isEmpty) return;
+    final buffer = StringBuffer();
+    buffer.writeln("Steps.");
+    for (int i = 0; i < steps.length; i++) {
+      final n = (steps[i]["step_number"] ?? (i + 1)).toString();
+      final instruction = (steps[i]["instruction"] ?? "").toString().trim();
+      if (instruction.isEmpty) continue;
+      buffer.writeln("Step $n. $instruction.");
+    }
+    await TtsService.speak(buffer.toString());
   }
 
   Future<void> _loadSavedProgress() async {
@@ -277,13 +315,31 @@ class _DetailedSystemActivityScreenState
                           const SizedBox(height: 14),
 
                           // Title
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: stroke,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    color: stroke,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: _speakTitle,
+                                borderRadius: BorderRadius.circular(10),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(
+                                    Icons.volume_up_rounded,
+                                    color: stroke,
+                                    size: 26,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
 
                           const SizedBox(height: 10),
@@ -323,14 +379,33 @@ class _DetailedSystemActivityScreenState
                           const SizedBox(height: 12),
 
                           // Description
-                          Text(
-                            description,
-                            style: TextStyle(
-                              color: stroke.withOpacity(0.65),
-                              fontSize: 14,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  description,
+                                  style: TextStyle(
+                                    color: stroke.withOpacity(0.65),
+                                    fontSize: 14,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: _speakDescription,
+                                borderRadius: BorderRadius.circular(10),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(
+                                    Icons.volume_up_rounded,
+                                    color: stroke,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
 
                           const SizedBox(height: 18),
@@ -365,7 +440,23 @@ class _DetailedSystemActivityScreenState
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
+
+                                  // ✅ step speaker
+                                  InkWell(
+                                    onTap: () => _speakStep(i),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(
+                                        Icons.volume_up_rounded,
+                                        color: stroke,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 8),
                                   SizedBox(
                                     width: 22,
                                     height: 22,
@@ -401,6 +492,7 @@ class _DetailedSystemActivityScreenState
                                       child: Checkbox(
                                         value: stepDone[i],
                                         onChanged: (v) async {
+                                          await TtsService.stop();
                                           setState(
                                             () => stepDone[i] = v ?? false,
                                           );
