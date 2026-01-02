@@ -72,8 +72,7 @@ class MyApp extends StatelessWidget {
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
         '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
-        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload
-        '/lessonComplete': (context) => const LessonCompletePage(), //drawing lesson correctness & improvment
+        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload //drawing lesson correctness & improvment
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
         
         

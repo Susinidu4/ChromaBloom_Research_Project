@@ -174,7 +174,13 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
 
                         _TipCard(
                           tipText: tipsText,
-                          onContinue: () {},
+                          onContinue: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/drawingImprovementCheck',
+                              arguments: lesson["id"].toString(),
+                            );
+                          },
                         ),
                       ],
                     ),

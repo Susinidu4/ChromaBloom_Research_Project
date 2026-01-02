@@ -20,7 +20,7 @@ import drawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/drawin
 import problemSolvingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/problemSolvingLessonRoutes.js";
 import completeDrawingLessonRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeDrawingLessonRoutes.js";
 import completeProblemSolvingSessionRoutes from "./routes/Gemified_Knowlage_Builder_Route/completeProblemSolvingSessonRoutes.js";
-
+import predictDrawingRoutes from "./routes/Gemified_Knowlage_Builder_Route/predictDrawingRoutes.js";
 // cognitive progress prediction
 import cognitiveProgressRoutes_2 from "./routes/Cognitive_Progress_Prediction/cognitiveProgressRoute.js";
 
@@ -60,6 +60,7 @@ app.use("/chromabloom/drawing-lessons", drawingLessonRoutes);
 app.use("/chromabloom/problem-solving-lessons", problemSolvingLessonRoutes);
 app.use("/chromabloom/completed-drawing-lessons", completeDrawingLessonRoutes);
 app.use("/chromabloom/complete-problem-solving-sessions", completeProblemSolvingSessionRoutes);
+app.use("/api/gamified/drawing", predictDrawingRoutes);
 // Cognitive Progress Prediction
 app.use("/chromabloom/cognitiveProgress_2", cognitiveProgressRoutes_2);
 
