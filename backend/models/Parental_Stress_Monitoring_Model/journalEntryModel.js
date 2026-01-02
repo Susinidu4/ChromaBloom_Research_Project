@@ -3,10 +3,9 @@ const { Schema, model } = mongoose;
 
 const journalEntrySchema = new Schema(
   {
-    
     caregiver_ID: {
-      type: String, //Schema.Types.ObjectId
-      ref: "user",
+      type: String,
+      ref: "caregiver",
       required: true,
     },
 
@@ -28,19 +27,10 @@ const journalEntrySchema = new Schema(
       required: true,
     },
 
-    // optional NLP fields (computed server-side later)
-    // sentimentScore: {
-    //   type: Number,
-    //   min: -1,
-    //   max: 1,
-    // }, // -1..1
-    // emotions: {
-    //   joy: { type: Number, min: 0, max: 1 },
-    //   sadness: { type: Number, min: 0, max: 1 },
-    //   anger: { type: Number, min: 0, max: 1 },
-    //   fear: { type: Number, min: 0, max: 1 },
-    //   calm: { type: Number, min: 0, max: 1 },
-    // },
+    journal_sentiment: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     collection: "JournalEntry",
