@@ -290,7 +290,9 @@ class _HomePageState extends State<HomePage> {
             title: 'Gamified\nKnowledge\nBuilder',
             imagePath: 'assets/h3.png',
             bgColor: const Color(0xFFDFC7A7),
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, '/skillSelection');
+            },
           ),
 
           // 4. Cognitive Profiling - BLUE GRAY
@@ -298,7 +300,9 @@ class _HomePageState extends State<HomePage> {
             title: 'Cognitive\nProfiling &\nProgress',
             imagePath: 'assets/h4.png',
             bgColor: const Color(0xFF6993AB),
-            onTap: () {},
+            onTap: () {
+               Navigator.pushNamed(context, '/progress_prediction');
+            },
           ),
         ],
       ),
