@@ -3,7 +3,7 @@ import { computeCycleFeatures } from "../../services/Interactive_Visual_Task_Sch
 import SystemActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/systemActivityModel.js";
 import ChildRoutinePlan from "../../models/Interactive_Visual_Task_Scheduler_Model/childRoutinePlanModel.js";
 import RoutineRunModel from "../../models/Interactive_Visual_Task_Scheduler_Model/routineRunModel.js";
-import Child from "../../models/Users/childModel.js";
+import Child from "../../models/Users/child.model.js";
 import axios from "axios";
 
 import cloudinary from "../../config/cloudinary.js";
