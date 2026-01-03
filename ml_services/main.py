@@ -3,12 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
 from pathlib import Path
+from pydantic import BaseModel, Field
 
 from services.cognitive_progress_service import CognitiveProgressService
+
 from services.tflite_drawing_service import TFLiteDrawingService
 
 from services.routine_difficulty_service import RoutineDifficultyService
 
+from services.parental_stress_service import ParentalStressService
 
 app = FastAPI()
 
@@ -96,41 +99,39 @@ def routine_health():
 
 @app.post("/routine/predict-difficulty")
 def routine_predict_difficulty(req: RoutinePredictRequest):
-    next_level = routine_service.predict_next_level(req.model_dump())
-    return {
-        "childId": req.childId,
-        "next_difficulty_level": next_level
-    }
 
-
-# -------------------------------
-# Interactive Visual Task Scheduler
-# -------------------------------
-ROUTINE_DIR = BASE_DIR / "interactive_visual_task_scheduler"
-routine_service = RoutineDifficultyService(ROUTINE_DIR)
-
-class RoutinePredictRequest(BaseModel):
-    childId: str
-    avg_completion_rate: float
-    avg_skepped_steps: float
-    avg_duration_minutes: float
-    runs_count: int
-    completion_rate_trend: float
-    current_difficulty_level: str
-
-@app.get("/routine/health")
-def routine_health():
-    return {
-        "status": "ok",
-        "routine_model_found": (ROUTINE_DIR / "routine_difficulty_lgbm_model.joblib").exists(),
-        "current_encoder_found": (ROUTINE_DIR / "current_level_encoder.joblib").exists(),
-        "next_encoder_found": (ROUTINE_DIR / "next_level_encoder.joblib").exists(),
-    }
-
-@app.post("/routine/predict-difficulty")
-def routine_predict_difficulty(req: RoutinePredictRequest):
     result = routine_service.predict_next_level(req.model_dump())
     return {
         "childId": req.childId,
         **result
     }
+
+
+
+
+# -------------------------------
+# Parental Stress Monitoring
+# -------------------------------
+
+STRESS_DIR = BASE_DIR / "parental_stress_monitoring"
+stress_service = ParentalStressService(STRESS_DIR)
+
+class StressPredictRequest(BaseModel):
+    total_screen_time_min: float = Field(..., ge=0)
+    night_usage_min: float = Field(..., ge=0)
+    unlock_count: float = Field(..., ge=0)
+    app_opened_times_count: float = Field(..., ge=0)
+    social_media_min: float = Field(..., ge=0)
+    video_apps_min: float = Field(..., ge=0)
+    late_night_usage_flag: bool
+    mood: str
+    sleep_quality: str
+    journal_sentiment: float
+
+@app.get("/stress/health")
+def stress_health():
+    return stress_service.health()
+
+@app.post("/stress/predict")
+def stress_predict(req: StressPredictRequest):
+    return stress_service.predict(req.model_dump())
