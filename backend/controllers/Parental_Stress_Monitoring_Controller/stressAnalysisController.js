@@ -2,11 +2,10 @@ import DigitalWellbeingLog from "../../models/Parental_Stress_Monitoring_Model/d
 import JournalEntry from "../../models/Parental_Stress_Monitoring_Model/journalEntryModel.js";
 import StressScoreModel from "../../models/Parental_Stress_Monitoring_Model/stressScoreModel.js";
 import RecommendationModel from "../../models/Parental_Stress_Monitoring_Model/recommendationModel.js";
+import axios from "axios";
 
-// If your Node < 18, uncomment next lines:
-// import fetch from "node-fetch";
-
-const ML_URL = process.env.ML_URL || "http://127.0.0.1:8000/predict";
+const PY_BASE = process.env.PYTHON_SERVICE_URL; // http://localhost:8000
+const ML_URL = `${PY_BASE}/stress/predict`;
 
 function toUtcMidnight(dateObj = new Date()) {
   return new Date(

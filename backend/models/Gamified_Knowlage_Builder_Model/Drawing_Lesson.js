@@ -10,6 +10,7 @@ const DrawingLessonSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   video_url: { type: String, required: true },
+  video_public_id: { type: String, required: true },
   difficulty_level: { type: String, enum: ['Beginner', 'Intermediate', 'Advanced'], required: true },
   tips: [TipsSchema],
 }, { timestamps: true }

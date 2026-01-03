@@ -15,7 +15,7 @@ class _JournalsScreenState extends State<JournalsScreen> {
   final JournalEntryService _service = JournalEntryService();
 
   // ✅ hardcode for now (until login)
-  final String _caregiverId = "u-0001";
+  final String _caregiverId = "p-0001";
 
   late Future<List<Map<String, dynamic>>> _future;
 

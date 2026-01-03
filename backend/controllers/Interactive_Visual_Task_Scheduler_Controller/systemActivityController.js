@@ -355,15 +355,17 @@ export const getRoutineRunProgress = async (req, res) => {
  * Call ML service to predict next difficulty level
  */
 async function callMlForNextDifficulty(payload) {
-  const mlUrl = process.env.ML_PREDICT_URL; // http://127.0.0.1:8000/predict-difficulty
-  if (!mlUrl) throw new Error("ML_PREDICT_URL is not set in .env");
+  const base = process.env.PYTHON_SERVICE_URL; // http://localhost:8000
+  if (!base) throw new Error("PYTHON_SERVICE_URL is not set in .env");
 
-  const resp = await axios.post(mlUrl, payload, {
+  const url = `${base}/routine/predict-difficulty`;
+
+  const resp = await axios.post(url, payload, {
     headers: { "Content-Type": "application/json" },
     timeout: 15000,
   });
 
-  return resp.data; // expected: { next_difficulty_level: "easy|medium|hard" }
+  return resp.data; // { childId, next_difficulty_level }
 }
 
 /**
@@ -430,7 +432,7 @@ export const closeCycleAndSendToML = async (req, res) => {
   }
 };
 
-
+//---------------------------- next routine plan --------------------------- //
 // Helper to compute next cycle dates (tomorrow 00:00 to +13 days end-of-day)
 function computeNextCycleDates() {
   const now = new Date();
@@ -446,6 +448,29 @@ function computeNextCycleDates() {
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
+}
+
+// Helper to get age group from date of birth
+function getAgeGroupFromDOB(dateOfBirth) {
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+
+  if (age <= 2) return "2";
+  if (age === 3) return "3";
+  if (age === 4) return "4";
+  if (age === 5) return "5";
+  if (age === 6) return "6";
+  if (age === 7) return "7";
+  if (age === 8) return "8";
+  if (age === 9) return "9";
+  return "10";
 }
 
 // This function closes the ended plan, sends features to ML, gets next level,
@@ -581,26 +606,3 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: e.message });
   }
 };
-
-// Helper to get age group from date of birth
-function getAgeGroupFromDOB(dateOfBirth) {
-  const dob = new Date(dateOfBirth);
-  const today = new Date();
-
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-
-  if (age <= 2) return "2";
-  if (age === 3) return "3";
-  if (age === 4) return "4";
-  if (age === 5) return "5";
-  if (age === 6) return "6";
-  if (age === 7) return "7";
-  if (age === 8) return "8";
-  if (age === 9) return "9";
-  return "10";
-}
