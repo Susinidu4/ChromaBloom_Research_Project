@@ -12,6 +12,8 @@ xmlns:tools="http://schemas.android.com/tools">
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
     
         <receiver
             android:name="com.example.frontend.UnlockReceiver"
