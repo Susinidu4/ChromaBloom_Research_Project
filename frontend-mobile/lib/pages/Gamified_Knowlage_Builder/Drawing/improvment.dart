@@ -261,7 +261,7 @@ setState(() {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }

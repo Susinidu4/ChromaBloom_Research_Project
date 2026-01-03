@@ -204,7 +204,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }
