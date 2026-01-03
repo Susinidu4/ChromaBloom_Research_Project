@@ -175,10 +175,10 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         text: 'Activity created successfully',
         confirmBtnText: 'OK',
 
-        backgroundColor: const Color(0xFF1E1E1E),
-        titleColor: Colors.white,
-        textColor: Colors.white70,
-        confirmBtnColor: const Color(0xFF00C853),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        titleColor: const Color(0xFFBD9A6B),
+        textColor: const Color(0xFFBD9A6B),
+        confirmBtnColor: const Color(0xFFBD9A6B),
       );
 
       // Reset UI

@@ -6,10 +6,12 @@ class HybridVideoPlayer extends StatefulWidget {
     super.key,
     required this.videoUrl,
     this.height = 180,
+    this.autoPlay = false,
   });
 
   final String videoUrl;
   final double height;
+  final bool autoPlay;
 
   @override
   State<HybridVideoPlayer> createState() => _HybridVideoPlayerMobileState();
@@ -40,18 +42,32 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
   }
 
   Future<void> _init(String url) async {
-    if (url.isEmpty) return;
+    if (url.trim().isEmpty) {
+      setState(() => _initError = true);
+      return;
+    }
 
     try {
       _initError = false;
-      await _controller?.pause();
-      await _controller?.dispose();
 
-      final c = VideoPlayerController.networkUrl(Uri.parse(url));
+      final old = _controller;
+      _controller = null;
+      await old?.pause();
+      await old?.dispose();
+
+      final c = VideoPlayerController.networkUrl(
+        Uri.parse(url),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
+
       _controller = c;
 
       await c.initialize();
-      c.setLooping(true);
+      await c.setLooping(true);
+
+      if (widget.autoPlay) {
+        await c.play();
+      }
 
       if (!mounted) return;
       setState(() {});
@@ -63,13 +79,15 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
     }
   }
 
-  void _toggle() {
+  Future<void> _toggle() async {
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
 
-    setState(() {
-      c.value.isPlaying ? c.pause() : c.play();
-    });
+    if (c.value.isPlaying) {
+      await c.pause();
+    } else {
+      await c.play();
+    }
   }
 
   @override
@@ -82,10 +100,10 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
       decoration: BoxDecoration(
         color: const Color(0xFFE0E0E0),
         border: Border.all(color: const Color(0xFFD8C6B4)),
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(8),
         child: _initError
             ? const Center(
                 child: Text(
@@ -93,19 +111,25 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
                   style: TextStyle(color: Colors.black54),
                 ),
               )
-            : (c == null || !c.value.isInitialized)
+            : (c == null)
                 ? const Center(child: CircularProgressIndicator())
-                : Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _toggle,
-                      child: Center(
+                : ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: c,
+                    builder: (context, v, _) {
+                      if (!v.isInitialized) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      return GestureDetector(
+                        onTap: _toggle,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            AspectRatio(
-                              aspectRatio: c.value.aspectRatio,
-                              child: VideoPlayer(c),
+                            Center(
+                              child: AspectRatio(
+                                aspectRatio: v.aspectRatio,
+                                child: VideoPlayer(c),
+                              ),
                             ),
                             Container(
                               width: 56,
@@ -115,7 +139,7 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                c.value.isPlaying
+                                v.isPlaying
                                     ? Icons.pause_rounded
                                     : Icons.play_arrow_rounded,
                                 size: 36,
@@ -124,8 +148,8 @@ class _HybridVideoPlayerMobileState extends State<HybridVideoPlayer> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
       ),
     );
