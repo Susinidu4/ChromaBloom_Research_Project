@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/Cognitive_Progress_Prediction/cognitive_progress_service.dart';
 
+// ✅ Import your shared widgets
+import '../others/header.dart';
+import '../others/navBar.dart';
+
 class ProgressPredictionScreen extends StatefulWidget {
   const ProgressPredictionScreen({super.key});
 
@@ -75,7 +79,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   }
 
   Future<void> _predict() async {
-    // validate inputs
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -127,7 +130,8 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       final result = data["result"];
 
       setState(() {
-        predictedScore = (result["predicted_score_next_14_days"] as num).toDouble();
+        predictedScore =
+            (result["predicted_score_next_14_days"] as num).toDouble();
         positive = result["explainability"]["top_positive_factors"] ?? [];
         negative = result["explainability"]["top_negative_factors"] ?? [];
       });
@@ -138,10 +142,12 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
   }
 
-  Widget _numField(String label, TextEditingController ctrl, {String hint = ""}) {
+  Widget _numField(String label, TextEditingController ctrl,
+      {String hint = ""}) {
     return TextFormField(
       controller: ctrl,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+      keyboardType:
+          const TextInputType.numberWithOptions(decimal: true, signed: true),
       validator: _numValidator,
       decoration: InputDecoration(
         labelText: label,
@@ -166,7 +172,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          items: items.map((x) => DropdownMenuItem(value: x, child: Text(x.toString()))).toList(),
+          items: items
+              .map((x) =>
+                  DropdownMenuItem(value: x, child: Text(x.toString())))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -177,7 +186,8 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        Text(title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         if (factors.isEmpty)
           const Text("No factors returned")
@@ -226,125 +236,163 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Cognitive Progress Prediction (Manual)")),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      // ✅ Bottom navbar
+      bottomNavigationBar: const MainNavBar(currentIndex: 4),
+
+      // ✅ Page background (optional)
+      backgroundColor: const Color(0xFFF3E8E8),
+
+      body: SafeArea(
+        child: Column(
           children: [
-            _dropdown<String>(
-              label: "Gender",
-              value: gender,
-              items: const ["male", "female"],
-              onChanged: (v) => setState(() => gender = v ?? "male"),
+            // ✅ Header
+            const MainHeader(
+              title: "Hello !",
+              subtitle: "Cognitive Progress Prediction",
+              notificationCount: 0,
             ),
-            const SizedBox(height: 12),
 
-            _dropdown<String>(
-              label: "Diagnosis Type",
-              value: diagnosisType,
-              items: const ["Trisomy21", "Mosaicism", "Translocation"],
-              onChanged: (v) => setState(() => diagnosisType = v ?? "Trisomy21"),
-            ),
-            const SizedBox(height: 12),
+            // ✅ Content
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _dropdown<String>(
+                      label: "Gender",
+                      value: gender,
+                      items: const ["male", "female"],
+                      onChanged: (v) => setState(() => gender = v ?? "male"),
+                    ),
+                    const SizedBox(height: 12),
 
-            TextFormField(
-              initialValue: activity,
-              validator: _reqValidator,
-              decoration: const InputDecoration(
-                labelText: "Activity",
-                border: OutlineInputBorder(),
+                    _dropdown<String>(
+                      label: "Diagnosis Type",
+                      value: diagnosisType,
+                      items: const ["Trisomy21", "Mosaicism", "Translocation"],
+                      onChanged: (v) =>
+                          setState(() => diagnosisType = v ?? "Trisomy21"),
+                    ),
+                    const SizedBox(height: 12),
+
+                    TextFormField(
+                      initialValue: activity,
+                      validator: _reqValidator,
+                      decoration: const InputDecoration(
+                        labelText: "Activity",
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) => activity = v,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _dropdown<String>(
+                      label: "Child Mood Label",
+                      value: moodLabel,
+                      items: const ["happy", "neutral", "tired", "sad", "angry"],
+                      onChanged: (v) =>
+                          setState(() => moodLabel = v ?? "tired"),
+                    ),
+                    const SizedBox(height: 12),
+
+                    _dropdown<String>(
+                      label: "Caregiver Mood Label",
+                      value: caregiverMoodLabel,
+                      items: const ["calm", "neutral", "stressed", "angry", "sad"],
+                      onChanged: (v) => setState(
+                          () => caregiverMoodLabel = v ?? "stressed"),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Text("Child Metrics",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+
+                    _numField("Age", ageCtrl, hint: "e.g., 5"),
+                    const SizedBox(height: 12),
+                    _numField("Time Duration for Activity (minutes)", durationCtrl,
+                        hint: "e.g., 5"),
+                    const SizedBox(height: 12),
+                    _numField("Sentiment Score", sentimentCtrl, hint: "e.g., -0.2"),
+                    const SizedBox(height: 12),
+                    _numField("Stress Score Combined", stressCtrl, hint: "e.g., 0.68"),
+                    const SizedBox(height: 12),
+                    _numField("Sleep Hours", sleepCtrl, hint: "e.g., 6.5"),
+                    const SizedBox(height: 12),
+                    _numField("Phone Screen Time (mins)", phoneScreenCtrl,
+                        hint: "e.g., 180"),
+                    const SizedBox(height: 12),
+
+                    _numField("Total Tasks Assigned", totalAssignedCtrl, hint: "e.g., 6"),
+                    const SizedBox(height: 12),
+                    _numField("Total Tasks Completed", totalCompletedCtrl, hint: "e.g., 5"),
+                    const SizedBox(height: 12),
+                    _numField("Completion Rate", completionRateCtrl, hint: "e.g., 0.83"),
+                    const SizedBox(height: 12),
+                    _numField("Engagement Minutes", engagementCtrl, hint: "e.g., 18.5"),
+                    const SizedBox(height: 12),
+
+                    _numField("Memory Accuracy", memoryAccCtrl, hint: "0.0 - 1.0"),
+                    const SizedBox(height: 12),
+                    _numField("Attention Accuracy", attentionAccCtrl, hint: "0.0 - 1.0"),
+                    const SizedBox(height: 12),
+                    _numField("Problem Solving Accuracy", problemAccCtrl, hint: "0.0 - 1.0"),
+                    const SizedBox(height: 12),
+                    _numField("Motor Skills Accuracy", motorAccCtrl, hint: "0.0 - 1.0"),
+                    const SizedBox(height: 12),
+                    _numField("Average Response Time (sec)", responseTimeCtrl,
+                        hint: "e.g., 3.4"),
+                    const SizedBox(height: 18),
+
+                    const Text("Caregiver Metrics",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+
+                    _numField("Caregiver Sentiment Score", caregiverSentimentCtrl,
+                        hint: "e.g., -0.15"),
+                    const SizedBox(height: 12),
+                    _numField("Caregiver Stress Score Combined", caregiverStressCtrl,
+                        hint: "e.g., 0.72"),
+                    const SizedBox(height: 12),
+                    _numField("Caregiver Phone Screen Time (mins)", caregiverScreenCtrl,
+                        hint: "e.g., 210"),
+                    const SizedBox(height: 12),
+                    _numField("Caregiver Sleep Hours", caregiverSleepCtrl, hint: "e.g., 5.8"),
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : _predict,
+                        child: Text(loading ? "Predicting..." : "Predict Now"),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    if (errorMsg != null)
+                      Text(errorMsg!, style: const TextStyle(color: Colors.red)),
+
+                    if (predictedScore != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        "Predicted Score (Next 14 Days): ${predictedScore!.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      _factorList("Top Positive Factors", positive),
+                      const SizedBox(height: 16),
+                      _factorList("Top Negative Factors", negative),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
               ),
-              onChanged: (v) => activity = v,
             ),
-            const SizedBox(height: 12),
-
-            _dropdown<String>(
-              label: "Child Mood Label",
-              value: moodLabel,
-              items: const ["happy", "neutral", "tired", "sad", "angry"],
-              onChanged: (v) => setState(() => moodLabel = v ?? "tired"),
-            ),
-            const SizedBox(height: 12),
-
-            _dropdown<String>(
-              label: "Caregiver Mood Label",
-              value: caregiverMoodLabel,
-              items: const ["calm", "neutral", "stressed", "angry", "sad"],
-              onChanged: (v) => setState(() => caregiverMoodLabel = v ?? "stressed"),
-            ),
-            const SizedBox(height: 16),
-
-            const Text("Child Metrics", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-
-            _numField("Age", ageCtrl, hint: "e.g., 5"),
-            const SizedBox(height: 12),
-            _numField("Time Duration for Activity (minutes)", durationCtrl, hint: "e.g., 5"),
-            const SizedBox(height: 12),
-            _numField("Sentiment Score", sentimentCtrl, hint: "e.g., -0.2"),
-            const SizedBox(height: 12),
-            _numField("Stress Score Combined", stressCtrl, hint: "e.g., 0.68"),
-            const SizedBox(height: 12),
-            _numField("Sleep Hours", sleepCtrl, hint: "e.g., 6.5"),
-            const SizedBox(height: 12),
-            _numField("Phone Screen Time (mins)", phoneScreenCtrl, hint: "e.g., 180"),
-            const SizedBox(height: 12),
-
-            _numField("Total Tasks Assigned", totalAssignedCtrl, hint: "e.g., 6"),
-            const SizedBox(height: 12),
-            _numField("Total Tasks Completed", totalCompletedCtrl, hint: "e.g., 5"),
-            const SizedBox(height: 12),
-            _numField("Completion Rate", completionRateCtrl, hint: "e.g., 0.83"),
-            const SizedBox(height: 12),
-            _numField("Engagement Minutes", engagementCtrl, hint: "e.g., 18.5"),
-            const SizedBox(height: 12),
-
-            _numField("Memory Accuracy", memoryAccCtrl, hint: "0.0 - 1.0"),
-            const SizedBox(height: 12),
-            _numField("Attention Accuracy", attentionAccCtrl, hint: "0.0 - 1.0"),
-            const SizedBox(height: 12),
-            _numField("Problem Solving Accuracy", problemAccCtrl, hint: "0.0 - 1.0"),
-            const SizedBox(height: 12),
-            _numField("Motor Skills Accuracy", motorAccCtrl, hint: "0.0 - 1.0"),
-            const SizedBox(height: 12),
-            _numField("Average Response Time (sec)", responseTimeCtrl, hint: "e.g., 3.4"),
-            const SizedBox(height: 18),
-
-            const Text("Caregiver Metrics", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-
-            _numField("Caregiver Sentiment Score", caregiverSentimentCtrl, hint: "e.g., -0.15"),
-            const SizedBox(height: 12),
-            _numField("Caregiver Stress Score Combined", caregiverStressCtrl, hint: "e.g., 0.72"),
-            const SizedBox(height: 12),
-            _numField("Caregiver Phone Screen Time (mins)", caregiverScreenCtrl, hint: "e.g., 210"),
-            const SizedBox(height: 12),
-            _numField("Caregiver Sleep Hours", caregiverSleepCtrl, hint: "e.g., 5.8"),
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: loading ? null : _predict,
-              child: Text(loading ? "Predicting..." : "Predict Now"),
-            ),
-
-            const SizedBox(height: 16),
-
-            if (errorMsg != null)
-              Text(errorMsg!, style: const TextStyle(color: Colors.red)),
-
-            if (predictedScore != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                "Predicted Score (Next 14 Days): ${predictedScore!.toStringAsFixed(2)}",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _factorList("Top Positive Factors", positive),
-              const SizedBox(height: 16),
-              _factorList("Top Negative Factors", negative),
-              const SizedBox(height: 16),
-            ],
           ],
         ),
       ),
