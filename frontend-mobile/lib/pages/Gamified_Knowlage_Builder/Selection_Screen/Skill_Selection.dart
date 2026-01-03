@@ -47,14 +47,14 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 child: LearnContent(
                   onTapDrawing: _handleDrawingTap,
                   onTapProblemSolving: () =>
-                      Navigator.pushNamed(context, '/problemSolvingTutorial'),
+                      Navigator.pushNamed(context, '/problemSolvingLessons'),
                 ),
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }
