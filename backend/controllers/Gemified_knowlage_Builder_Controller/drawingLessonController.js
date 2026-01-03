@@ -1,5 +1,4 @@
-// controllers/drawingLesson.controller.js
-import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js";  // adjust path if needed
+import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js";
 import cloudinary from "../../config/cloudinary.js";
 
 // helper: upload video buffer to Cloudinary
@@ -15,7 +14,22 @@ const uploadVideoToCloudinary = (fileBuffer) => {
         resolve(result);
       }
     );
+
     stream.end(fileBuffer);
+  });
+};
+
+// ✅ helper: always generate a "safe" MP4 url (H.264 + AAC)
+// Fixes: audio works but video stuck/black on many devices
+const buildSafeMp4Url = (publicId) => {
+  return cloudinary.url(publicId, {
+    resource_type: "video",
+    format: "mp4",
+    secure: true,
+    transformation: [
+      { video_codec: "h264" },
+      { audio_codec: "aac" },
+    ],
   });
 };
 
@@ -31,15 +45,14 @@ export const createDrawingLesson = async (req, res, next) => {
         .json({ success: false, message: "Video file is required" });
     }
 
-    // Upload video to Cloudinary
     const uploadResult = await uploadVideoToCloudinary(req.file.buffer);
 
-    // tips will usually come as JSON string in multipart/form-data
+    // tips parsing
     let parsedTips = [];
     if (tips) {
       try {
         parsedTips = typeof tips === "string" ? JSON.parse(tips) : tips;
-      } catch (e) {
+      } catch {
         return res.status(400).json({
           success: false,
           message: "Invalid tips format. Send as JSON array.",
@@ -47,11 +60,14 @@ export const createDrawingLesson = async (req, res, next) => {
       }
     }
 
+    const safeUrl = buildSafeMp4Url(uploadResult.public_id);
+
     const lesson = await DrawingLesson.create({
       title,
       description,
       difficulty_level,
-      video_url: uploadResult.secure_url,
+      video_url: safeUrl,                 // ✅ use safe url
+      video_public_id: uploadResult.public_id,
       tips: parsedTips,
     });
 
@@ -103,11 +119,11 @@ export const updateDrawingLesson = async (req, res, next) => {
         .json({ success: false, message: "Lesson not found" });
     }
 
-    // If new video uploaded, upload to Cloudinary & replace
+    // If new video uploaded, upload & replace (also update public_id + safe url)
     if (req.file) {
       const uploadResult = await uploadVideoToCloudinary(req.file.buffer);
-      lesson.video_url = uploadResult.secure_url;
-      // (optional) you can also destroy old video via cloudinary.uploader.destroy(public_id)
+      lesson.video_public_id = uploadResult.public_id;
+      lesson.video_url = buildSafeMp4Url(uploadResult.public_id);
     }
 
     if (title) lesson.title = title;
@@ -118,7 +134,7 @@ export const updateDrawingLesson = async (req, res, next) => {
       try {
         const parsedTips = typeof tips === "string" ? JSON.parse(tips) : tips;
         lesson.tips = parsedTips;
-      } catch (e) {
+      } catch {
         return res.status(400).json({
           success: false,
           message: "Invalid tips format. Send as JSON array.",
@@ -148,7 +164,10 @@ export const deleteDrawingLesson = async (req, res, next) => {
 
     await lesson.deleteOne();
 
-    // (optional) also delete video from Cloudinary if you store public_id
+    // Optional: also delete Cloudinary asset
+    // if (lesson.video_public_id) {
+    //   await cloudinary.uploader.destroy(lesson.video_public_id, { resource_type: "video" });
+    // }
 
     return res
       .status(200)
