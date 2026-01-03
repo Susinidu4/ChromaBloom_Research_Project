@@ -1,18 +1,19 @@
 import axios from "axios";
 import FormData from "form-data";
 
-// Put in .env like: FASTAPI_BASE_URL=http://127.0.0.1:8000
-const FASTAPI_BASE_URL = "http://localhost:8000";
+// Put this in .env if you want: FASTAPI_BASE_URL=http://127.0.0.1:8000
+const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://localhost:8000";
 
 /**
- * POST /api/gamified/drawing/predict
+ * POST /chromabloom/gamified/drawing/predict
  * body: multipart/form-data with field "file"
  */
 export const predictDrawing = async (req, res) => {
   try {
-    // multer memoryStorage => file is in req.file.buffer
     if (!req.file) {
-      return res.status(400).json({ error: "Image file is required (field name: file)" });
+      return res.status(400).json({
+        error: "Image file is required (field name: file)",
+      });
     }
 
     // Build multipart form for FastAPI
@@ -22,21 +23,22 @@ export const predictDrawing = async (req, res) => {
       contentType: req.file.mimetype || "image/jpeg",
     });
 
-    // Call FastAPI
+    // ✅ Your FastAPI routes are:
+    // GET  /health
+    // POST /predict
+    // (NOT /drawing/predict)
     const response = await axios.post(`${FASTAPI_BASE_URL}/drawing/predict`, form, {
-      headers: {
-        ...form.getHeaders(),
-      },
+      headers: { ...form.getHeaders() },
       timeout: 30000,
     });
 
-    // Return same payload to frontend
+    // FastAPI returns: { top1, top3 }
+    // ✅ Return only top1 to Flutter
     return res.status(200).json({
       message: "Prediction success",
-      data: response.data, // { top1, top3 }
+      top1: response.data.top1, // { label, confidence }
     });
   } catch (error) {
-    // If FastAPI returned an error
     if (error.response) {
       return res.status(error.response.status).json({
         error: "FastAPI error",
@@ -52,11 +54,14 @@ export const predictDrawing = async (req, res) => {
 };
 
 /**
- * GET /api/gamified/drawing/health
+ * GET /chromabloom/gamified/drawing/health
  */
 export const drawingModelHealth = async (req, res) => {
   try {
-    const response = await axios.get(`${FASTAPI_BASE_URL}/health`, { timeout: 10000 });
+    const response = await axios.get(`${FASTAPI_BASE_URL}/health`, {
+      timeout: 10000,
+    });
+
     return res.status(200).json({
       message: "FastAPI health ok",
       data: response.data,

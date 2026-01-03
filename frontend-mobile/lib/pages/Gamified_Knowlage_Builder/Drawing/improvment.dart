@@ -51,27 +51,26 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       // ✅ Node returns: { message, data: { top1, top3 } }
       final res = await DrawingPredictService.predictDrawing(widget.imageFile);
 
-      final data = (res["data"] as Map?)?.cast<String, dynamic>();
-      final top1 = (data?["top1"] as Map?)?.cast<String, dynamic>();
+// ✅ DIRECT: { message, top1 }
+final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
 
-      final rawLabel = top1?["label"]?.toString() ?? "-";
-      final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
+final rawLabel = top1?["label"]?.toString() ?? "-";
+final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
 
-      final pretty = _prettyLabel(rawLabel);
+final pretty = _prettyLabel(rawLabel);
 
-      final correctness = (conf.clamp(0, 100) / 100.0);
-      final prev = widget.previousCorrectness.clamp(0.0, 1.0);
+final correctness = (conf.clamp(0, 100) / 100.0);
+final prev = widget.previousCorrectness.clamp(0.0, 1.0);
+final improvement = (correctness - prev).clamp(0.0, 1.0);
 
-      // Improvement = how much correctness increased from previous attempt
-      final improvement = (correctness - prev).clamp(0.0, 1.0);
+if (!mounted) return;
+setState(() {
+  _predictedLabel = pretty;          // ✅ label shown
+  _confidencePercent = conf;         // ✅ confidence shown
+  _correctness = correctness;
+  _improvement = improvement;
+});
 
-      if (!mounted) return;
-      setState(() {
-        _predictedLabel = pretty;
-        _confidencePercent = conf;
-        _correctness = correctness;
-        _improvement = improvement;
-      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
