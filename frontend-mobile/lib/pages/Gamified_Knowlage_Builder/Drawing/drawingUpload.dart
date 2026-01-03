@@ -227,7 +227,7 @@ class _DrawingImprovementCheckPageState
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }

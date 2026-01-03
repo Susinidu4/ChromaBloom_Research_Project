@@ -133,7 +133,9 @@ setState(() {
                         ),
                         _CircleActionButton(
                           icon: Icons.close_rounded,
-                          onTap: () => Navigator.pop(context),
+                          onTap: () {
+                            Navigator.pushNamed(context, '/skillSelection');
+                          },
                         ),
                       ],
                     ),
@@ -261,7 +263,7 @@ setState(() {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }
