@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../others/header.dart'; // MainHeader
-import '../../others/navBar.dart'; // MainNavBar
+import '../../others/header.dart'; 
+import '../../others/navBar.dart'; 
 
-// ✅ add your service import (adjust relative path if needed)
 import '../../../services/Parental_stress_monitoring/journal_entry.dart';
 
 class CreateJournalEntryScreen extends StatefulWidget {
@@ -18,10 +17,10 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
   final DateTime _today = DateTime.now();
 
-  // ✅ service instance
+  // service instance
   final JournalEntryService _journalService = JournalEntryService();
 
-  // ✅ Replace this with your real logged-in caregiver id later
+  // Replace this with your real logged-in caregiver id later
   final String _caregiverId = "p-0001";
 
   // Mood list (with emoji like your image)
@@ -35,7 +34,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     {"label": "Stressed", "emoji": "😖"},
   ];
 
-  // ✅ UI label -> backend enum value (must match schema enum)
+  // UI label -> backend enum value (must match schema enum)
   final Map<String, String> _labelToMoodEnum = const {
     "Happy": "happy",
     "Calm": "calm",
