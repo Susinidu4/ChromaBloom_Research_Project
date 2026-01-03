@@ -11,6 +11,11 @@ const stepSchema = new Schema(
         type: String, 
         required: true 
     },
+    status:{
+        type: Boolean,
+        default: false,
+        required: false,
+    }
   },
   { _id: false} // no separate _id for each step (optional)
 );
@@ -67,6 +72,11 @@ const userActivitySchema = new Schema(
     estimated_duration_minutes: { // in minutes
       type: Number,
       required: true,
+    },
+
+    completed_duration_minutes: { // in minutes
+      type: Number,
+      required: false,
     },
 
     difficulty_level: {

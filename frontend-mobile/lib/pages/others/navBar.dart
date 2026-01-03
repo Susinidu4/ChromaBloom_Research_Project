@@ -1,162 +1,152 @@
 import 'package:flutter/material.dart';
 
 class MainNavBar extends StatelessWidget {
-  final int currentIndex; // 0 = Wellness, 1 = Routine, 2 = Home, 3 = Learn, 4 = Progress
+  final int currentIndex;
 
   const MainNavBar({
     super.key,
     required this.currentIndex,
   });
 
-  // Colors
-  static const Color _barBlue = Color(0xFF386884);
-  static const Color _iconBeige = Color(0xFFDFC7A7);
+  // 🎨 ChromaBloom colors
+  static const Color barBlue = Color(0xFF386884);
+  static const Color iconBeige = Color(0xFFDFC7A7);
+  static const Color cream = Color(0xFFF8F2E8);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 77,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: _barBlue,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+        child: Container(
+          height: 72,
+          decoration: BoxDecoration(
+            color: barBlue,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                blurRadius: 18,
+                offset: Offset(0, 10),
+                color: Color(0x33000000),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(
-                    context: context,
-                    index: 0,
-                    icon: Icons.spa_rounded,        // lotus / wellness
-                    label: "Wellness",
-                  ),
-                  _buildNavItem(
-                    context: context,
-                    index: 1,
-                    icon: Icons.grid_view_rounded,  // routine
-                    label: "Routine",
-                  ),
-                  _buildNavItem(
-                    context: context,
-                    index: 2,
-                    icon: Icons.home_rounded,       // home
-                    label: "Home",
-                  ),
-                  _buildNavItem(
-                    context: context,
-                    index: 3,
-                    icon: Icons.menu_book_rounded,  // learn
-                    label: "Learn",
-                  ),
-                  _buildNavItem(
-                    context: context,
-                    index: 4,
-                    icon: Icons.show_chart_rounded, // progress
-                    label: "Progress",
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                index: 0,
+                currentIndex: currentIndex,
+                icon: Icons.spa_rounded,
+                label: "Wellness",
+                route: '/WellnessHome',
+              ),
+              _NavItem(
+                index: 1,
+                currentIndex: currentIndex,
+                icon: Icons.calendar_month_rounded,
+                label: "Routine",
+                route: '/displayUserActivity',
+              ),
+              _NavItem(
+                index: 2,
+                currentIndex: currentIndex,
+                icon: Icons.home_rounded,
+                label: "Home",
+                route: '/',
+              ),
+              _NavItem(
+                index: 3,
+                currentIndex: currentIndex,
+                icon: Icons.menu_book_rounded,
+                label: "Learn",
+                route: '/learn',
+              ),
+              _NavItem(
+                index: 4,
+                currentIndex: currentIndex,
+                icon: Icons.show_chart_rounded,
+                label: "Progress",
+                route: '/progress',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildNavItem({
-    required BuildContext context,
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final bool isActive = currentIndex == index;
+class _NavItem extends StatelessWidget {
+  final int index;
+  final int currentIndex;
+  final IconData icon;
+  final String label;
+  final String route;
 
-    void handleTap() {
-      // Centralized navigation
-      switch (index) {
-        case 0:
-          Navigator.pushNamed(context, '/wellness');        // change if needed
-          break;
-        case 1:
-          Navigator.pushNamed(context, '/displayRoutines');
-          break;
-        case 2:
-          Navigator.pushNamed(context, '/');                // home
-          break;
-        case 3:
-          Navigator.pushNamed(context, '/learn');           // create later
-          break;
-        case 4:
-          Navigator.pushNamed(context, '/progress');        // create later
-          break;
-      }
+  const _NavItem({
+    required this.index,
+    required this.currentIndex,
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  static const Color barBlue = Color(0xFF386884);
+  static const Color iconBeige = Color(0xFFDFC7A7);
+  static const Color cream = Color(0xFFF8F2E8);
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isActive = index == currentIndex;
+
+    void navigate() {
+      if (isActive) return;
+      Navigator.pushReplacementNamed(context, route);
     }
 
-    // 🔵 Active item → bubble + label (like your screenshot)
-    if (isActive) {
-      return GestureDetector(
-        onTap: handleTap,
-        child: Column(
+    return InkWell(
+      onTap: navigate,
+      borderRadius: BorderRadius.circular(22),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 14 : 10,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? cream : Colors.transparent,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Transform.translate(
-              offset: const Offset(0, -22), // pop out
-              child: Container(
-                height: 56,
-                width: 56,
-                decoration: const BoxDecoration(
-                  color: _barBlue, // same blue as bar so it "joins"
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
+            Icon(
+              icon,
+              size: isActive ? 26 : 24,
+              color: isActive ? barBlue : iconBeige,
             ),
-            const SizedBox(height: 0),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: isActive
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: barBlue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
-      );
-    }
-
-    // 🟡 Inactive items → simple beige icon + label
-    return GestureDetector(
-      onTap: handleTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 18),
-          Icon(
-            icon,
-            color: _iconBeige,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          // Text(
-          //   label,
-          //   style: const TextStyle(
-          //     color: _iconBeige,
-          //     fontSize: 11,
-          //   ),
-          // ),
-        ],
       ),
     );
   }
