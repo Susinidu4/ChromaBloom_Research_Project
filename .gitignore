@@ -4,13 +4,13 @@ Thumbs.db
 *.log 
 .vscode/ 
 .idea/ 
-.env 
+
 # ----- Node.js Backend ----- 
 backend/node_modules/ 
 backend/dist/ 
 backend/tmp/ 
 backend/npm-debug.log 
-backend/.env 
+
 # ----- Flutter Frontend ----- 
 frontend/build/ 
 frontend/.dart_tool/ 
