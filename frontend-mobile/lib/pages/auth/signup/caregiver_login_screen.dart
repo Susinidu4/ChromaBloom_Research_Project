@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+import 'package:provider/provider.dart';
+
 import '../../../services/user_services/caregiver_api.dart';
 import '../../../state/session_provider.dart';
-import 'package:provider/provider.dart';
 
 class CaregiverLoginScreen extends StatefulWidget {
   const CaregiverLoginScreen({super.key});
@@ -32,9 +34,27 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    if (_isLoading) return;
+
+    // ✅ validate first
+    if (!_formKey.currentState!.validate()) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Invalid input',
+        text: 'Please fix the highlighted fields and try again.',
+        confirmBtnText: 'OK',
+        confirmBtnColor: _gold,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
       final result = await CaregiverApi.login(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
 
       final token = result['token'] as String?;
@@ -45,12 +65,42 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
       }
 
       await context.read<SessionProvider>().setSession(
-        token: token,
-        caregiver: caregiver,
+            token: token,
+            caregiver: caregiver,
+          );
+
+      if (!mounted) return;
+
+      // ✅ show success, then navigate when user taps OK
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Login Successful',
+        text: result['message'] ?? 'Welcome back!',
+        confirmBtnText: 'OK',
+        confirmBtnColor: _gold,
       );
 
-      // go home
+      if (!mounted) return;
+
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+
+      // ✅ show backend error message if available (your CaregiverApi throws Exception(message))
+      final msg = e.toString().replaceFirst('Exception: ', '');
+
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Login Failed',
+        text: msg.isEmpty ? 'Something went wrong. Please try again.' : msg,
+        confirmBtnText: 'OK',
+        confirmBtnColor: _gold,
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -135,9 +185,11 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            // TODO: Forgot password navigation
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  // TODO: Forgot password navigation
+                                },
                           child: const Text(
                             "Forgot Password?",
                             style: TextStyle(
@@ -188,10 +240,12 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                             style: TextStyle(fontSize: 13),
                           ),
                           TextButton(
-                            onPressed: () {
-                              // ✅ Route in your main.dart is /caregiver_signup
-                              Navigator.pushNamed(context, '/caregiver_signup');
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.pushNamed(
+                                        context, '/caregiver_signup');
+                                  },
                             child: const Text(
                               "Sign Up",
                               style: TextStyle(
