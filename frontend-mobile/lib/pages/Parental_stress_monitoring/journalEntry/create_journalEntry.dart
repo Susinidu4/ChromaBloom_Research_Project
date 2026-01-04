@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../others/header.dart'; 
-import '../../others/navBar.dart'; 
+import '../../others/header.dart';
+import '../../others/navBar.dart';
 
 import '../../../services/Parental_stress_monitoring/journal_entry.dart';
 
@@ -127,177 +127,195 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                child: Center(
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-                    decoration: BoxDecoration(
-                      color: _CColors.cardBg,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Column(
-                      children: [
-                        // date + close
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _DateChip(text: _formatDate(_today)),
-                            _CloseCircle(
-                              onTap: () {
-                                Navigator.pushNamedAndRemoveUntil(
-                                  context,
-                                  '/WellnessHome',
-                                  (route) => false,
-                                );
-                              },
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                            decoration: BoxDecoration(
+                              color: _CColors.cardBg,
+                              borderRadius: BorderRadius.circular(18),
                             ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // title
-                        const Text(
-                          "How do you feel today?",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: _CColors.goldText,
-                            decoration: TextDecoration.underline,
-                            decorationColor: _CColors.goldText,
-                            decorationThickness: 2,
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // image
-                        SizedBox(
-                          height: 150,
-                          child: Image.asset(
-                            "assets/display_Journals.png",
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        // mood row
-                        Row(
-                          children: [
-                            const Expanded(
-                              flex: 4,
-                              child: Text(
-                                "Your Mood :",
-                                style: TextStyle(
-                                  color: _CColors.goldText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min, // ✅ important
+                              children: [
+                                // date + close
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _DateChip(text: _formatDate(_today)),
+                                    _CloseCircle(
+                                      onTap: () {
+                                        Navigator.pushNamedAndRemoveUntil(
+                                          context,
+                                          '/WellnessHome',
+                                          (route) => false,
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 7,
-                              child: _MoodDropdown(
-                                moods: _moods,
-                                value: _selectedMood,
-                                onChanged: (m) =>
-                                    setState(() => _selectedMood = m),
-                              ),
-                            ),
-                          ],
-                        ),
 
-                        const SizedBox(height: 18),
+                                const SizedBox(height: 18),
 
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Write Something :",
-                            style: TextStyle(
-                              color: _CColors.goldText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // textarea
-                        Container(
-                          decoration: BoxDecoration(
-                            color: _CColors.inputBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: _CColors.inputBorder,
-                              width: 1.5,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x16000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _noteCtrl,
-                            maxLines: 5,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: _CColors.goldText,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: "Write a short note about your day...",
-                              hintStyle: TextStyle(
-                                color: Color(0xFFBFA780),
-                                fontWeight: FontWeight.w600,
-                              ),
-                              contentPadding: EdgeInsets.fromLTRB(
-                                14,
-                                14,
-                                14,
-                                14,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        // save button (UI unchanged; just prevents double taps while saving)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: SizedBox(
-                            width: 105,
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: _saving ? null : _onSave,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _CColors.saveBtn,
-                                elevation: 6,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                const Text(
+                                  "How do you feel today?",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: _CColors.goldText,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: _CColors.goldText,
+                                    decorationThickness: 2,
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                "Save",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
+
+                                const SizedBox(height: 18),
+
+                                SizedBox(
+                                  height: 150,
+                                  child: Image.asset(
+                                    "assets/display_Journals.png",
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-                              ),
+
+                                const SizedBox(height: 22),
+
+                                Row(
+                                  children: [
+                                    const Expanded(
+                                      flex: 4,
+                                      child: Text(
+                                        "Your Mood :",
+                                        style: TextStyle(
+                                          color: _CColors.goldText,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 7,
+                                      child: _MoodDropdown(
+                                        moods: _moods,
+                                        value: _selectedMood,
+                                        onChanged: (m) =>
+                                            setState(() => _selectedMood = m),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 18),
+
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    "Write Something :",
+                                    style: TextStyle(
+                                      color: _CColors.goldText,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: _CColors.inputBg,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: _CColors.inputBorder,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x16000000),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextField(
+                                    controller: _noteCtrl,
+                                    maxLines: 5,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: _CColors.goldText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      hintText:
+                                          "Write a short note about your day...",
+                                      hintStyle: TextStyle(
+                                        color: Color(0xFFBFA780),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      contentPadding: EdgeInsets.fromLTRB(
+                                        14,
+                                        14,
+                                        14,
+                                        14,
+                                      ),
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  height: 18,
+                                ), // ✅ instead of Spacer()
+
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: SizedBox(
+                                    width: 105,
+                                    height: 32,
+                                    child: ElevatedButton(
+                                      onPressed: _saving ? null : _onSave,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _CColors.saveBtn,
+                                        elevation: 6,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Save",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
