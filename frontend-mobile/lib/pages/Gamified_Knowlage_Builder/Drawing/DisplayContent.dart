@@ -59,18 +59,33 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
     }
   }
 
-  String _tipsToText(dynamic tips) {
-    if (tips == null) return "No tips available.";
-    if (tips is List) {
-      if (tips.isEmpty) return "No tips available.";
-      final lines = <String>[];
-      for (int i = 0; i < tips.length; i++) {
-        lines.add("${i + 1}. ${tips[i].toString()}");
-      }
-      return lines.join("\n\n");
+String _tipsToText(dynamic tips) {
+  if (tips == null) return "No tips available.";
+  if (tips is! List || tips.isEmpty) return "No tips available.";
+
+  final lines = <String>[];
+
+  for (int i = 0; i < tips.length; i++) {
+    final t = tips[i];
+
+    // tips item can be {tip_number: 1, tip: "...", _id: "..."} OR a plain string
+    String tipText = "";
+
+    if (t is Map) {
+      tipText = (t["tip"] ?? "").toString().trim(); // ✅ only show the tip text
+    } else {
+      tipText = t.toString().trim();
     }
-    return tips.toString();
+
+    if (tipText.isNotEmpty) {
+      lines.add("${lines.length + 1}. $tipText"); // keep numbering clean
+    }
   }
+
+  if (lines.isEmpty) return "No tips available.";
+  return lines.join("\n\n");
+}
+
 
   @override
   Widget build(BuildContext context) {
