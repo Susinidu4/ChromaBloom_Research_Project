@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-// ✅ Import your service file
+// ✅ Existing lesson service
 import '../../../services/Gemified/drawing_lesson_service.dart';
+
+// ✅ Completed lesson service
+import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 
 class DrawingUnit1Page extends StatefulWidget {
   const DrawingUnit1Page({super.key});
@@ -30,32 +33,102 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
+  // ✅ TODO: Replace with real logged-in caregiver/parent id
+  // In your example response: "user_id": "p-0001"
+  final String hardcodedUserId = "p-0001";
+
   @override
   void initState() {
     super.initState();
 
-    // ✅ IMPORTANT:
-    // If you are using Android Emulator, use http://10.0.2.2:5000
-    // If you are using real device, use your PC IP: http://192.168.x.x:5000
+    // ✅ IMPORTANT BASE URL NOTES:
+    // Android Emulator: http://10.0.2.2:5000
+    // Real device:     http://YOUR_PC_IP:5000
+    // Flutter web:     http://localhost:5000
+
+    // Drawing lessons service
     _service = DrawingLessonService(
       baseUrl: "http://localhost:5000/chromabloom/drawing-lessons",
-      // token: "YOUR_JWT_IF_NEEDED",
     );
+
+    // Completed lesson service baseUrl (global)
+    CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
     _futureLessons = _fetchLessons();
   }
 
   Future<List<_LessonItem>> _fetchLessons() async {
-    final raw = await _service.getAllLessons(); // returns List<dynamic>
-    return raw.map<_LessonItem>((e) {
+    // 1) Fetch all lessons first (to show all cards even if not completed)
+    final raw = await _service.getAllLessons(); // List<dynamic>
+
+    final lessons = raw.map<_LessonItem>((e) {
       final m = (e as Map).cast<String, dynamic>();
       return _LessonItem(
         id: (m["_id"] ?? "").toString(),
         title: (m["title"] ?? "Untitled").toString(),
         desc: (m["description"] ?? "").toString(),
-        progress: 0.0, // backend doesn't provide progress
+        progress: 0.0,
+        correctnessPercent: 0,
       );
     }).toList();
+
+    // 2) For each lesson, call getCompletedByLessonAndUser()
+    //    If completed: use populated lesson_id fields + correctness_rate
+    final updated = await Future.wait(
+      lessons.map((lesson) async {
+        try {
+          final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
+            lessonId: lesson.id,
+            userId: hardcodedUserId,
+          );
+
+          final data = res["data"];
+
+          if (data is List && data.isNotEmpty) {
+            final latest = (data.first as Map).cast<String, dynamic>();
+
+            // ✅ correctness_rate comes as a number (in your example: 62.0047...)
+            final cr = latest["correctness_rate"];
+            int percent;
+            if (cr is num) {
+              percent = cr.round();
+            } else {
+              percent = int.tryParse("$cr") ?? 0;
+            }
+            percent = percent.clamp(0, 100);
+
+            // ✅ Use populated lesson_id object (complete lesson details)
+            // lesson_id could be a Map (populated) OR a string id
+            final lessonObj = latest["lesson_id"];
+            String title = lesson.title;
+            String desc = lesson.desc;
+
+            if (lessonObj is Map) {
+              final lm = lessonObj.cast<String, dynamic>();
+              title = (lm["title"] ?? title).toString();
+              desc = (lm["description"] ?? desc).toString();
+            }
+
+            final progress = (percent / 100.0).clamp(0.0, 1.0);
+
+            return lesson.copyWith(
+              title: title,
+              desc: desc,
+              progress: progress,
+              correctnessPercent: percent,
+            );
+          }
+
+          // Not completed => keep defaults
+          return lesson;
+        } catch (_) {
+          // If this lesson completion call fails, keep lesson card without breaking screen
+          return lesson;
+        }
+      }),
+    );
+
+    return updated;
   }
 
   Future<void> _refresh() async {
@@ -78,7 +151,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               notificationCount: 5,
             ),
 
-            // ===== Top row: palette + title + refresh =====
+            // ===== Top row =====
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
@@ -107,14 +180,16 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                     ),
                   ),
                   _CircleActionButton(
-                    icon: Icons.refresh,
-                    onTap: _refresh,
+                    icon: Icons.add,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/skillSelection');
+                    },
                   ),
                 ],
               ),
             ),
 
-            // ===== List (Fetched from API) =====
+            // ===== List =====
             Expanded(
               child: FutureBuilder<List<_LessonItem>>(
                 future: _futureLessons,
@@ -186,8 +261,8 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                           title: item.title,
                           desc: item.desc,
                           progress: item.progress,
+                          correctnessPercent: item.correctnessPercent,
                           onTap: () {
-                            // ✅ NAVIGATE WITH ID
                             Navigator.pushNamed(
                               context,
                               '/drawingLessonDetail',
@@ -204,7 +279,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }
@@ -215,14 +290,36 @@ class _LessonItem {
   final String id;
   final String title;
   final String desc;
+
+  // Progress pill uses 0..1
   final double progress;
+
+  // Display uses 0..100
+  final int correctnessPercent;
 
   const _LessonItem({
     required this.id,
     required this.title,
     required this.desc,
     required this.progress,
+    required this.correctnessPercent,
   });
+
+  _LessonItem copyWith({
+    String? id,
+    String? title,
+    String? desc,
+    double? progress,
+    int? correctnessPercent,
+  }) {
+    return _LessonItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      desc: desc ?? this.desc,
+      progress: progress ?? this.progress,
+      correctnessPercent: correctnessPercent ?? this.correctnessPercent,
+    );
+  }
 }
 
 /* ===================== TOP RIGHT BUTTON ===================== */
@@ -276,13 +373,16 @@ class _LessonCard extends StatelessWidget {
     required this.title,
     required this.desc,
     required this.onTap,
-    this.progress = 0.0,
+    required this.progress,
+    required this.correctnessPercent,
   });
 
   final String title;
   final String desc;
   final VoidCallback onTap;
-  final double progress;
+
+  final double progress; // 0..1
+  final int correctnessPercent; // 0..100
 
   static const Color cardBg = DrawingUnit1Page.cardBg;
   static const Color leftShade = DrawingUnit1Page.leftShade;
@@ -292,6 +392,7 @@ class _LessonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = progress.clamp(0.0, 1.0);
+    final percent = correctnessPercent.clamp(0, 100);
 
     return Material(
       color: Colors.transparent,
@@ -367,9 +468,25 @@ class _LessonCard extends StatelessWidget {
                   ),
                 ),
               ),
+
+              // ✅ Progress section with percent text
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: _ProgressPill(progress: p),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _ProgressPill(progress: p),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$percent%",
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF8C6B55),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -413,7 +530,7 @@ class _ProgressPill extends StatelessWidget {
           children: [
             Container(color: track),
             FractionallySizedBox(
-              widthFactor: progress,
+              widthFactor: progress.clamp(0.0, 1.0),
               child: Container(color: fill),
             ),
           ],

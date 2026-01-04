@@ -91,6 +91,44 @@ export const getCompleteDrawingLessonById = async (req, res, next) => {
   }
 };
 
+//get complete lessons by lesson id and user id
+export const getCompleteDrawingLessonsByLessonIdAndUserId = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { lessonId, userId } = req.params;
+
+    const completed = await Complete_Drawing_Lesson.find({
+      lesson_id: lessonId,
+      user_id: userId,
+    })
+      .populate("lesson_id")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, data: completed });
+  } catch (err) {
+    next(err);
+  }
+};
+
+//check if a user has completed a lesson using lesson id and user id
+export const hasUserCompletedLesson = async (req, res, next) => {
+  try {
+    const { lessonId, userId } = req.params;
+
+    const completed = await Complete_Drawing_Lesson.findOne({
+      lesson_id: lessonId,
+      user_id: userId,
+    });
+
+    return res.status(200).json({ success: true, data: completed });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // @desc   Get all completed lessons for a specific user
 // @route  GET /chromabloom/completed-drawing-lessons/user/:userId
 export const getCompleteDrawingLessonsByUserId = async (req, res, next) => {
@@ -157,3 +195,4 @@ export const deleteCompleteDrawingLesson = async (req, res, next) => {
     next(err);
   }
 };
+

@@ -145,7 +145,7 @@ class _HomePageState extends State<HomePage> {
         clipBehavior: Clip.none, // allows overlap
         children: [
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 200),
             decoration: BoxDecoration(
@@ -179,7 +179,7 @@ class _HomePageState extends State<HomePage> {
                     Text(
                       "Empowering caregivers to nurture creativity and learning in children through engaging digital experiences.",
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontFamily: 'Poppins',
                         color: Color(0xFFBD9A6B), // <-- text color
                       ),
