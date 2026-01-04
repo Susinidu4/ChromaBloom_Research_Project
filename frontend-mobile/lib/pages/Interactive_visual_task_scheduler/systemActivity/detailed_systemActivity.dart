@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quickalert/quickalert.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -30,6 +33,27 @@ class _DetailedSystemActivityScreenState
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x22000000);
+
+  // Themed alert dialog
+  Future<void> showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) async {
+    await QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  final TextEditingController completedCtrl = TextEditingController();
 
   late List<Map<String, dynamic>> steps;
   //late List<bool> stepDone;
@@ -64,7 +88,8 @@ class _DetailedSystemActivityScreenState
 
   @override
   void dispose() {
-    TtsService.stop(); // ✅ stop speaking when leaving page
+    TtsService.stop();
+    completedCtrl.dispose();
     super.dispose();
   }
 
@@ -76,15 +101,15 @@ class _DetailedSystemActivityScreenState
 
   void onIncCompleted() {
     setState(() {
-      completedMinutes++;
+      completedMinutes = (completedMinutes + 1).clamp(0, 60);
+      completedCtrl.text = completedMinutes.toString();
     });
   }
 
   void onDecCompleted() {
     setState(() {
-      if (completedMinutes > 0) {
-        completedMinutes--;
-      }
+      completedMinutes = (completedMinutes - 1).clamp(0, 60);
+      completedCtrl.text = completedMinutes.toString();
     });
   }
 
@@ -150,6 +175,7 @@ class _DetailedSystemActivityScreenState
         }
         completedMinutes =
             int.tryParse("${run["completed_duration_minutes"] ?? 0}") ?? 0;
+        completedCtrl.text = completedMinutes.toString();
       }
     } catch (_) {
       // ignore
@@ -493,27 +519,20 @@ class _DetailedSystemActivityScreenState
                                         value: stepDone[i],
                                         onChanged: (v) async {
                                           await TtsService.stop();
-                                          setState(
-                                            () => stepDone[i] = v ?? false,
-                                          );
 
-                                          await ChildRoutinePlanService.saveRoutineRun(
-                                            caregiverId: "p-0001",
-                                            childId: "c-0001",
-                                            planMongoId: widget.planMongoId,
-                                            activityMongoId:
-                                                _getActivityMongoId(),
-                                            runDate: widget.selectedDate,
-                                            stepsProgress: List.generate(
-                                              stepDone.length,
-                                              (idx) => {
-                                                "step_number": idx + 1,
-                                                "status": stepDone[idx],
-                                              },
-                                            ),
-                                            completedDurationMinutes:
-                                                completedMinutes,
-                                          );
+                                          if (completedMinutes <= 0) {
+                                            showThemedAlert(
+                                              type: QuickAlertType.warning,
+                                              title: "Duration Required",
+                                              text:
+                                                  "Please enter completed duration (1–60 minutes) first.",
+                                            );
+                                            return;
+                                          }
+
+                                          setState(() {
+                                            stepDone[i] = v ?? false;
+                                          });
                                         },
 
                                         materialTapTargetSize:
@@ -561,13 +580,28 @@ class _DetailedSystemActivityScreenState
                                     ),
                                   ],
                                 ),
-                                child: Text(
-                                  "$completedMinutes",
-                                  style: const TextStyle(
-                                    color: stroke,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
+                                child: TextFormField(
+                                  controller: completedCtrl,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(2),
+                                  ],
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
                                   ),
+                                  onChanged: (v) {
+                                    final n = int.tryParse(v) ?? 0;
+                                    final clamped = n.clamp(0, 60);
+                                    setState(() => completedMinutes = clamped);
+                                    completedCtrl.text = clamped.toString();
+                                    completedCtrl.selection =
+                                        TextSelection.collapsed(
+                                          offset: completedCtrl.text.length,
+                                        );
+                                  },
                                 ),
                               ),
 
@@ -644,50 +678,56 @@ class _DetailedSystemActivityScreenState
                               height: 44,
                               child: ElevatedButton(
                                 onPressed: () async {
-                                  // ✅ required ids
-                                  final caregiverId =
-                                      "p-0001"; // or pass in activity later
-                                  final childId =
-                                      "c-0001"; // or pass in activity later
+                                  final caregiverId = "p-0001";
+                                  final childId = "c-0001";
+                                  final planId = widget.planMongoId;
+                                  final activityId = _getActivityMongoId();
 
-                                  final planId =
-                                      widget.planMongoId; // ✅ correct
-
-                                  final activityId =
-                                      (widget.activity["_id"] ?? "").toString();
-
+                                  // ❌ missing ids
                                   if (planId.isEmpty || activityId.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Missing planId/activityId",
-                                        ),
-                                      ),
+                                    showThemedAlert(
+                                      type: QuickAlertType.error,
+                                      title: "Error",
+                                      text:
+                                          "Missing plan or activity information.",
                                     );
                                     return;
                                   }
 
-                                  // ✅ selected date (from display page)
-                                  final DateTime date =
-                                      (widget.activity["selectedDate"]
-                                          as DateTime?) ??
-                                      DateTime.now();
-                                  final dateOnly =
-                                      "${date.year.toString().padLeft(4, '0')}-"
-                                      "${date.month.toString().padLeft(2, '0')}-"
-                                      "${date.day.toString().padLeft(2, '0')}";
+                                  // ❌ completed duration REQUIRED
+                                  if (completedMinutes <= 0) {
+                                    showThemedAlert(
+                                      type: QuickAlertType.error,
+                                      title: "Duration Required",
+                                      text:
+                                          "Please enter completed duration (1–60 minutes).",
+                                    );
+                                    return;
+                                  }
 
-                                  // ✅ build steps_progress from checkboxes
-                                  final stepsProgress =
-                                      List<Map<String, dynamic>>.generate(
-                                        stepDone.length,
-                                        (i) {
-                                          return {
-                                            "step_number": i + 1,
-                                            "status": stepDone[i],
-                                          };
-                                        },
-                                      );
+                                  // ❌ at least one step checkbox REQUIRED
+                                  final anyChecked = stepDone.any(
+                                    (x) => x == true,
+                                  );
+                                  if (!anyChecked) {
+                                    showThemedAlert(
+                                      type: QuickAlertType.error,
+                                      title: "Steps Required",
+                                      text:
+                                          "Please tick at least one step before saving.",
+                                    );
+                                    return;
+                                  }
+
+                                  final stepsProgress = List.generate(
+                                    stepDone.length,
+                                    (i) {
+                                      return {
+                                        "step_number": i + 1,
+                                        "status": stepDone[i],
+                                      };
+                                    },
+                                  );
 
                                   try {
                                     final res =
@@ -703,24 +743,24 @@ class _DetailedSystemActivityScreenState
                                         );
 
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          res["message"] ?? "Saved",
-                                        ),
-                                      ),
+
+                                    await showThemedAlert(
+                                      type: QuickAlertType.success,
+                                      title: "Saved",
+                                      text:
+                                          res["message"] ??
+                                          "Progress saved successfully.",
                                     );
 
-                                    Navigator.pop(
-                                      context,
-                                      true,
-                                    ); // ✅ so list page can refresh if you want
+                                    if (!mounted) return;
+                                    Navigator.pop(context, true);
                                   } catch (e) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text("Save failed: $e"),
-                                      ),
+
+                                    await showThemedAlert(
+                                      type: QuickAlertType.error,
+                                      title: "Save Failed",
+                                      text: e.toString(),
                                     );
                                   }
                                 },
