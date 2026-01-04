@@ -16,13 +16,23 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Future<void> _routeNext() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 4));
 
     final prefs = await SharedPreferences.getInstance();
     final isFirstInstall = prefs.getBool('isFirstInstall') ?? true;
 
     if (!mounted) return;
 
+  // if (isFirstInstall) {
+    //   // mark as completed so next time it won't show options
+    //   await prefs.setBool('isFirstInstall', false);
+    //   Navigator.pushReplacementNamed(context, '/first_time');
+    // } else {
+    //   // returning user -> go to home or login
+    //   Navigator.pushReplacementNamed(context, '/caregiver_login');
+    //   // or: Navigator.pushReplacementNamed(context, '/');
+    // }
+    
     Navigator.pushReplacementNamed(context, '/caregiver_login');
   }
 
