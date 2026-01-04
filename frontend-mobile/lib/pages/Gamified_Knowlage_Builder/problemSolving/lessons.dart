@@ -91,7 +91,7 @@ class ProblemSolvingUnit1Page extends StatelessWidget {
                   _CircleActionButton(
                     icon: Icons.add,
                     onTap: () {
-                      // TODO: add action
+                      Navigator.pushNamed(context, '/skillSelection');
                     },
                   ),
                 ],

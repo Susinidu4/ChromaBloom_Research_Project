@@ -61,15 +61,33 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
 
   String _tipsToText(dynamic tips) {
     if (tips == null) return "No tips available.";
-    if (tips is List) {
-      if (tips.isEmpty) return "No tips available.";
-      final lines = <String>[];
-      for (int i = 0; i < tips.length; i++) {
-        lines.add("${i + 1}. ${tips[i].toString()}");
+    if (tips is! List || tips.isEmpty) return "No tips available.";
+
+    final lines = <String>[];
+
+    for (int i = 0; i < tips.length; i++) {
+      final t = tips[i];
+      String tipText = "";
+
+      if (t is Map) {
+        tipText = (t["tip"] ?? "").toString().trim();
+      } else {
+        tipText = t.toString().trim();
       }
-      return lines.join("\n\n");
+
+      if (tipText.isNotEmpty) {
+        lines.add("${lines.length + 1}. $tipText");
+      }
     }
-    return tips.toString();
+
+    if (lines.isEmpty) return "No tips available.";
+    return lines.join("\n\n");
+  }
+
+  String _extractLessonId(Map<String, dynamic> lesson) {
+    // ✅ supports both id and _id
+    final id = (lesson["id"] ?? lesson["_id"] ?? "").toString();
+    return id;
   }
 
   @override
@@ -114,6 +132,8 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
                   }
 
                   final lesson = snapshot.data ?? {};
+                  final lessonId = _extractLessonId(lesson);
+
                   final title = (lesson["title"] ?? "Untitled").toString();
                   final description = (lesson["description"] ?? "").toString();
                   final videoUrl = (lesson["video_url"] ?? "").toString();
@@ -167,7 +187,6 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
 
                         const SizedBox(height: 12),
 
-                        // ✅ Hybrid player: web uses <video>, mobile uses video_player
                         HybridVideoPlayer(videoUrl: videoUrl, height: 180),
 
                         const SizedBox(height: 14),
@@ -175,10 +194,19 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
                         _TipCard(
                           tipText: tipsText,
                           onContinue: () {
+                            if (lessonId.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Lesson ID not found."),
+                                ),
+                              );
+                              return;
+                            }
+
                             Navigator.pushNamed(
                               context,
                               '/drawingImprovementCheck',
-                              arguments: lesson["id"].toString(),
+                              arguments: lessonId, // ✅ PASS lessonId
                             );
                           },
                         ),
@@ -191,7 +219,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 }
