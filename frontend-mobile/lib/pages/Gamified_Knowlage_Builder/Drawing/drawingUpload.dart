@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import './improvment.dart'; // ✅ change to your actual path
+import './improvment.dart'; // ✅ your actual path
+
 
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
@@ -42,6 +43,20 @@ class _DrawingImprovementCheckPageState
 
   Uint8List? _imageBytes; // for preview
   File? _imageFile; // ✅ for API call
+
+  String _lessonId = ""; // ✅ we will read from route args
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // ✅ Expecting route arguments = lessonId
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final lessonId = args?.toString() ?? "";
+    if (_lessonId.isEmpty && lessonId.isNotEmpty) {
+      _lessonId = lessonId;
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final xfile = await _picker.pickImage(source: source, imageQuality: 95);
@@ -107,11 +122,19 @@ class _DrawingImprovementCheckPageState
   void _goToCompletePage() {
     if (_imageFile == null) return;
 
+    if (_lessonId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lesson ID not found.")),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => LessonCompletePage(
-          imageFile: _imageFile!, // ✅ pass File
+          lessonId: _lessonId, // ✅ PASS LESSON ID
+          imageFile: _imageFile!,
           previousCorrectness: widget.previousCorrectness ?? 0.0,
         ),
       ),

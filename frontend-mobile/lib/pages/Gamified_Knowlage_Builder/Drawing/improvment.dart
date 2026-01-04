@@ -1,18 +1,26 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import '../../../services/Gemified/drawing_predict_service.dart'; // ✅ your service file
+
+import '../../../services/Gemified/drawing_predict_service.dart';
+import '../../../services/Gemified/complete_drawing_lesson_service.dart';
+
+// ✅ adjust this import path to your actual SessionProvider file location
+import '../../../state/session_provider.dart';
 
 class LessonCompletePage extends StatefulWidget {
   const LessonCompletePage({
     super.key,
+    required this.lessonId, // ✅ NEW
     required this.imageFile,
     required this.previousCorrectness, // 0.0 - 1.0
   });
 
+  final String lessonId; // ✅ NEW
   final File imageFile;
   final double previousCorrectness;
 
@@ -32,6 +40,8 @@ class LessonCompletePage extends StatefulWidget {
 
 class _LessonCompletePageState extends State<LessonCompletePage> {
   bool _loading = true;
+  bool _saving = false;
+  bool _savedOnce = false;
 
   String _predictedLabel = "-";
   double _confidencePercent = 0; // 0 - 100
@@ -44,33 +54,90 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     _predictOnLoad();
   }
 
+  String _prettyLabel(String label) {
+    final parts = label.split('.');
+    final last = parts.isNotEmpty ? parts.last : label;
+    if (last.isEmpty) return label;
+    return last[0].toUpperCase() + last.substring(1);
+  }
+
+  String? _getCaregiverIdFromSession() {
+    final session = context.read<SessionProvider>();
+
+    final caregiver = session.caregiver;
+    if (caregiver == null) return null;
+
+    final id = (caregiver['_id'] ?? caregiver['id'] ?? caregiver['caregiverId'])
+        ?.toString();
+
+    if (id == null || id.isEmpty) return null;
+    return id;
+  }
+
+  Future<void> _saveCompletedLesson() async {
+    if (_savedOnce) return; // ✅ avoid duplicate save on rebuilds
+    if (widget.lessonId.isEmpty) return;
+
+    final caregiverId = _getCaregiverIdFromSession();
+    if (caregiverId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Caregiver session not found. Please login again.")),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      await CompleteDrawingLessonService.createCompletedLesson(
+        lessonId: widget.lessonId,
+        userId: caregiverId,          // ✅ caregiver id as user_id
+        correctnessRate: _correctness, // ✅ 0..1 (backend stores *100)
+      );
+
+      _savedOnce = true;
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Saved lesson completion")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Saving completion failed: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _predictOnLoad() async {
     setState(() => _loading = true);
 
     try {
-      // ✅ Node returns: { message, data: { top1, top3 } }
       final res = await DrawingPredictService.predictDrawing(widget.imageFile);
 
-// ✅ DIRECT: { message, top1 }
-final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
+      final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
 
-final rawLabel = top1?["label"]?.toString() ?? "-";
-final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
+      final rawLabel = top1?["label"]?.toString() ?? "-";
+      final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
 
-final pretty = _prettyLabel(rawLabel);
+      final pretty = _prettyLabel(rawLabel);
 
-final correctness = (conf.clamp(0, 100) / 100.0);
-final prev = widget.previousCorrectness.clamp(0.0, 1.0);
-final improvement = (correctness - prev).clamp(0.0, 1.0);
+      final correctness = (conf.clamp(0, 100) / 100.0);
+      final prev = widget.previousCorrectness.clamp(0.0, 1.0);
+      final improvement = (correctness - prev).clamp(0.0, 1.0);
 
-if (!mounted) return;
-setState(() {
-  _predictedLabel = pretty;          // ✅ label shown
-  _confidencePercent = conf;         // ✅ confidence shown
-  _correctness = correctness;
-  _improvement = improvement;
-});
+      if (!mounted) return;
+      setState(() {
+        _predictedLabel = pretty;
+        _confidencePercent = conf;
+        _correctness = correctness;
+        _improvement = improvement;
+      });
 
+      // ✅ After prediction success, save completion
+      await _saveCompletedLesson();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,14 +146,6 @@ setState(() {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  String _prettyLabel(String label) {
-    // "a.apple" -> "Apple"
-    final parts = label.split('.');
-    final last = parts.isNotEmpty ? parts.last : label;
-    if (last.isEmpty) return label;
-    return last[0].toUpperCase() + last.substring(1);
   }
 
   @override
@@ -224,6 +283,14 @@ setState(() {
                               ],
                             ),
                     ),
+
+                    const SizedBox(height: 10),
+
+                    if (_saving)
+                      const Text(
+                        "Saving completion...",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
 
                     const SizedBox(height: 18),
 
