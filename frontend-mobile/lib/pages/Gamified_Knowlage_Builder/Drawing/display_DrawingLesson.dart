@@ -5,7 +5,7 @@ import '../../others/navBar.dart';
 // ✅ Existing lesson service
 import '../../../services/Gemified/drawing_lesson_service.dart';
 
-// ✅ NEW: completed lesson service
+// ✅ Completed lesson service
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 
 class DrawingUnit1Page extends StatefulWidget {
@@ -33,34 +33,33 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
-  // ✅ TODO: Replace with logged-in user id
-  // Example: from your auth provider / storage
-  final String hardcodedUserId = "u-0001";
+  // ✅ TODO: Replace with real logged-in caregiver/parent id
+  // In your example response: "user_id": "p-0001"
+  final String hardcodedUserId = "p-0001";
 
   @override
   void initState() {
     super.initState();
 
     // ✅ IMPORTANT BASE URL NOTES:
-    // If Android Emulator: http://10.0.2.2:5000
-    // If real device: http://YOUR_PC_IP:5000
-    // If web: http://localhost:5000
+    // Android Emulator: http://10.0.2.2:5000
+    // Real device:     http://YOUR_PC_IP:5000
+    // Flutter web:     http://localhost:5000
 
-    // Drawing lessons service (your existing)
+    // Drawing lessons service
     _service = DrawingLessonService(
       baseUrl: "http://localhost:5000/chromabloom/drawing-lessons",
-      // token: "YOUR_JWT_IF_NEEDED",
     );
 
-    // Completed lesson service baseUrl (update once globally)
+    // Completed lesson service baseUrl (global)
     CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
     _futureLessons = _fetchLessons();
   }
 
   Future<List<_LessonItem>> _fetchLessons() async {
-    // 1) Get all lessons
-    final raw = await _service.getAllLessons(); // returns List<dynamic>
+    // 1) Fetch all lessons first (to show all cards even if not completed)
+    final raw = await _service.getAllLessons(); // List<dynamic>
 
     final lessons = raw.map<_LessonItem>((e) {
       final m = (e as Map).cast<String, dynamic>();
@@ -69,44 +68,65 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
         title: (m["title"] ?? "Untitled").toString(),
         desc: (m["description"] ?? "").toString(),
         progress: 0.0,
-        correctnessPercent: 0, // default
+        correctnessPercent: 0,
       );
     }).toList();
 
-    // 2) For each lesson, fetch completion for THIS user and attach correctness_rate
-    //    Your backend returns correctness_rate as percentage (0..100)
-    final updated = await Future.wait(lessons.map((lesson) async {
-      try {
-        final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
-          lessonId: lesson.id,
-          userId: hardcodedUserId,
-        );
-
-        final data = res["data"];
-
-        // data should be a List (possibly empty)
-        if (data is List && data.isNotEmpty) {
-          final latest = (data.first as Map).cast<String, dynamic>();
-
-          final cr = latest["correctness_rate"]; // stored as percent (e.g., 76)
-          final percent = (cr is num) ? cr.round() : int.tryParse("$cr") ?? 0;
-
-          // convert to progress 0..1 for pill
-          final progress = (percent / 100.0).clamp(0.0, 1.0);
-
-          return lesson.copyWith(
-            progress: progress,
-            correctnessPercent: percent.clamp(0, 100),
+    // 2) For each lesson, call getCompletedByLessonAndUser()
+    //    If completed: use populated lesson_id fields + correctness_rate
+    final updated = await Future.wait(
+      lessons.map((lesson) async {
+        try {
+          final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
+            lessonId: lesson.id,
+            userId: hardcodedUserId,
           );
-        }
 
-        // no completion record -> 0
-        return lesson;
-      } catch (_) {
-        // if request fails for this lesson, don't break whole screen
-        return lesson;
-      }
-    }));
+          final data = res["data"];
+
+          if (data is List && data.isNotEmpty) {
+            final latest = (data.first as Map).cast<String, dynamic>();
+
+            // ✅ correctness_rate comes as a number (in your example: 62.0047...)
+            final cr = latest["correctness_rate"];
+            int percent;
+            if (cr is num) {
+              percent = cr.round();
+            } else {
+              percent = int.tryParse("$cr") ?? 0;
+            }
+            percent = percent.clamp(0, 100);
+
+            // ✅ Use populated lesson_id object (complete lesson details)
+            // lesson_id could be a Map (populated) OR a string id
+            final lessonObj = latest["lesson_id"];
+            String title = lesson.title;
+            String desc = lesson.desc;
+
+            if (lessonObj is Map) {
+              final lm = lessonObj.cast<String, dynamic>();
+              title = (lm["title"] ?? title).toString();
+              desc = (lm["description"] ?? desc).toString();
+            }
+
+            final progress = (percent / 100.0).clamp(0.0, 1.0);
+
+            return lesson.copyWith(
+              title: title,
+              desc: desc,
+              progress: progress,
+              correctnessPercent: percent,
+            );
+          }
+
+          // Not completed => keep defaults
+          return lesson;
+        } catch (_) {
+          // If this lesson completion call fails, keep lesson card without breaking screen
+          return lesson;
+        }
+      }),
+    );
 
     return updated;
   }
@@ -131,7 +151,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               notificationCount: 5,
             ),
 
-            // ===== Top row: palette + title + add =====
+            // ===== Top row =====
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
@@ -271,10 +291,10 @@ class _LessonItem {
   final String title;
   final String desc;
 
-  // ✅ Progress pill uses 0..1
+  // Progress pill uses 0..1
   final double progress;
 
-  // ✅ Display text uses 0..100
+  // Display uses 0..100
   final int correctnessPercent;
 
   const _LessonItem({
@@ -510,7 +530,7 @@ class _ProgressPill extends StatelessWidget {
           children: [
             Container(color: track),
             FractionallySizedBox(
-              widthFactor: progress,
+              widthFactor: progress.clamp(0.0, 1.0),
               child: Container(color: fill),
             ),
           ],
