@@ -9,18 +9,17 @@ import '../../others/navBar.dart';
 import '../../../services/Gemified/drawing_predict_service.dart';
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 
-// ✅ adjust this import path to your actual SessionProvider file location
 import '../../../state/session_provider.dart';
 
 class LessonCompletePage extends StatefulWidget {
   const LessonCompletePage({
     super.key,
-    required this.lessonId, // ✅ NEW
+    required this.lessonId,
     required this.imageFile,
-    required this.previousCorrectness, // 0.0 - 1.0
+    required this.previousCorrectness,
   });
 
-  final String lessonId; // ✅ NEW
+  final String lessonId;
   final File imageFile;
   final double previousCorrectness;
 
@@ -44,9 +43,9 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
   bool _savedOnce = false;
 
   String _predictedLabel = "-";
-  double _confidencePercent = 0; // 0 - 100
-  double _correctness = 0; // 0.0 - 1.0
-  double _improvement = 0; // 0.0 - 1.0
+  double _confidencePercent = 0;
+  double _correctness = 0;
+  double _improvement = 0;
 
   @override
   void initState() {
@@ -75,13 +74,15 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
   }
 
   Future<void> _saveCompletedLesson() async {
-    if (_savedOnce) return; // ✅ avoid duplicate save on rebuilds
+    if (_savedOnce) return;
     if (widget.lessonId.isEmpty) return;
 
     final caregiverId = _getCaregiverIdFromSession();
     if (caregiverId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Caregiver session not found. Please login again.")),
+        const SnackBar(
+          content: Text("Caregiver session not found. Please login again."),
+        ),
       );
       return;
     }
@@ -91,8 +92,8 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     try {
       await CompleteDrawingLessonService.createCompletedLesson(
         lessonId: widget.lessonId,
-        userId: caregiverId,          // ✅ caregiver id as user_id
-        correctnessRate: _correctness, // ✅ 0..1 (backend stores *100)
+        userId: caregiverId,
+        correctnessRate: _correctness,
       );
 
       _savedOnce = true;
@@ -118,7 +119,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       final res = await DrawingPredictService.predictDrawing(widget.imageFile);
 
       final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
-
       final rawLabel = top1?["label"]?.toString() ?? "-";
       final conf = (top1?["confidence"] as num?)?.toDouble() ?? 0.0;
 
@@ -136,7 +136,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
         _improvement = improvement;
       });
 
-      // ✅ After prediction success, save completion
       await _saveCompletedLesson();
     } catch (e) {
       if (!mounted) return;
@@ -181,7 +180,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
-                            "Drawing UNIT 1 Lesson 1",
+                            "Lesson Complete",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: LessonCompletePage.topRowBlue,
@@ -199,15 +198,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      "Lesson Complete",
-                      style: TextStyle(
-                        color: LessonCompletePage.labelColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
 
                     Image.asset(
                       "assets/win.png",
@@ -230,7 +220,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 14),
 
-                    // ✅ Prediction summary
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -245,7 +234,8 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                                 SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 ),
                                 SizedBox(width: 10),
                                 Expanded(
@@ -289,7 +279,10 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                     if (_saving)
                       const Text(
                         "Saving completion...",
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
 
                     const SizedBox(height: 18),

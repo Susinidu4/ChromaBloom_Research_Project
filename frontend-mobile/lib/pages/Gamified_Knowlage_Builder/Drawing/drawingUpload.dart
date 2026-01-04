@@ -6,8 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import './improvment.dart'; // ✅ your actual path
-
+import './improvment.dart'; // ✅ LessonCompletePage is here
 
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
@@ -41,10 +40,10 @@ class _DrawingImprovementCheckPageState
     extends State<DrawingImprovementCheckPage> {
   final ImagePicker _picker = ImagePicker();
 
-  Uint8List? _imageBytes; // for preview
-  File? _imageFile; // ✅ for API call
+  Uint8List? _imageBytes;
+  File? _imageFile;
 
-  String _lessonId = ""; // ✅ we will read from route args
+  String _lessonId = "";
 
   @override
   void didChangeDependencies() {
@@ -53,6 +52,7 @@ class _DrawingImprovementCheckPageState
     // ✅ Expecting route arguments = lessonId
     final args = ModalRoute.of(context)?.settings.arguments;
     final lessonId = args?.toString() ?? "";
+
     if (_lessonId.isEmpty && lessonId.isNotEmpty) {
       _lessonId = lessonId;
     }
@@ -167,7 +167,7 @@ class _DrawingImprovementCheckPageState
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
-                            "Drawing UNIT 1 Lesson 1",
+                            "Drawing Improvement Check",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: DrawingImprovementCheckPage.topRowBlue,

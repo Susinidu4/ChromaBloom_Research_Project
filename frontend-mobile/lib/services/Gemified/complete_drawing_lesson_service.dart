@@ -1,143 +1,234 @@
 // services/gamified_knowledge_builder/complete_drawing_lesson_service.dart
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class CompleteDrawingLessonService {
-  // ✅ Change this based on platform:
-  // Android emulator: http://10.0.2.2:5000
-  // Real device: http://YOUR_PC_IP:5000
-  // Flutter web: http://localhost:5000
-  static const String _baseUrl = "http://localhost:5000";
+  // ✅ Set this correctly:
+  // Android emulator  : http://10.0.2.2:5000
+  // Real device (WiFi): http://192.168.x.x:5000   (your PC IP)
+  // Flutter web       : http://localhost:5000
+  static String baseUrl = "http://localhost:5000";
 
-  // ✅ Your route
+  // ✅ Route base (matches your Express mount)
   static const String _path = "/chromabloom/completed-drawing-lessons";
 
-  static Map<String, String> _headers() => {
+  static const Duration _timeout = Duration(seconds: 20);
+
+  static Map<String, String> _headers() => const {
         "Content-Type": "application/json",
         "Accept": "application/json",
       };
 
   static Exception _errorFromResponse(http.Response res) {
     try {
-      final data = jsonDecode(res.body);
-      final msg = data["message"] ?? data["error"] ?? "Request failed";
-      return Exception(msg);
+      final body = (res.body.isEmpty) ? {} : jsonDecode(res.body);
+      if (body is Map) {
+        final msg = body["message"] ?? body["error"] ?? "Request failed";
+        return Exception("$msg (${res.statusCode})");
+      }
+      return Exception("Request failed (${res.statusCode})");
     } catch (_) {
       return Exception("Request failed (${res.statusCode})");
     }
   }
 
-  /// ✅ POST: Create or update completion (backend prevents duplicates by lesson_id + user_id)
-  /// Body: { lesson_id, user_id, correctness_rate }  correctness_rate = 0.0 - 1.0
+  static Exception _networkError(Object e) {
+    if (e is TimeoutException) {
+      return Exception("Request timeout. Check baseUrl / server / Wi-Fi.");
+    }
+    if (e is SocketException) {
+      return Exception("Server not reachable. Check baseUrl / Wi-Fi / backend.");
+    }
+    return Exception("Network error: $e");
+  }
+
+  static Uri _uri(String subPath) => Uri.parse("$baseUrl$_path$subPath");
+
+  // ✅ Normalize lessonId to avoid saving null/empty/"null"
+  static String _normalizeLessonId(String lessonId) {
+    final id = lessonId.trim();
+    if (id.isEmpty || id.toLowerCase() == "null" || id.toLowerCase() == "undefined") {
+      throw Exception("Invalid lessonId provided. (empty/null)");
+    }
+    return id;
+  }
+
+  /// ✅ POST /chromabloom/completed-drawing-lessons
+  /// Body: { lesson_id, user_id, correctness_rate }  correctness_rate = 0..1
   static Future<Map<String, dynamic>> createCompletedLesson({
     required String lessonId,
     required String userId,
-    double? correctnessRate, // 0..1 (ex: 0.76)
+    double? correctnessRate, // 0..1
   }) async {
-    final url = Uri.parse("$_baseUrl$_path");
+    final normalizedLessonId = _normalizeLessonId(lessonId);
 
+    // ✅ Send aliases too (in case backend expects a different field name)
     final body = <String, dynamic>{
-      "lesson_id": lessonId,
-      "user_id": userId,
-      if (correctnessRate != null) "correctness_rate": correctnessRate,
+      "lesson_id": normalizedLessonId,          // ✅ your current expected key
+      "lessonId": normalizedLessonId,           // ✅ common alternative
+      "lesson": normalizedLessonId,             // ✅ common alternative
+      "drawing_lesson_id": normalizedLessonId,  // ✅ common alternative
+      "user_id": userId.trim(),
+      if (correctnessRate != null)
+        "correctness_rate": correctnessRate.clamp(0.0, 1.0),
     };
 
-    final res = await http
-        .post(url, headers: _headers(), body: jsonEncode(body))
-        .timeout(const Duration(seconds: 20));
+    try {
+      final res = await http
+          .post(_uri(""), headers: _headers(), body: jsonEncode(body))
+          .timeout(_timeout);
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// ✅ GET: All completed drawing lessons
+  /// ✅ GET /chromabloom/completed-drawing-lessons
   static Future<Map<String, dynamic>> getAllCompletedLessons() async {
-    final url = Uri.parse("$_baseUrl$_path");
+    try {
+      final res = await http.get(_uri(""), headers: _headers()).timeout(_timeout);
 
-    final res = await http
-        .get(url, headers: _headers())
-        .timeout(const Duration(seconds: 20));
-
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// ✅ GET: One completed record by ID (Mongo _id)
-  static Future<Map<String, dynamic>> getCompletedLessonById(
-      String recordId) async {
-    final url = Uri.parse("$_baseUrl$_path/$recordId");
+  /// ✅ GET /chromabloom/completed-drawing-lessons/user/:userId
+  static Future<Map<String, dynamic>> getCompletedLessonsByUser(String userId) async {
+    try {
+      final res = await http
+          .get(_uri("/user/${userId.trim()}"), headers: _headers())
+          .timeout(_timeout);
 
-    final res = await http
-        .get(url, headers: _headers())
-        .timeout(const Duration(seconds: 20));
-
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// ✅ GET: Completed lessons for a user
-  static Future<Map<String, dynamic>> getCompletedLessonsByUser(
-      String userId) async {
-    final url = Uri.parse("$_baseUrl$_path/user/$userId");
+  /// ✅ GET /chromabloom/completed-drawing-lessons/:id
+  static Future<Map<String, dynamic>> getCompletedLessonById(String recordId) async {
+    try {
+      final res = await http
+          .get(_uri("/${recordId.trim()}"), headers: _headers())
+          .timeout(_timeout);
 
-    final res = await http
-        .get(url, headers: _headers())
-        .timeout(const Duration(seconds: 20));
-
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// ✅ PUT: Update completed record by ID
-  /// You can update lesson_id / user_id / correctness_rate
+  /// ✅ GET /chromabloom/completed-drawing-lessons/lesson/:lessonId/user/:userId
+  static Future<Map<String, dynamic>> getCompletedByLessonAndUser({
+    required String lessonId,
+    required String userId,
+  }) async {
+    final normalizedLessonId = _normalizeLessonId(lessonId);
+
+    try {
+      final res = await http
+          .get(_uri("/lesson/$normalizedLessonId/user/${userId.trim()}"), headers: _headers())
+          .timeout(_timeout);
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
+    }
+  }
+
+  /// ✅ GET /chromabloom/completed-drawing-lessons/has-completed/lesson/:lessonId/user/:userId
+  static Future<bool> hasCompletedLesson({
+    required String lessonId,
+    required String userId,
+  }) async {
+    final normalizedLessonId = _normalizeLessonId(lessonId);
+
+    try {
+      final res = await http
+          .get(
+            _uri("/has-completed/lesson/$normalizedLessonId/user/${userId.trim()}"),
+            headers: _headers(),
+          )
+          .timeout(_timeout);
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final data = json["data"];
+        return data != null;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
+    }
+  }
+
+  /// ✅ PUT /chromabloom/completed-drawing-lessons/:id
   static Future<Map<String, dynamic>> updateCompletedLesson({
     required String recordId,
     String? lessonId,
     String? userId,
     double? correctnessRate, // 0..1
   }) async {
-    final url = Uri.parse("$_baseUrl$_path/$recordId");
-
     final body = <String, dynamic>{
-      if (lessonId != null) "lesson_id": lessonId,
-      if (userId != null) "user_id": userId,
-      if (correctnessRate != null) "correctness_rate": correctnessRate,
+      if (lessonId != null) "lesson_id": _normalizeLessonId(lessonId),
+      if (lessonId != null) "lessonId": _normalizeLessonId(lessonId),
+      if (lessonId != null) "lesson": _normalizeLessonId(lessonId),
+      if (lessonId != null) "drawing_lesson_id": _normalizeLessonId(lessonId),
+      if (userId != null) "user_id": userId.trim(),
+      if (correctnessRate != null) "correctness_rate": correctnessRate.clamp(0.0, 1.0),
     };
 
-    final res = await http
-        .put(url, headers: _headers(), body: jsonEncode(body))
-        .timeout(const Duration(seconds: 20));
+    try {
+      final res = await http
+          .put(_uri("/${recordId.trim()}"), headers: _headers(), body: jsonEncode(body))
+          .timeout(_timeout);
 
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// ✅ DELETE: Remove completed record by ID
-  static Future<Map<String, dynamic>> deleteCompletedLesson(
-      String recordId) async {
-    final url = Uri.parse("$_baseUrl$_path/$recordId");
+  /// ✅ DELETE /chromabloom/completed-drawing-lessons/:id
+  static Future<Map<String, dynamic>> deleteCompletedLesson(String recordId) async {
+    try {
+      final res = await http
+          .delete(_uri("/${recordId.trim()}"), headers: _headers())
+          .timeout(_timeout);
 
-    final res = await http
-        .delete(url, headers: _headers())
-        .timeout(const Duration(seconds: 20));
-
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _errorFromResponse(res);
+    } catch (e) {
+      throw _networkError(e);
     }
-    throw _errorFromResponse(res);
   }
 
-  /// Small helper: convert model output like 76% into correctness_rate 0.76 (if needed)
+  /// Helper: convert model output like 76 (%) into 0.76 (if needed)
   static double percentToRate(num percent) {
     final p = percent.toDouble();
     return (p <= 1.0) ? p : (p / 100.0);

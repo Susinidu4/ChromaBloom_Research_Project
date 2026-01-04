@@ -59,33 +59,36 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
     }
   }
 
-String _tipsToText(dynamic tips) {
-  if (tips == null) return "No tips available.";
-  if (tips is! List || tips.isEmpty) return "No tips available.";
+  String _tipsToText(dynamic tips) {
+    if (tips == null) return "No tips available.";
+    if (tips is! List || tips.isEmpty) return "No tips available.";
 
-  final lines = <String>[];
+    final lines = <String>[];
 
-  for (int i = 0; i < tips.length; i++) {
-    final t = tips[i];
+    for (int i = 0; i < tips.length; i++) {
+      final t = tips[i];
+      String tipText = "";
 
-    // tips item can be {tip_number: 1, tip: "...", _id: "..."} OR a plain string
-    String tipText = "";
+      if (t is Map) {
+        tipText = (t["tip"] ?? "").toString().trim();
+      } else {
+        tipText = t.toString().trim();
+      }
 
-    if (t is Map) {
-      tipText = (t["tip"] ?? "").toString().trim(); // ✅ only show the tip text
-    } else {
-      tipText = t.toString().trim();
+      if (tipText.isNotEmpty) {
+        lines.add("${lines.length + 1}. $tipText");
+      }
     }
 
-    if (tipText.isNotEmpty) {
-      lines.add("${lines.length + 1}. $tipText"); // keep numbering clean
-    }
+    if (lines.isEmpty) return "No tips available.";
+    return lines.join("\n\n");
   }
 
-  if (lines.isEmpty) return "No tips available.";
-  return lines.join("\n\n");
-}
-
+  String _extractLessonId(Map<String, dynamic> lesson) {
+    // ✅ supports both id and _id
+    final id = (lesson["id"] ?? lesson["_id"] ?? "").toString();
+    return id;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +132,8 @@ String _tipsToText(dynamic tips) {
                   }
 
                   final lesson = snapshot.data ?? {};
+                  final lessonId = _extractLessonId(lesson);
+
                   final title = (lesson["title"] ?? "Untitled").toString();
                   final description = (lesson["description"] ?? "").toString();
                   final videoUrl = (lesson["video_url"] ?? "").toString();
@@ -182,7 +187,6 @@ String _tipsToText(dynamic tips) {
 
                         const SizedBox(height: 12),
 
-                        // ✅ Hybrid player: web uses <video>, mobile uses video_player
                         HybridVideoPlayer(videoUrl: videoUrl, height: 180),
 
                         const SizedBox(height: 14),
@@ -190,10 +194,19 @@ String _tipsToText(dynamic tips) {
                         _TipCard(
                           tipText: tipsText,
                           onContinue: () {
+                            if (lessonId.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Lesson ID not found."),
+                                ),
+                              );
+                              return;
+                            }
+
                             Navigator.pushNamed(
                               context,
                               '/drawingImprovementCheck',
-                              arguments: lesson["id"].toString(),
+                              arguments: lessonId, // ✅ PASS lessonId
                             );
                           },
                         ),
