@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../services/Cognitive_Progress_Prediction/cognitive_progress_service.dart';
+import 'package:provider/provider.dart';
 
-// ✅ Import your shared widgets
+import '../../services/Cognitive_Progress_Prediction/cognitive_progress_service.dart';
+import '../../services/user_services/child_api.dart';
+import '../../state/session_provider.dart'; // <-- adjust path to your SessionProvider file
+
 import '../others/header.dart';
 import '../others/navBar.dart';
 
@@ -9,12 +12,14 @@ class ProgressPredictionScreen extends StatefulWidget {
   const ProgressPredictionScreen({super.key});
 
   @override
-  State<ProgressPredictionScreen> createState() => _ProgressPredictionScreenState();
+  State<ProgressPredictionScreen> createState() =>
+      _ProgressPredictionScreenState();
 }
 
 class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
-  // ✅ Android emulator: 10.0.2.2 (if you're on real phone, use your PC IP)
+  // ✅ If emulator use: http://10.0.2.2:5000
   final api = ProgressPredictionApi(baseUrl: "http://localhost:5000");
+  final childApi = ChildApi();
 
   bool loading = false;
   double? predictedScore;
@@ -24,20 +29,14 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
-  // --------------------------
-  // Dropdown values
-  // --------------------------
   String gender = "male";
   String diagnosisType = "Trisomy21";
   String activity = "Matching picture cards";
   String moodLabel = "tired";
   String caregiverMoodLabel = "stressed";
 
-  // --------------------------
-  // Text controllers (numbers)
-  // --------------------------
   final ageCtrl = TextEditingController(text: "5");
-  final durationCtrl = TextEditingController(text: "5"); // minutes
+  final durationCtrl = TextEditingController(text: "5");
   final sentimentCtrl = TextEditingController(text: "-0.2");
   final stressCtrl = TextEditingController(text: "0.68");
   final sleepCtrl = TextEditingController(text: "6.5");
@@ -60,9 +59,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
 
   final phoneScreenCtrl = TextEditingController(text: "180");
 
-  // --------------------------
-  // Helpers
-  // --------------------------
   double _d(TextEditingController c) => double.parse(c.text.trim());
   int _i(TextEditingController c) => int.parse(c.text.trim());
 
@@ -78,8 +74,67 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return null;
   }
 
+  /// ✅ Try to get childId from session JSON first.
+  /// If not present, fetch children using caregiverId.
+  Future<String> _resolveChildId(SessionProvider session) async {
+    final caregiver = session.caregiver;
+    if (caregiver == null) throw Exception("Not logged in");
+
+    // caregiverId for fetching children
+    final caregiverId =
+        (caregiver["_id"] ?? caregiver["id"] ?? caregiver["caregiverId"] ?? "")
+            .toString();
+    if (caregiverId.isEmpty) {
+      throw Exception("Caregiver ID not found in session");
+    }
+
+    // 1) If session already contains child info
+    // Common patterns:
+    // caregiver["childId"]
+    // caregiver["child_id"]
+    // caregiver["children"] = [{_id:...}]
+    // caregiver["childIds"] = ["..."]
+    final directChildId =
+        (caregiver["childId"] ?? caregiver["child_id"] ?? "").toString();
+    if (directChildId.isNotEmpty) return directChildId;
+
+    if (caregiver["childIds"] is List && (caregiver["childIds"] as List).isNotEmpty) {
+      final first = (caregiver["childIds"] as List).first;
+      final id = first?.toString() ?? "";
+      if (id.isNotEmpty) return id;
+    }
+
+    if (caregiver["children"] is List && (caregiver["children"] as List).isNotEmpty) {
+      final first = (caregiver["children"] as List).first;
+      if (first is Map) {
+        final id = (first["_id"] ?? first["id"] ?? "").toString();
+        if (id.isNotEmpty) return id;
+      }
+    }
+
+    // 2) Otherwise fetch from backend using caregiverId
+    final kids = await ChildApi.getChildrenByCaregiver(
+      caregiverId
+    );
+
+    if (kids.isEmpty) {
+      throw Exception("No children found for this caregiver");
+    }
+
+    final firstKid = kids.first;
+    final childId = (firstKid["_id"] ?? firstKid["id"] ?? "").toString();
+
+    if (childId.isEmpty) {
+      throw Exception("Child ID not found in children response");
+    }
+
+    return childId;
+  }
+
   Future<void> _predict() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final session = context.read<SessionProvider>();
 
     setState(() {
       loading = true;
@@ -90,15 +145,16 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     });
 
     try {
+      // ✅ Get childId (use as userId when saving)
+      final childId = await _resolveChildId(session);
+
       final features = <String, dynamic>{
-        // categoricals
         "gender": gender,
         "diagnosis_type": diagnosisType,
         "activity": activity,
         "mood_label": moodLabel,
         "caregiver_mood_label": caregiverMoodLabel,
 
-        // numerics
         "age": _i(ageCtrl),
         "time_duration_for_activity": _i(durationCtrl),
         "sentiment_score": _d(sentimentCtrl),
@@ -116,25 +172,38 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         "motor_skills_accuracy": _d(motorAccCtrl),
         "average_response_time": _d(responseTimeCtrl),
 
-        // caregiver related
         "caregiver_sentiment_score": _d(caregiverSentimentCtrl),
         "caregiver_stress_score_combined": _d(caregiverStressCtrl),
         "caregiver_phone_screen_time_mins": _i(caregiverScreenCtrl),
         "caregiver_sleep_hours": _d(caregiverSleepCtrl),
 
-        // still required by your model
         "phone_screen_time_mins": _i(phoneScreenCtrl),
       };
 
+      // ✅ 1) Predict
       final data = await api.predictProgress(features);
       final result = data["result"];
 
+      final score = (result["predicted_score_next_14_days"] as num).toDouble();
+
+      // ✅ 2) Update UI
       setState(() {
-        predictedScore =
-            (result["predicted_score_next_14_days"] as num).toDouble();
-        positive = result["explainability"]["top_positive_factors"] ?? [];
-        negative = result["explainability"]["top_negative_factors"] ?? [];
+        predictedScore = score;
+        positive = result["explainability"]?["top_positive_factors"] ?? [];
+        negative = result["explainability"]?["top_negative_factors"] ?? [];
       });
+
+      // ✅ 3) Save using childId as userId
+      await api.savePrediction(
+        userId: childId,
+        progressPrediction: score,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Prediction saved for child: $childId ✅")),
+        );
+      }
     } catch (e) {
       setState(() => errorMsg = e.toString());
     } finally {
@@ -142,8 +211,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
   }
 
-  Widget _numField(String label, TextEditingController ctrl,
-      {String hint = ""}) {
+  Widget _numField(String label, TextEditingController ctrl, {String hint = ""}) {
     return TextFormField(
       controller: ctrl,
       keyboardType:
@@ -173,8 +241,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
           value: value,
           isExpanded: true,
           items: items
-              .map((x) =>
-                  DropdownMenuItem(value: x, child: Text(x.toString())))
+              .map((x) => DropdownMenuItem(value: x, child: Text(x.toString())))
               .toList(),
           onChanged: onChanged,
         ),
@@ -209,6 +276,36 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     );
   }
 
+  Widget _predictionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 48,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: loading ? null : _predict,
+            child: Text(loading ? "Predicting..." : "Predict Now"),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (errorMsg != null)
+          Text(errorMsg!, style: const TextStyle(color: Colors.red)),
+        if (predictedScore != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            "Predicted Score (Next 14 Days): ${predictedScore!.toStringAsFixed(2)}",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          _factorList("Top Positive Factors", positive),
+          const SizedBox(height: 16),
+          _factorList("Top Negative Factors", negative),
+        ],
+      ],
+    );
+  }
+
   @override
   void dispose() {
     ageCtrl.dispose();
@@ -236,29 +333,27 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ✅ Bottom navbar
       bottomNavigationBar: const MainNavBar(currentIndex: 4),
-
-      // ✅ Page background (optional)
       backgroundColor: const Color(0xFFF3E8E8),
-
       body: SafeArea(
         child: Column(
           children: [
-            // ✅ Header
             const MainHeader(
               title: "Hello !",
               subtitle: "Cognitive Progress Prediction",
               notificationCount: 0,
             ),
-
-            // ✅ Content
             Expanded(
               child: Form(
                 key: _formKey,
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    _predictionSection(),
+                    const SizedBox(height: 20),
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
+
                     _dropdown<String>(
                       label: "Gender",
                       value: gender,
@@ -291,8 +386,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                       label: "Child Mood Label",
                       value: moodLabel,
                       items: const ["happy", "neutral", "tired", "sad", "angry"],
-                      onChanged: (v) =>
-                          setState(() => moodLabel = v ?? "tired"),
+                      onChanged: (v) => setState(() => moodLabel = v ?? "tired"),
                     ),
                     const SizedBox(height: 12),
 
@@ -325,22 +419,29 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                         hint: "e.g., 180"),
                     const SizedBox(height: 12),
 
-                    _numField("Total Tasks Assigned", totalAssignedCtrl, hint: "e.g., 6"),
+                    _numField("Total Tasks Assigned", totalAssignedCtrl,
+                        hint: "e.g., 6"),
                     const SizedBox(height: 12),
-                    _numField("Total Tasks Completed", totalCompletedCtrl, hint: "e.g., 5"),
+                    _numField("Total Tasks Completed", totalCompletedCtrl,
+                        hint: "e.g., 5"),
                     const SizedBox(height: 12),
-                    _numField("Completion Rate", completionRateCtrl, hint: "e.g., 0.83"),
+                    _numField("Completion Rate", completionRateCtrl,
+                        hint: "e.g., 0.83"),
                     const SizedBox(height: 12),
-                    _numField("Engagement Minutes", engagementCtrl, hint: "e.g., 18.5"),
+                    _numField("Engagement Minutes", engagementCtrl,
+                        hint: "e.g., 18.5"),
                     const SizedBox(height: 12),
 
                     _numField("Memory Accuracy", memoryAccCtrl, hint: "0.0 - 1.0"),
                     const SizedBox(height: 12),
-                    _numField("Attention Accuracy", attentionAccCtrl, hint: "0.0 - 1.0"),
+                    _numField("Attention Accuracy", attentionAccCtrl,
+                        hint: "0.0 - 1.0"),
                     const SizedBox(height: 12),
-                    _numField("Problem Solving Accuracy", problemAccCtrl, hint: "0.0 - 1.0"),
+                    _numField("Problem Solving Accuracy", problemAccCtrl,
+                        hint: "0.0 - 1.0"),
                     const SizedBox(height: 12),
-                    _numField("Motor Skills Accuracy", motorAccCtrl, hint: "0.0 - 1.0"),
+                    _numField("Motor Skills Accuracy", motorAccCtrl,
+                        hint: "0.0 - 1.0"),
                     const SizedBox(height: 12),
                     _numField("Average Response Time (sec)", responseTimeCtrl,
                         hint: "e.g., 3.4"),
@@ -360,35 +461,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     _numField("Caregiver Phone Screen Time (mins)", caregiverScreenCtrl,
                         hint: "e.g., 210"),
                     const SizedBox(height: 12),
-                    _numField("Caregiver Sleep Hours", caregiverSleepCtrl, hint: "e.g., 5.8"),
+                    _numField("Caregiver Sleep Hours", caregiverSleepCtrl,
+                        hint: "e.g., 5.8"),
                     const SizedBox(height: 20),
-
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: loading ? null : _predict,
-                        child: Text(loading ? "Predicting..." : "Predict Now"),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (errorMsg != null)
-                      Text(errorMsg!, style: const TextStyle(color: Colors.red)),
-
-                    if (predictedScore != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        "Predicted Score (Next 14 Days): ${predictedScore!.toStringAsFixed(2)}",
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      _factorList("Top Positive Factors", positive),
-                      const SizedBox(height: 16),
-                      _factorList("Top Negative Factors", negative),
-                      const SizedBox(height: 16),
-                    ],
                   ],
                 ),
               ),

@@ -1,6 +1,15 @@
 import express from "express";
 import axios from "axios";
 
+import {
+  createProgress,
+  getAllProgress,
+  getProgressById,
+  getProgressByUserId,
+  updateProgress,
+  deleteProgress,
+} from "../../controllers/Cognitive_Progress_Prediction/cognitiveProgressController.js";
+
 const router = express.Router();
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
@@ -44,6 +53,18 @@ function validateRequiredFeatures(features) {
   return missing;
 }
 
+/**
+ * ✅ SAVE prediction (MongoDB)
+ * POST /chromabloom/cognitiveProgress_2
+ * body: { userId, progress_prediction }
+ */
+router.post("/", createProgress);
+
+/**
+ * ✅ PREDICT (Node -> Python)
+ * POST /chromabloom/cognitiveProgress_2/predict-progress
+ * body: { features: {...}, top_k?: number }
+ */
 router.post("/predict-progress", async (req, res) => {
   try {
     const { features } = req.body;
@@ -52,7 +73,6 @@ router.post("/predict-progress", async (req, res) => {
       return res.status(400).json({ message: "features object is required" });
     }
 
-    // ✅ Validate required fields
     const missing = validateRequiredFeatures(features);
     if (missing.length > 0) {
       return res.status(400).json({
@@ -61,10 +81,9 @@ router.post("/predict-progress", async (req, res) => {
       });
     }
 
-    // Call Python ML service
     const mlRes = await axios.post(`${ML_SERVICE_URL}/predict`, {
       features,
-      top_k: 10,
+      top_k: req.body?.top_k ?? 10,
     });
 
     return res.json({
@@ -80,5 +99,12 @@ router.post("/predict-progress", async (req, res) => {
     });
   }
 });
+
+// (Optional) CRUD endpoints if you want them later
+router.get("/", getAllProgress);
+router.get("/:id", getProgressById);
+router.get("/user/:userId", getProgressByUserId);
+router.put("/:id", updateProgress);
+router.delete("/:id", deleteProgress);
 
 export default router;
