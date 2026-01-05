@@ -85,6 +85,19 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     }
   }
 
+  // Check if selected date is past date
+  bool isPastSelectedDate(DateTime selectedDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final chosen = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+
+    return chosen.isBefore(today);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -195,7 +208,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
               ((activityObj["media_links"] is List &&
                   (activityObj["media_links"] as List).isNotEmpty)
               ? (activityObj["media_links"][0]).toString()
-              : "assets/brushing_teeth.png"),
+              : "assets/systemActivityDemo.png"),
 
           // keep extra fields if you want
           "description": (activityObj["description"] ?? "").toString(),
@@ -245,6 +258,29 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       );
 
       // expect List<Map>
+      data.sort((a, b) {
+        DateTime parseDate(dynamic x) {
+          final s = (x ?? "").toString();
+          return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        }
+
+        // try common fields (use whatever your backend returns)
+        final da = parseDate(
+          a["createdAt"] ??
+              a["created_at"] ??
+              a["updatedAt"] ??
+              a["scheduled_date"],
+        );
+        final db = parseDate(
+          b["createdAt"] ??
+              b["created_at"] ??
+              b["updatedAt"] ??
+              b["scheduled_date"],
+        );
+
+        return db.compareTo(da); // ✅ latest first
+      });
+
       setState(() => yourTasks = data);
     } catch (e) {
       setState(() => errorMsg = e.toString());
@@ -312,7 +348,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
     final showYour = !isSuggested;
     final bool isDailyLimitReached = yourTasks.length >= 10;
-
+    final canAdd = !isDailyLimitReached && !isPastSelectedDate(selectedDate);
     return Scaffold(
       backgroundColor: pageBg,
       body: SafeArea(
@@ -423,7 +459,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                             : "In Progress"));
 
                             final img =
-                                (t["img"] ?? "assets/brushing_teeth.png")
+                                (t["img"] ?? "assets/activityDemo.png")
                                     .toString();
 
                             return _TaskCard(
@@ -487,7 +523,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           itemBuilder: (context, i) {
                             final t = filteredTasks[i];
                             final img =
-                                (t["img"] ?? "assets/brushing_teeth.png")
+                                (t["img"] ?? "assets/activityDemo.png")
                                     .toString();
 
                             return _TaskCard(
@@ -532,9 +568,9 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
                     if (showYour) ...[
                       _CreateTaskButton(
-                        enabled: !isDailyLimitReached,
+                        enabled: canAdd,
                         onTap: () async {
-                          if (isDailyLimitReached) return;
+                          if (!canAdd) return;
 
                           await Navigator.push(
                             context,
@@ -553,6 +589,18 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           "Daily limit reached (10 activities)",
                           style: TextStyle(
                             color: Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+
+                      if (isPastSelectedDate(selectedDate)) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          "You cannot add tasks for past dates",
+                          style: TextStyle(
+                            color: Color(0xFFBD9A6B),
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -940,8 +988,8 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageWidget = isNetwork
-        ? Image.network(imagePath, height: 80, width: 80, fit: BoxFit.contain)
-        : Image.asset(imagePath, height: 80, width: 80, fit: BoxFit.contain);
+        ? Image.network(imagePath, height: 110, width: 90, fit: BoxFit.contain)
+        : Image.asset(imagePath, height: 110, width: 90, fit: BoxFit.contain);
 
     return InkWell(
       onTap: onTap,

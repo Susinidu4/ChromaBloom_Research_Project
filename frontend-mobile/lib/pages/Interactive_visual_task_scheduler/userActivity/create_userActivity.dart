@@ -1,14 +1,15 @@
-// createUserActivity.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
 
 import '../../others/navBar.dart';
 import '../../others/header.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
-
-import 'create_userActivity.dart';
+import '../../../services/user_services/child_api.dart';
 
 class CreateUserActivityScreen extends StatefulWidget {
   const CreateUserActivityScreen({super.key});
@@ -27,6 +28,28 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   static const Color shadow = Color(0x33000000);
   static const Color btn = Color(0xFFBD9A6B);
 
+  // Themed alert
+  void showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) {
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  final TextEditingController durationCtrl = TextEditingController();
+  final FocusNode durationFocus = FocusNode();
+
   final _formKey = GlobalKey<FormState>();
 
   DateTime selectedDate = DateTime.now();
@@ -35,16 +58,52 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   final descCtrl = TextEditingController();
 
   // Duration UI
-  int durationA = 0;
   int durationB = 0;
 
   // Steps (dynamic)
   final List<TextEditingController> stepCtrls = [TextEditingController()];
 
   // ✅ Backend-required dropdowns
-  String ageGroup = "1";
   String developmentArea = "motor";
   String difficulty = "easy"; // backend expects lowercase
+
+  // Calculate age from DOB
+  int calculateAgeFromDob(String dob) {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+
+    int age = today.year - birthDate.year;
+
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+
+    return age;
+  }
+
+  // Get age of logged-in caregiver's child
+  Future<int?> getLoggedCaregiverChildAge() async {
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    if (caregiverId.isEmpty) return null;
+
+    final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+
+    if (children.isEmpty) return null;
+
+    // 👉 If only one child → take first
+    final child = children.first;
+
+    final dob = child['dateOfBirth']; // ISO string: "2019-06-12"
+    if (dob == null) return null;
+
+    return calculateAgeFromDob(dob);
+  }
 
   // Image
   File? selectedImageFile;
@@ -52,13 +111,21 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
   bool saving = false;
 
+  @override
+  void initState() {
+    super.initState();
+    durationCtrl.text = durationB.toString().padLeft(2, "0");
+  }
+
   // TEMP caregiver
-  static const String hardcodedCaregiverId = "p-0001";
+  //static const String hardcodedCaregiverId = "p-0001";
 
   @override
   void dispose() {
     titleCtrl.dispose();
     descCtrl.dispose();
+    durationCtrl.dispose();
+    durationFocus.dispose();
     for (final c in stepCtrls) {
       c.dispose();
     }
@@ -71,7 +138,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime(now.year - 1),
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 2),
       builder: (context, child) {
         return Theme(
@@ -103,7 +170,18 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     if (picked != null) setState(() => selectedDate = picked);
   }
 
-  void _addStep() => setState(() => stepCtrls.add(TextEditingController()));
+  void _addStep() {
+    if (stepCtrls.length >= 10) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.warning,
+        title: 'Limit reached',
+        text: 'You can add up to 10 steps only.',
+      );
+      return;
+    }
+    setState(() => stepCtrls.add(TextEditingController()));
+  }
 
   void _removeStep(int index) {
     if (stepCtrls.length <= 1) return;
@@ -113,23 +191,18 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     });
   }
 
-  void _incDurationA() =>
-      setState(() => durationA = (durationA + 1).clamp(0, 99));
-  void _decDurationA() =>
-      setState(() => durationA = (durationA - 1).clamp(0, 99));
-  void _incDurationB() =>
-      setState(() => durationB = (durationB + 1).clamp(0, 59));
-  void _decDurationB() =>
-      setState(() => durationB = (durationB - 1).clamp(0, 59));
+  void _setDurationB(int v) {
+    final clamped = v.clamp(0, 60);
+    setState(() => durationB = clamped);
+    durationCtrl.text = clamped.toString().padLeft(2, "0");
+  }
+
+  void _incDurationB() => _setDurationB(durationB + 1);
+  void _decDurationB() => _setDurationB(durationB - 1);
 
   String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
-  int _estimatedDurationMinutes() {
-    // You used two boxes; treat them as minutes like: A:B (example)
-    // If you want A as tens and B as ones => (A*10 + B)
-    // For now: A = minutes, B = extra minutes (0..59)
-    return (durationA * 60) + durationB;
-  }
+  int _estimatedDurationMinutes() => durationB;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -146,7 +219,89 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // ✅ Build steps in backend format
+    // Get caregiver ID
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    // Get child age
+    final childAge = await getLoggedCaregiverChildAge();
+
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    final chosen = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+
+    final durationMin = durationB;
+
+    if (chosen.isBefore(todayOnly)) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Invalid date',
+        text: 'You can select today or a future date only.',
+      );
+      return;
+    }
+
+    if (developmentArea.trim().isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Required',
+        text: 'Please select a development area.',
+      );
+      return;
+    }
+
+    if (durationMin <= 0) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Duration required',
+        text: 'Please enter a duration (1 to 60 minutes).',
+      );
+      return;
+    }
+    if (durationMin > 60) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Invalid duration',
+        text: 'Maximum duration is 60 minutes.',
+      );
+      return;
+    }
+
+    if (stepCtrls.any((c) => c.text.trim().isEmpty)) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Steps required',
+        text: 'Please fill all step fields (at least 1, max 10).',
+      );
+      return;
+    }
+
+    if (caregiverId.isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Session Error',
+        text: 'Please login again',
+      );
+      return;
+    }
+
+    if (childAge == null) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: 'No Child Found',
+        text: 'Please add a child profile first',
+      );
+      return;
+    }
+
+    // Build steps in backend format
     final steps = List.generate(stepCtrls.length, (i) {
       return {"step_number": i + 1, "instruction": stepCtrls[i].text.trim()};
     });
@@ -155,10 +310,10 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
     try {
       final res = await UserActivityService.createUserActivity(
-        createdBy: hardcodedCaregiverId,
+        createdBy: caregiverId,
         title: titleCtrl.text.trim(),
         description: descCtrl.text.trim(),
-        ageGroup: ageGroup,
+        ageGroup: childAge.toString(),
         developmentArea: developmentArea,
         scheduledDate: selectedDate,
         estimatedDurationMinutes: _estimatedDurationMinutes(),
@@ -168,17 +323,10 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       );
 
       // Success
-      QuickAlert.show(
-        context: context,
+      showThemedAlert(
         type: QuickAlertType.success,
         title: 'Success',
         text: 'Activity created successfully',
-        confirmBtnText: 'OK',
-
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        titleColor: const Color(0xFFBD9A6B),
-        textColor: const Color(0xFFBD9A6B),
-        confirmBtnColor: const Color(0xFFBD9A6B),
       );
 
       // Reset UI
@@ -188,9 +336,8 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       setState(() {
         selectedImageFile = null;
         imageLabel = "";
-        durationA = 0;
         durationB = 0;
-        ageGroup = "1";
+        durationCtrl.text = "00";
         developmentArea = "motor";
         difficulty = "easy";
       });
@@ -199,6 +346,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text("Failed: $e")));
     } finally {
+      if (!mounted) return;
       setState(() => saving = false);
     }
   }
@@ -312,33 +460,6 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
-            // ✅ Age Group
-            _label("Age Group :"),
-            const SizedBox(height: 6),
-            _inputLike(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: ageGroup,
-                  isExpanded: true,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: textSoft,
-                  ),
-                  items: List.generate(10, (i) {
-                    final v = "${i + 1}";
-                    return DropdownMenuItem(value: v, child: Text(v));
-                  }),
-                  onChanged: (v) => setState(() => ageGroup = v ?? "1"),
-                  style: const TextStyle(
-                    color: textSoft,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
             // ✅ Development Area
             _label("Development Area :"),
             const SizedBox(height: 6),
@@ -388,8 +509,13 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
             _underlineField(
               controller: titleCtrl,
               hint: "",
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Title required" : null,
+              maxLength: 50,
+              validator: (v) {
+                final t = (v ?? "").trim();
+                if (t.isEmpty) return "Title required";
+                if (t.length > 50) return "Max 50 characters";
+                return null;
+              },
             ),
 
             const SizedBox(height: 12),
@@ -405,14 +531,18 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
               child: TextFormField(
                 controller: descCtrl,
                 maxLines: 4,
+                maxLength: 150,
                 style: const TextStyle(color: Color(0xFF2F2A22)),
                 decoration: const InputDecoration(
                   contentPadding: EdgeInsets.all(12),
                   border: InputBorder.none,
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? "Description required"
-                    : null,
+                validator: (v) {
+                  final t = (v ?? "").trim();
+                  if (t.isEmpty) return "Description required";
+                  if (t.length > 150) return "Max 150 characters";
+                  return null;
+                },
               ),
             ),
 
@@ -429,14 +559,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _smallBoxNumber(durationA.toString()),
-                const SizedBox(width: 8),
-                const Text(
-                  ":",
-                  style: TextStyle(color: textSoft, fontSize: 18),
-                ),
-                const SizedBox(width: 8),
-                _smallBoxNumber(durationB.toString().padLeft(2, "0")),
+                _durationInputField(),
                 const SizedBox(width: 8),
                 _upDown(onUp: _incDurationB, onDown: _decDurationB),
                 const SizedBox(width: 8),
@@ -448,6 +571,15 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Maximum 60 minutes",
+              style: TextStyle(
+                color: textSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -636,14 +768,17 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     required TextEditingController controller,
     required String hint,
     String? Function(String?)? validator,
+    int? maxLength,
   }) => TextFormField(
     controller: controller,
     validator: validator,
+    maxLength: maxLength, // ✅
     style: const TextStyle(
       color: Color(0xFF2F2A22),
       fontWeight: FontWeight.w600,
     ),
     decoration: InputDecoration(
+      counterText: "", // ✅ hide counter
       hintText: hint,
       hintStyle: const TextStyle(color: Color(0xFFBFB2A0)),
       isDense: true,
@@ -677,25 +812,49 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     ),
   );
 
-  Widget _smallBoxNumber(String text) => Container(
-    width: 46,
+  Widget _durationInputField() => SizedBox(
+    width: 56,
     height: 38,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: const Color(0xFFF0E8DA),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: stroke, width: 1.2),
-      boxShadow: const [
-        BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
-      ],
-    ),
-    child: Text(
-      text,
+    child: TextFormField(
+      controller: durationCtrl,
+      focusNode: durationFocus,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      maxLength: 2,
       style: const TextStyle(
         color: textSoft,
         fontWeight: FontWeight.w800,
         fontSize: 14,
       ),
+      decoration: InputDecoration(
+        counterText: "",
+        filled: true,
+        fillColor: const Color(0xFFF0E8DA),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: stroke, width: 1.2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: stroke, width: 2.0),
+        ),
+      ),
+      onChanged: (val) {
+        final n = int.tryParse(val) ?? 0;
+        setState(() => durationB = n.clamp(0, 60));
+      },
+      onEditingComplete: () {
+        // when user finishes typing, normalize + pad + clamp
+        final n = int.tryParse(durationCtrl.text) ?? 0;
+        _setDurationB(n);
+        durationFocus.unfocus();
+      },
+
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly, // only numbers
+        LengthLimitingTextInputFormatter(2), // max 2 digits
+      ],
     ),
   );
 

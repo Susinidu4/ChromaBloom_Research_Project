@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quickalert/quickalert.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -22,6 +24,55 @@ class _DetailedUserActivityScreenState
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
 
+  void showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) {
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  Future<bool> showDeleteConfirm() async {
+    bool confirmed = false;
+
+    await QuickAlert.show(
+      context: context,
+      type: QuickAlertType.confirm,
+      title: 'Delete Task?',
+      text: 'This action cannot be undone.',
+      confirmBtnText: 'Delete',
+      cancelBtnText: 'Cancel',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B), 
+      cancelBtnTextStyle: const TextStyle(
+        color: Color(0xFFBD9A6B),
+        fontWeight: FontWeight.w700,
+      ),
+      onConfirmBtnTap: () {
+        confirmed = true;
+        Navigator.of(context).pop();
+      },
+      onCancelBtnTap: () {
+        confirmed = false;
+        Navigator.of(context).pop();
+      },
+    );
+
+    return confirmed;
+  }
+
   int progressPercent = 0;
   String statusText = "In Progress";
 
@@ -29,6 +80,8 @@ class _DetailedUserActivityScreenState
   late List<bool> stepDone;
 
   int completedMinutes = 0;
+
+  final TextEditingController completedCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -57,6 +110,8 @@ class _DetailedUserActivityScreenState
       completedMinutes = 0;
     }
 
+    completedCtrl.text = completedMinutes.toString();
+
     // ✅ compute initial progress using DB values
     final done = stepDone.where((x) => x).length;
     progressPercent = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
@@ -65,8 +120,9 @@ class _DetailedUserActivityScreenState
 
   @override
   void dispose() {
-    // ✅ stop speaking when leaving page
+    // stop speaking when leaving page
     TtsService.stop();
+    completedCtrl.dispose();
     super.dispose();
   }
 
@@ -101,10 +157,15 @@ class _DetailedUserActivityScreenState
     });
   }
 
-  void _incCompleted() =>
-      setState(() => completedMinutes = (completedMinutes + 1).clamp(0, 999));
-  void _decCompleted() =>
-      setState(() => completedMinutes = (completedMinutes - 1).clamp(0, 999));
+  void _incCompleted() => setState(() {
+    completedMinutes = (completedMinutes + 1).clamp(0, 60);
+    completedCtrl.text = completedMinutes.toString();
+  });
+
+  void _decCompleted() => setState(() {
+    completedMinutes = (completedMinutes - 1).clamp(0, 60);
+    completedCtrl.text = completedMinutes.toString();
+  });
 
   // ✅ TTS
   Future<void> _speakTitle() async => TtsService.speak(_title());
@@ -175,8 +236,12 @@ class _DetailedUserActivityScreenState
                       onStepChanged: _toggleStep,
                       imgUrl: imgUrl,
                       completedMinutes: completedMinutes,
+                      completedCtrl: completedCtrl,
                       onIncCompleted: _incCompleted,
                       onDecCompleted: _decCompleted,
+                      onCompletedChanged: (v) {
+                        setState(() => completedMinutes = v);
+                      },
 
                       // ✅ TTS callbacks
                       onSpeakTitle: _speakTitle,
@@ -188,36 +253,19 @@ class _DetailedUserActivityScreenState
                       onDelete: () async {
                         final mongoId = (widget.activity["_id"] ?? "")
                             .toString();
+
                         if (mongoId.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Cannot delete: missing _id"),
-                            ),
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: "Error",
+                            text: "Cannot delete: missing _id",
                           );
                           return;
                         }
 
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text("Delete this task?"),
-                            content: const Text(
-                              "This action cannot be undone.",
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text("Cancel"),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text("Delete"),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (ok != true) return;
+                        // ✅ QuickAlert confirmation
+                        final ok = await showDeleteConfirm();
+                        if (!ok) return;
 
                         try {
                           final res =
@@ -226,29 +274,99 @@ class _DetailedUserActivityScreenState
                               );
 
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(res["message"] ?? "Deleted"),
-                            ),
+
+                          showThemedAlert(
+                            type: QuickAlertType.success,
+                            title: 'Deleted',
+                            text:
+                                res["message"] ??
+                                'Activity deleted successfully.',
                           );
 
                           Navigator.pop(context, true);
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Delete failed: $e")),
+
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Delete Failed',
+                            text:
+                                'Something went wrong while deleting. Please try again.',
                           );
                         }
                       },
 
                       onSave: () async {
+                        // VALIDATION: at least 1 step and no empty instruction
+                        if (steps.isEmpty) {
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Steps Required',
+                            text: 'Please add at least one step before saving.',
+                          );
+
+                          return;
+                        }
+
+                        final hasEmpty = steps.any(
+                          (s) => (s["instruction"] ?? "")
+                              .toString()
+                              .trim()
+                              .isEmpty,
+                        );
+                        if (hasEmpty) {
+                          showThemedAlert(
+                            type: QuickAlertType.warning,
+                            title: 'Incomplete Steps',
+                            text:
+                                'Please fill all step instructions before saving.',
+                          );
+
+                          return;
+                        }
+
+                        // VALIDATION: duration required 1..60
+                        if (completedMinutes <= 0) {
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Duration Required',
+                            text:
+                                'Completed duration must be between 1 and 60 minutes.',
+                          );
+
+                          return;
+                        }
+                        if (completedMinutes > 60) {
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Invalid Duration',
+                            text: 'Maximum allowed duration is 60 minutes.',
+                          );
+
+                          return;
+                        }
+
+                        // VALIDATION: user must tick at least 1 checkbox if they enter completed time
+                        final anyChecked = stepDone.any((x) => x == true);
+
+                        if (completedMinutes > 0 && !anyChecked) {
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: "Steps Not Selected",
+                            text:
+                                "Please tick at least one step checkbox before saving.",
+                          );
+                          return;
+                        }
+
                         final mongoId = (widget.activity["_id"] ?? "")
                             .toString();
                         if (mongoId.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Cannot save: missing _id"),
-                            ),
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Save Failed',
+                            text:
+                                'Unable to save because required data is missing. Please try again.',
                           );
                           return;
                         }
@@ -262,13 +380,19 @@ class _DetailedUserActivityScreenState
                               );
 
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(res["message"] ?? "Saved")),
+                          showThemedAlert(
+                            type: QuickAlertType.success,
+                            title: 'Saved',
+                            text:
+                                res["message"] ?? 'Changes saved successfully.',
                           );
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Save failed: $e")),
+                          showThemedAlert(
+                            type: QuickAlertType.error,
+                            title: 'Save Failed',
+                            text:
+                                'Something went wrong while saving. Please try again.',
                           );
                         }
                       },
@@ -328,6 +452,8 @@ class _DetailCard extends StatelessWidget {
     required this.onStepChanged,
     required this.imgUrl,
     required this.completedMinutes,
+    required this.completedCtrl,
+
     required this.onIncCompleted,
     required this.onDecCompleted,
     required this.onDelete,
@@ -338,9 +464,13 @@ class _DetailCard extends StatelessWidget {
     required this.onSpeakTitle,
     required this.onSpeakDescription,
     required this.onSpeakAllSteps,
-    required this.onSpeakSingleStep, // ✅ NEW
+    required this.onSpeakSingleStep,
     required this.onStopTts,
+
+    required this.onCompletedChanged,
   });
+
+  final TextEditingController completedCtrl;
 
   final String title;
   final String statusText;
@@ -373,6 +503,8 @@ class _DetailCard extends StatelessWidget {
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
   static const Color textDark = Color(0xFF2F2A22);
+
+  final ValueChanged<int> onCompletedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -650,12 +782,44 @@ class _DetailCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: stroke, width: 1.2),
                 ),
-                child: Text(
-                  "$completedMinutes",
-                  style: const TextStyle(
-                    color: textDark,
-                    fontWeight: FontWeight.w800,
+                child: TextFormField(
+                  controller: completedCtrl,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+
+                  // ✅ only numbers, max 2 digits
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
+
+                  onChanged: (v) {
+                    final n = int.tryParse(v) ?? 0;
+                    final clamped = n.clamp(0, 60);
+
+                    onCompletedChanged(clamped);
+                    completedCtrl.value = completedCtrl.value.copyWith(
+                      text: clamped.toString(),
+                      selection: TextSelection.collapsed(
+                        offset: clamped.toString().length,
+                      ),
+                    );
+                  },
+
+                  onEditingComplete: () {
+                    final n = int.tryParse(completedCtrl.text) ?? 0;
+                    final clamped = n.clamp(0, 60);
+
+                    onCompletedChanged(clamped);
+                    completedCtrl.text = clamped.toString();
+                    FocusScope.of(context).unfocus();
+                  },
                 ),
               ),
               const SizedBox(width: 8),
