@@ -284,30 +284,158 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     );
   }
 
-  Widget _factorList(String title, List<dynamic> factors) {
+  // ----------------- Decorated UI (matches your PNG) -----------------
+  static const Color _cardBg = Color(0xFFF1E6D8);
+  static const Color _barFill = Color(0xFFC4A26A);
+  static const Color _barTrack = Color(0xFFD9D9D9);
+  static const Color _outlineBlue = Color(0xFF2B79FF);
+
+  BoxDecoration _pngCardDecoration() {
+    return BoxDecoration(
+      color: _cardBg,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: _outlineBlue, width: 2),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.10),
+          blurRadius: 10,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    );
+  }
+
+  String _prettyName(String raw) {
+    return raw.replaceAll("_", " ").trim();
+  }
+
+  double _maxAbsShap(List<dynamic> factors) {
+    double maxV = 0.000001;
+    for (final f in factors) {
+      final v = ((f["shap_value"] as num?) ?? 0).toDouble().abs();
+      if (v > maxV) maxV = v;
+    }
+    return maxV;
+  }
+
+  Widget _progressBar({
+    required double value01, // 0..1
+    double height = 10,
+  }) {
+    final v = value01.clamp(0.0, 1.0);
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        return Stack(
+          children: [
+            Container(
+              height: height,
+              decoration: BoxDecoration(
+                color: _barTrack,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            Container(
+              height: height,
+              width: w * v,
+              decoration: BoxDecoration(
+                color: _barFill,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _factorRow({
+    required String label,
+    required double value01,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        if (factors.isEmpty)
-          const Text("No factors returned")
-        else
-          ...factors.take(10).map((f) {
-            final feature = f["feature"]?.toString() ?? "-";
-            final shapVal = (f["shap_value"] as num?)?.toDouble() ?? 0.0;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(child: Text(feature)),
-                  Text(shapVal.toStringAsFixed(4)),
-                ],
-              ),
-            );
-          }),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12.8,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _progressBar(value01: value01, height: 10),
+        const SizedBox(height: 10),
       ],
+    );
+  }
+
+  Widget _factorsCard({
+    required String title,
+    required List<dynamic> factors,
+  }) {
+    final maxAbs = _maxAbsShap(factors);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _pngCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (factors.isEmpty)
+            const Text("No factors returned")
+          else
+            ...factors.take(5).map((f) {
+              final feature = _prettyName((f["feature"] ?? "-").toString());
+              final shapVal = ((f["shap_value"] as num?) ?? 0).toDouble();
+              final v01 = (shapVal.abs() / maxAbs).clamp(0.0, 1.0);
+
+              return _factorRow(
+                label: feature,
+                value01: v01,
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _predictionScoreCard(double score) {
+    final v01 = (score / 100).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _pngCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Prediction Score (Next 14 Days)",
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _progressBar(value01: v01, height: 12),
+          const SizedBox(height: 8),
+          Text(
+            "${score.toStringAsFixed(2)} / 100",
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -326,16 +454,14 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         const SizedBox(height: 12),
         if (errorMsg != null)
           Text(errorMsg!, style: const TextStyle(color: Colors.red)),
+
         if (predictedScore != null) ...[
           const SizedBox(height: 10),
-          Text(
-            "Predicted Score (Next 14 Days): ${predictedScore!.toStringAsFixed(2)}",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          _predictionScoreCard(predictedScore!),
           const SizedBox(height: 16),
-          _factorList("Top Positive Factors", positive),
+          _factorsCard(title: "Top Positive Factors", factors: positive),
           const SizedBox(height: 16),
-          _factorList("Top Negative Factors", negative),
+          _factorsCard(title: "Top Negative Factors", factors: negative),
         ],
       ],
     );
@@ -393,7 +519,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // ✅ Prediction UI
+                    // ✅ Decorated Prediction UI (matches PNG style)
                     _predictionSection(),
                     const SizedBox(height: 20),
                     const Divider(height: 1),
@@ -462,10 +588,12 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    _numField("Sentiment Score", sentimentCtrl, hint: "e.g., -0.2"),
+                    _numField("Sentiment Score", sentimentCtrl,
+                        hint: "e.g., -0.2"),
                     const SizedBox(height: 12),
 
-                    _numField("Stress Score Combined", stressCtrl, hint: "e.g., 0.68"),
+                    _numField("Stress Score Combined", stressCtrl,
+                        hint: "e.g., 0.68"),
                     const SizedBox(height: 12),
 
                     _numField("Sleep Hours", sleepCtrl, hint: "e.g., 6.5"),
