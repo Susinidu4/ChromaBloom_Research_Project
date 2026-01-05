@@ -4,7 +4,7 @@ import cloudinary from "../../config/cloudinary.js";
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
+    const stream = cloudinary.uploader.upload_stream( // create upload stream from Cloudinary
       { folder },
       (error, result) => {
         if (error) return reject(error);
@@ -43,37 +43,35 @@ export const createUserActivity = async (req, res) => {
       parsedSteps = steps;
     }
 
-    // Basic validations
+    // -------------------------- VALIDATIONS --------------------------
+
+    // Required fields
     if (!created_by || !title || !description) {
       return res.status(400).json({
         error: "created_by, title, and description are required",
       });
     }
 
+    // Optional fields
     if (!age_group) {
       return res.status(400).json({ error: "age_group is required" });
     }
-
     if (!development_area) {
       return res.status(400).json({ error: "development_area is required" });
     }
-
     if (!parsedSteps || !Array.isArray(parsedSteps) || parsedSteps.length === 0) {
       return res.status(400).json({
         error: "Activity must contain at least one step",
       });
     }
-
     if (!scheduled_date) {
       return res.status(400).json({ error: "scheduled_date is required" });
     }
-
     if (!estimated_duration_minutes) {
       return res
         .status(400)
         .json({ error: "estimated_duration_minutes is required" });
     }
-
     if (!difficulty_level) {
       return res.status(400).json({ error: "difficulty_level is required" });
     }
@@ -85,9 +83,9 @@ export const createUserActivity = async (req, res) => {
       try {
         const result = await uploadBufferToCloudinary(
           req.file.buffer,
-          "chromabloom/user_activities"
+          "chromabloom/user_activities" // folder in Cloudinary
         );
-        mediaLinksArray.push(result.secure_url); // 👈 store URL
+        mediaLinksArray.push(result.secure_url); // store URL
       } catch (error) {
         console.error("Cloudinary Upload Error:", error);
         return res.status(500).json({
@@ -172,7 +170,7 @@ export const getAllUserActivities = async (req, res) => {
 // Get User Activities by Caregiver ID and Date
 export const getUserActivitiesByDate = async (req, res) => {
   try {
-    const { caregiverId, date } = req.body;
+    const { caregiverId, date } = req.body; // expecting date in 'YYYY-MM-DD' format
 
     if (!caregiverId || !date) {
       return res.status(400).json({
@@ -194,6 +192,7 @@ export const getUserActivitiesByDate = async (req, res) => {
     const end = new Date(selectedDate);
     end.setHours(23, 59, 59, 999);
 
+    // Query activities for the caregiver on the specified date range
     const activities = await UserActivity.find({
       created_by: caregiverId,
       scheduled_date: { $gte: start, $lte: end },
@@ -324,16 +323,19 @@ export const updateUserActivity = async (req, res) => {
   }
 };
 
-// update User Activity Progress
+// update User Activity Progress by ID (only steps and completed_duration_minutes)
 export const updateUserActivityProgress = async (req, res) => {
   try {
+    // get activityId from params
     const { activityId } = req.params;
+    // get steps and completed_duration_minutes from body
     const { steps, completed_duration_minutes } = req.body;
 
     if (!activityId) {
       return res.status(400).json({ error: "Activity ID is required" });
     }
 
+    // Find existing activity
     const existing = await UserActivity.findById(activityId);
     if (!existing) {
       return res.status(404).json({ error: "User activity not found" });
@@ -369,5 +371,5 @@ export const updateUserActivityProgress = async (req, res) => {
   }
 };
 
-// display progress of an activity
+
 
