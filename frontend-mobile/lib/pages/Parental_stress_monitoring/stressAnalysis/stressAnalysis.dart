@@ -1,34 +1,55 @@
 import 'package:flutter/material.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+import '../../../services/Parental_stress_monitoring/stress_analysis_service.dart';
 
-class StressAnalysisPage extends StatelessWidget {
+class StressAnalysisPage extends StatefulWidget {
   const StressAnalysisPage({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color gold = Color(0xFFBD9A6B);
 
   @override
+  State<StressAnalysisPage> createState() => _StressAnalysisPageState();
+}
+
+class _StressAnalysisPageState extends State<StressAnalysisPage> {
+  // Replace with your logged-in caregiver id
+  final String caregiverId = "p-0001";
+
+  late Future<StressComputeResponse> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = StressAnalysisService.compute(caregiverId: caregiverId);
+  }
+
+  void _reload() {
+    setState(() {
+      _future = StressAnalysisService.compute(caregiverId: caregiverId);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: StressAnalysisPage.pageBg,
       body: SafeArea(
         child: Column(
           children: [
-            // header from your project
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Top row: back + title + image
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -45,16 +66,15 @@ class StressAnalysisPage extends StatelessWidget {
                                 fontSize: 20,
                                 height: 1,
                                 fontWeight: FontWeight.w700,
-                                color: gold,
+                                color: StressAnalysisPage.gold,
                                 decoration: TextDecoration.underline,
-                                decorationColor: gold,
+                                decorationColor: StressAnalysisPage.gold,
                                 decorationThickness: 2,
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 14),
-                        // right illustration
                         SizedBox(
                           width: 150,
                           height: 140,
@@ -70,27 +90,58 @@ class StressAnalysisPage extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 18),
 
-                    // Latest stress card
-                    _LatestStressCard(),
+                    FutureBuilder<StressComputeResponse>(
+                      future: _future,
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const _LoadingCard();
+                        }
+                        if (snap.hasError) {
+                          return _ErrorCard(
+                            message: snap.error.toString(),
+                            onRetry: _reload,
+                          );
+                        }
+
+                        final data = snap.data!;
+                        final stress = data.stress;
+                        final rec = data.recommendation;
+
+                        final date = stress.scoreDate ?? stress.computedAt ?? DateTime.now();
+
+                        return Column(
+                          children: [
+                            _LatestStressCard(
+                              stressLevel: stress.stressLevel,
+                              date: date,
+                              stressScore: stress.stressScore,
+                              stressProbability: stress.stressProbability,
+                              consecutiveHighDays: stress.consecutiveHighDays,
+                              escalationTriggered: stress.escalationTriggered,
+                            ),
+                            const SizedBox(height: 14),
+                            _RecommendationCard(recommendation: rec),
+                          ],
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 22),
-
                     Text(
                       "Analysis history",
                       style: const TextStyle(
                         fontFamily: "Poppins",
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: gold,
+                        color: StressAnalysisPage.gold,
                       ),
                     ),
-
                     const SizedBox(height: 20),
 
-                    _HistoryChartCard(),
+                    // Keep your chart section if you already have it
+                    const _HistoryChartCard(),
                   ],
                 ),
               ),
@@ -103,7 +154,7 @@ class StressAnalysisPage extends StatelessWidget {
   }
 }
 
-/* ==================== WIDGETS ==================== */
+/* ===================== UI WIDGETS ===================== */
 
 class _BackCircleButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -141,39 +192,113 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-class _LatestStressCard extends StatelessWidget {
-  _LatestStressCard();
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard();
 
-  static const Color gold = Color(0xFFBD9A6B);
-  static const Color cardBorder = Color(0xFFBD9A6B);
-  static const Color boxFill = Color(0xFFC7AE85);
-
-  String _monthName(int month) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return months[month - 1];
-  }
-
-final now = DateTime.now();
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 22, 15, 22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cardBorder, width: 1.4),
+        border: Border.all(color: const Color(0xFFBD9A6B), width: 1.4),
+      ),
+      child: const Row(
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              "Loading latest stress…",
+              style: TextStyle(fontFamily: "Poppins"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 15, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBD9A6B), width: 1.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Latest stress level",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFBD9A6B),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: const TextStyle(fontFamily: "Poppins", fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: onRetry,
+              child: const Text("Retry"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LatestStressCard extends StatelessWidget {
+  final String stressLevel;
+  final DateTime date;
+
+  final int stressScore; // 0..3
+  final double stressProbability;
+  final int consecutiveHighDays;
+  final bool escalationTriggered;
+
+  const _LatestStressCard({
+    required this.stressLevel,
+    required this.date,
+    required this.stressScore,
+    required this.stressProbability,
+    required this.consecutiveHighDays,
+    required this.escalationTriggered,
+  });
+
+  static const Color gold = Color(0xFFBD9A6B);
+  static const Color boxFill = Color(0xFFC7AE85);
+
+  bool _isFilled(String label) => label.toLowerCase() == stressLevel.toLowerCase();
+
+  String _monthName(int month) {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return months[month - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 15, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: gold, width: 1.4),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +315,6 @@ final now = DateTime.now();
           const SizedBox(height: 12),
           Row(
             children: [
-              // date pill
               Container(
                 width: 80,
                 height: 103,
@@ -208,9 +332,8 @@ final now = DateTime.now();
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 4),
                     Text(
-                      _monthName(now.month),
+                      _monthName(date.month),
                       style: const TextStyle(
                         fontFamily: "Poppins",
                         fontSize: 16,
@@ -220,7 +343,7 @@ final now = DateTime.now();
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      now.day.toString(),
+                      date.day.toString(),
                       style: const TextStyle(
                         fontFamily: "Poppins",
                         fontSize: 36,
@@ -233,8 +356,6 @@ final now = DateTime.now();
                 ),
               ),
               const SizedBox(width: 14),
-
-              // level blocks
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -251,21 +372,71 @@ final now = DateTime.now();
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(
-                          child: _LevelBox(filled: true, fillColor: boxFill),
-                        ),
+                        Expanded(child: _LevelBox(filled: _isFilled("Low"), fillColor: boxFill)),
                         const SizedBox(width: 10),
-                        const Expanded(child: _LevelBox(filled: false)),
+                        Expanded(child: _LevelBox(filled: _isFilled("Medium"), fillColor: boxFill)),
                         const SizedBox(width: 10),
-                        const Expanded(child: _LevelBox(filled: false)),
+                        Expanded(child: _LevelBox(filled: _isFilled("High"), fillColor: boxFill)),
                         const SizedBox(width: 10),
-                        const Expanded(child: _LevelBox(filled: false)),
+                        Expanded(child: _LevelBox(filled: _isFilled("Critical"), fillColor: boxFill)),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Detected: $stressLevel",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontFamily: "Poppins",
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: gold,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          _MetaRow(label: "Stress score", value: "$stressScore / 3"),
+          _MetaRow(label: "Probability", value: "${(stressProbability * 100).toStringAsFixed(1)}%"),
+          // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
+          // _MetaRow(label: "Escalation", value: escalationTriggered ? "Triggered" : "Not triggered"),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetaRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 12,
+              color: Color(0xFF8B6B44),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF8B6B44),
+            ),
           ),
         ],
       ),
@@ -277,17 +448,31 @@ class _LvlLabel extends StatelessWidget {
   final String t;
   const _LvlLabel(this.t);
 
-  static const Color gold = Color(0xFFBD9A6B);
-
   @override
   Widget build(BuildContext context) {
-    return Text(
-      t,
-      style: const TextStyle(
-        fontFamily: "Poppins",
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: gold,
+    return const SizedBox(
+      width: 55,
+      child: Text(
+        "",
+        textAlign: TextAlign.center,
+      ),
+    ).copyWithText(t);
+  }
+}
+
+extension _TextReplace on SizedBox {
+  Widget copyWithText(String t) {
+    return SizedBox(
+      width: width,
+      child: Text(
+        t,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: "Poppins",
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFBD9A6B),
+        ),
       ),
     );
   }
@@ -315,10 +500,78 @@ class _LevelBox extends StatelessWidget {
   }
 }
 
+class _RecommendationCard extends StatelessWidget {
+  final RecommendationDto? recommendation;
+  const _RecommendationCard({required this.recommendation});
+
+  @override
+  Widget build(BuildContext context) {
+    final rec = recommendation;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9DDCC),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 12,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Recommendation",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFBD9A6B),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            rec?.title ?? "No recommendation available",
+            style: const TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6E4F2B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            rec?.description ?? "Try adding a matching recommendation for this level in DB.",
+            style: const TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 12,
+              color: Color(0xFF6E4F2B),
+            ),
+          ),
+          if (rec?.category != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              "Category: ${rec!.category}",
+              style: const TextStyle(
+                fontFamily: "Poppins",
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6E4F2B),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _HistoryChartCard extends StatelessWidget {
   const _HistoryChartCard();
-
-  static const Color gold = Color(0xFFBD9A6B);
 
   @override
   Widget build(BuildContext context) {
@@ -335,95 +588,15 @@ class _HistoryChartCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Container(
-            height: 230,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-            child: CustomPaint(
-              painter: _SimpleLineChartPainter(),
-              child: const SizedBox.expand(),
-            ),
+      child: const SizedBox(
+        height: 230,
+        child: Center(
+          child: Text(
+            "History chart placeholder",
+            style: TextStyle(fontFamily: "Poppins"),
           ),
-        ],
+        ),
       ),
     );
   }
-}
-
-/// Simple chart painter to match your UI (no external chart package needed)
-class _SimpleLineChartPainter extends CustomPainter {
-  static const Color line = Color(0xFFBD9A6B);
-  static const Color grid = Color(0x33BD9A6B);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final pGrid = Paint()
-      ..color = grid
-      ..strokeWidth = 1;
-
-    // axes padding
-    const leftPad = 38.0;
-    const bottomPad = 26.0;
-    final w = size.width - leftPad - 10;
-    final h = size.height - bottomPad - 10;
-
-    // draw y labels (Low..Critical)
-    final tp = TextPainter(textDirection: TextDirection.ltr);
-    final labels = ["Low", "Medium", "High", "Critical"];
-    for (int i = 0; i < labels.length; i++) {
-      final y = 10 + h - (h * i / 3);
-      tp.text = TextSpan(
-        text: labels[i],
-        style: const TextStyle(
-          fontFamily: "Poppins",
-          fontSize: 12,
-          color: Color(0xFFB89A76),
-        ),
-      );
-      tp.layout();
-      tp.paint(canvas, Offset(-13, y - 8));
-      // grid lines
-      canvas.drawLine(Offset(leftPad, y), Offset(leftPad + w, y), pGrid);
-    }
-
-    // x axis line
-    canvas.drawLine(
-      Offset(leftPad, 10 + h),
-      Offset(leftPad + w, 10 + h),
-      pGrid,
-    );
-
-    // sample points to match screenshot trend
-    final points = <Offset>[
-      Offset(leftPad + w * 0.05, 10 + h * 0.92),
-      Offset(leftPad + w * 0.22, 10 + h * 0.75),
-      Offset(leftPad + w * 0.45, 10 + h * 0.70),
-      Offset(leftPad + w * 0.55, 10 + h * 0.40),
-      Offset(leftPad + w * 0.72, 10 + h * 0.44),
-      Offset(leftPad + w * 0.88, 10 + h * 0.20),
-      Offset(leftPad + w * 0.97, 10 + h * 0.05),
-    ];
-
-    final pLine = Paint()
-      ..color = line
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()..moveTo(points[0].dx, points[0].dy);
-    for (int i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
-    }
-    canvas.drawPath(path, pLine);
-
-    // dots
-    final pDot = Paint()..color = line;
-    for (final pt in points) {
-      canvas.drawCircle(pt, 4, pDot);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
