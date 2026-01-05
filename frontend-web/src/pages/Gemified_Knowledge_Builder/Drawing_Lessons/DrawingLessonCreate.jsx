@@ -12,7 +12,10 @@ export default function DrawingLessonCreate() {
     try {
       setSaving(true);
       setError("");
+
       const res = await createDrawingLesson(values);
+
+      // res expected: { success, data: lesson }
       nav(`/drawing_lessons/${res.data._id}`);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Create failed");
@@ -25,11 +28,7 @@ export default function DrawingLessonCreate() {
     <div>
       {error && <p style={{ color: "crimson" }}>{error}</p>}
 
-      <LessonForm
-        mode="create"
-        saving={saving}
-        onSubmit={onSubmit}
-      />
+      <LessonForm mode="create" saving={saving} onSubmit={onSubmit} />
     </div>
   );
 }
