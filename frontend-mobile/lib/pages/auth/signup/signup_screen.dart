@@ -1,5 +1,7 @@
-// lib/pages/auth/signup/signup_screen.dart
 import 'package:flutter/material.dart';
+import '../../../services/user_services/caregiver_api.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/user_services/therapist_api.dart';
 
 import 'caregiver_step.dart';
 import 'child_step.dart';
@@ -19,6 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final Color _background = const Color(0xFFFDF8F2);
 
   int _currentStep = 0;
+  bool _isSubmitting = false;
 
   // ------- Step 1: Caregiver controllers -------
   final TextEditingController cgFullNameController = TextEditingController();
@@ -31,6 +34,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController cgEmailController = TextEditingController();
   final TextEditingController cgAddressController = TextEditingController();
 
+  // ✅ NEW: Password controllers
+  final TextEditingController cgPasswordController = TextEditingController();
+  final TextEditingController cgConfirmPasswordController =
+      TextEditingController();
+
   // ------- Step 2: Child controllers -------
   final TextEditingController childNameController = TextEditingController();
   final TextEditingController childDobController = TextEditingController();
@@ -40,9 +48,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? downSyndromeType;
   String? downSyndromeConfirmedBy;
 
+  // other health conditions
+  bool hasHeartIssues = false;
+  bool hasThyroidIssues = false;
+  bool hasHearingProblems = false;
+  bool hasVisionProblems = false;
+
+  // therapist selection
+  String? selectedTherapist;
+  List<String> therapistOptions = [];
+  bool _loadingTherapists = false;
+  String? _therapistError;
+
   // ------- Step 3: T&C -------
   bool acceptedTerms = false;
   bool acceptedPrivacy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTherapists();
+  }
 
   @override
   void dispose() {
@@ -52,6 +78,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     cgMobileController.dispose();
     cgEmailController.dispose();
     cgAddressController.dispose();
+
+    // ✅ NEW
+    cgPasswordController.dispose();
+    cgConfirmPasswordController.dispose();
 
     childNameController.dispose();
     childDobController.dispose();
@@ -76,14 +106,160 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  // ================== LOAD THERAPISTS ==================
+  Future<void> _loadTherapists() async {
+    setState(() {
+      _loadingTherapists = true;
+      _therapistError = null;
+    });
+
+    final items = await TherapistApi.getTherapistDropdownItems();
+
+    if (!mounted) return;
+
+    if (items.isEmpty) {
+      setState(() {
+        therapistOptions = [];
+        _therapistError = "No therapists found. Please add therapists first.";
+        _loadingTherapists = false;
+      });
+      return;
+    }
+
+    setState(() {
+      therapistOptions = items;
+      _loadingTherapists = false;
+    });
+  }
+
   void _handleNext() {
     if (_currentStep < 2) {
       setState(() => _currentStep++);
     } else {
-      // TODO: final submit – call backend APIs here
+      _submitSignUp();
+    }
+  }
+
+  Future<void> _submitSignUp() async {
+    if (!acceptedTerms || !acceptedPrivacy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sign up completed (demo).")),
+        const SnackBar(
+          content: Text("Please accept Terms & Conditions and Privacy Policy."),
+        ),
       );
+      return;
+    }
+
+    // Basic validation – you can expand this
+    if (cgFullNameController.text.trim().isEmpty ||
+        cgEmailController.text.trim().isEmpty ||
+        childNameController.text.trim().isEmpty ||
+        childDobController.text.trim().isEmpty ||
+        childGender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill required fields in Step 1 & Step 2."),
+        ),
+      );
+      return;
+    }
+
+    // ✅ Password validation
+    final pw = cgPasswordController.text.trim();
+    final cpw = cgConfirmPasswordController.text.trim();
+
+    if (pw.isEmpty || cpw.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter password and confirm it.")),
+      );
+      return;
+    }
+
+    if (pw.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password must be at least 6 characters.")),
+      );
+      return;
+    }
+
+    if (pw != cpw) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match.")),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // 1) Register caregiver
+      final cgResult = await CaregiverApi.registerCaregiver(
+        fullName: cgFullNameController.text.trim(),
+        dob: cgDobController.text.trim(),
+        gender: cgGender ?? "Other",
+        numberOfChildren:
+            int.tryParse(cgChildrenCountController.text.trim()) ?? 1,
+        mobile: cgMobileController.text.trim(),
+        email: cgEmailController.text.trim(),
+        address: cgAddressController.text.trim(),
+        password: pw, // ✅ real password from UI
+      );
+
+      final caregiver = cgResult['caregiver'];
+      if (caregiver == null || caregiver['_id'] == null) {
+        throw Exception("Caregiver ID not returned from backend");
+      }
+
+      final String caregiverId = caregiver['_id']; // e.g. "p-0001"
+
+      // 2) Extract therapistId from dropdown
+      String? therapistId;
+      if (selectedTherapist != null &&
+          selectedTherapist!.contains(' - ')) {
+        final parts = selectedTherapist!.split(' - ');
+        if (parts.length >= 2) {
+          therapistId = parts.last.trim(); // "t-0001"
+        }
+      }
+
+      // 3) Create child
+      final double? height = double.tryParse(childHeightController.text.trim());
+      final double? weight = double.tryParse(childWeightController.text.trim());
+
+      final childResult = await ChildApi.createChild(
+        childName: childNameController.text.trim(),
+        dateOfBirth: childDobController.text.trim(),
+        gender: childGender ?? "Other",
+        heightCm: height,
+        weightKg: weight,
+        downSyndromeType: downSyndromeType,
+        downSyndromeConfirmedBy: downSyndromeConfirmedBy,
+        caregiverId: caregiverId,
+        therapistId: therapistId!,
+        hasHeartIssues: hasHeartIssues,
+        hasThyroidIssues: hasThyroidIssues,
+        hasHearingProblems: hasHearingProblems,
+        hasVisionProblems: hasVisionProblems,
+      );
+
+      if (!mounted) return;
+
+      final msg = childResult['message'] ?? "Sign up completed successfully";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+
+      // ✅ Navigate after success (update route to your app)
+      // Navigator.pushReplacementNamed(context, '/home');
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Sign up failed: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -104,6 +280,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 24),
                     _buildStepIndicators(),
                     const SizedBox(height: 24),
+
                     if (_currentStep == 0)
                       CaregiverStep(
                         fullNameController: cgFullNameController,
@@ -113,26 +290,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         mobileController: cgMobileController,
                         emailController: cgEmailController,
                         addressController: cgAddressController,
+
+                        // ✅ NEW
+                        passwordController: cgPasswordController,
+                        confirmPasswordController: cgConfirmPasswordController,
+
                         onGenderChanged: (val) =>
                             setState(() => cgGender = val),
                         onDobTap: () => _pickDate(cgDobController),
                       )
                     else if (_currentStep == 1)
-                      ChildStep(
-                        childNameController: childNameController,
-                        childDobController: childDobController,
-                        childGender: childGender,
-                        heightController: childHeightController,
-                        weightController: childWeightController,
-                        downSyndromeType: downSyndromeType,
-                        downSyndromeConfirmedBy: downSyndromeConfirmedBy,
-                        onGenderChanged: (val) =>
-                            setState(() => childGender = val),
-                        onDobTap: () => _pickDate(childDobController),
-                        onDownTypeChanged: (val) =>
-                            setState(() => downSyndromeType = val),
-                        onConfirmedByChanged: (val) =>
-                            setState(() => downSyndromeConfirmedBy = val),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_loadingTherapists)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 8.0),
+                              child: LinearProgressIndicator(),
+                            ),
+                          if (_therapistError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Text(
+                                _therapistError!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ChildStep(
+                            childNameController: childNameController,
+                            childDobController: childDobController,
+                            childGender: childGender,
+                            heightController: childHeightController,
+                            weightController: childWeightController,
+                            downSyndromeType: downSyndromeType,
+                            downSyndromeConfirmedBy: downSyndromeConfirmedBy,
+                            onGenderChanged: (val) =>
+                                setState(() => childGender = val),
+                            onDobTap: () => _pickDate(childDobController),
+                            onDownTypeChanged: (val) =>
+                                setState(() => downSyndromeType = val),
+                            onConfirmedByChanged: (val) =>
+                                setState(() => downSyndromeConfirmedBy = val),
+                            hasHeartIssues: hasHeartIssues,
+                            hasThyroidIssues: hasThyroidIssues,
+                            hasHearingProblems: hasHearingProblems,
+                            hasVisionProblems: hasVisionProblems,
+                            onHeartIssuesChanged: (v) =>
+                                setState(() => hasHeartIssues = v ?? false),
+                            onThyroidChanged: (v) =>
+                                setState(() => hasThyroidIssues = v ?? false),
+                            onHearingChanged: (v) =>
+                                setState(() => hasHearingProblems = v ?? false),
+                            onVisionChanged: (v) =>
+                                setState(() => hasVisionProblems = v ?? false),
+                            selectedTherapist: selectedTherapist,
+                            therapistOptions: therapistOptions,
+                            onTherapistChanged: (v) =>
+                                setState(() => selectedTherapist = v),
+                          ),
+                        ],
                       )
                     else
                       TermsStep(
@@ -143,6 +362,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onPrivacyChanged: (v) =>
                             setState(() => acceptedPrivacy = v),
                       ),
+
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -168,12 +388,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 16), // pushes content a bit down
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // left: text
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
@@ -195,8 +414,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ],
               ),
-
-              // right: logo image
               Image.asset(
                 'assets/chromabloom1.png',
                 height: 70,
@@ -252,7 +469,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: canFinish ? _handleNext : null,
+          onPressed: (!canFinish || _isSubmitting) ? null : _handleNext,
           style: ElevatedButton.styleFrom(
             backgroundColor: _gold,
             foregroundColor: Colors.white,
@@ -262,7 +479,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               borderRadius: BorderRadius.circular(18),
             ),
           ),
-          child: Text(isLast ? "Finish" : "Next"),
+          child: _isSubmitting
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(isLast ? "Finish" : "Next"),
         ),
       ),
     );
