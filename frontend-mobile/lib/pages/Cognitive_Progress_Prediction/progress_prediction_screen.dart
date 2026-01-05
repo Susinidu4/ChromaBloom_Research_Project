@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../services/Cognitive_Progress_Prediction/cognitive_progress_service.dart';
 import '../../services/user_services/child_api.dart';
-import '../../state/session_provider.dart'; // <-- adjust path to your SessionProvider file
+import '../../state/session_provider.dart';
 
 import '../others/header.dart';
 import '../others/navBar.dart';
@@ -26,6 +27,11 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   List<dynamic> positive = [];
   List<dynamic> negative = [];
   String? errorMsg;
+
+  // ✅ History
+  bool historyLoading = false;
+  String? childIdResolved;
+  List<dynamic> history = []; // { _id, userId, progress_prediction, createdAt, ... }
 
   final _formKey = GlobalKey<FormState>();
 
@@ -74,13 +80,20 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return null;
   }
 
+  // ✅ Clamp scores into 0..100 (chart requirement)
+  double _clampScore(double v) {
+    if (v.isNaN || v.isInfinite) return 0;
+    if (v < 0) return 0;
+    if (v > 100) return 100;
+    return v;
+  }
+
   /// ✅ Try to get childId from session JSON first.
   /// If not present, fetch children using caregiverId.
   Future<String> _resolveChildId(SessionProvider session) async {
     final caregiver = session.caregiver;
     if (caregiver == null) throw Exception("Not logged in");
 
-    // caregiverId for fetching children
     final caregiverId =
         (caregiver["_id"] ?? caregiver["id"] ?? caregiver["caregiverId"] ?? "")
             .toString();
@@ -88,23 +101,19 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       throw Exception("Caregiver ID not found in session");
     }
 
-    // 1) If session already contains child info
-    // Common patterns:
-    // caregiver["childId"]
-    // caregiver["child_id"]
-    // caregiver["children"] = [{_id:...}]
-    // caregiver["childIds"] = ["..."]
     final directChildId =
         (caregiver["childId"] ?? caregiver["child_id"] ?? "").toString();
     if (directChildId.isNotEmpty) return directChildId;
 
-    if (caregiver["childIds"] is List && (caregiver["childIds"] as List).isNotEmpty) {
+    if (caregiver["childIds"] is List &&
+        (caregiver["childIds"] as List).isNotEmpty) {
       final first = (caregiver["childIds"] as List).first;
       final id = first?.toString() ?? "";
       if (id.isNotEmpty) return id;
     }
 
-    if (caregiver["children"] is List && (caregiver["children"] as List).isNotEmpty) {
+    if (caregiver["children"] is List &&
+        (caregiver["children"] as List).isNotEmpty) {
       final first = (caregiver["children"] as List).first;
       if (first is Map) {
         final id = (first["_id"] ?? first["id"] ?? "").toString();
@@ -112,10 +121,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       }
     }
 
-    // 2) Otherwise fetch from backend using caregiverId
-    final kids = await ChildApi.getChildrenByCaregiver(
-      caregiverId
-    );
+    final kids = await ChildApi.getChildrenByCaregiver(caregiverId);
 
     if (kids.isEmpty) {
       throw Exception("No children found for this caregiver");
@@ -129,6 +135,36 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
 
     return childId;
+  }
+
+  Future<void> _loadHistory() async {
+    final session = context.read<SessionProvider>();
+
+    setState(() {
+      historyLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final childId = await _resolveChildId(session);
+      childIdResolved = childId;
+
+      final data = await api.getPredictionsByUserId(childId);
+
+      setState(() {
+        history = (data["data"] as List?) ?? [];
+      });
+    } catch (e) {
+      setState(() => errorMsg = e.toString());
+    } finally {
+      setState(() => historyLoading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
   }
 
   Future<void> _predict() async {
@@ -145,8 +181,8 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     });
 
     try {
-      // ✅ Get childId (use as userId when saving)
       final childId = await _resolveChildId(session);
+      childIdResolved = childId;
 
       final features = <String, dynamic>{
         "gender": gender,
@@ -154,50 +190,46 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         "activity": activity,
         "mood_label": moodLabel,
         "caregiver_mood_label": caregiverMoodLabel,
-
         "age": _i(ageCtrl),
         "time_duration_for_activity": _i(durationCtrl),
         "sentiment_score": _d(sentimentCtrl),
         "stress_score_combined": _d(stressCtrl),
         "sleep_hours": _d(sleepCtrl),
-
         "total_tasks_assigned": _i(totalAssignedCtrl),
         "total_tasks_completed": _i(totalCompletedCtrl),
         "completion_rate": _d(completionRateCtrl),
         "engagement_minutes": _d(engagementCtrl),
-
         "memory_accuracy": _d(memoryAccCtrl),
         "attention_accuracy": _d(attentionAccCtrl),
         "problem_solving_accuracy": _d(problemAccCtrl),
         "motor_skills_accuracy": _d(motorAccCtrl),
         "average_response_time": _d(responseTimeCtrl),
-
         "caregiver_sentiment_score": _d(caregiverSentimentCtrl),
         "caregiver_stress_score_combined": _d(caregiverStressCtrl),
         "caregiver_phone_screen_time_mins": _i(caregiverScreenCtrl),
         "caregiver_sleep_hours": _d(caregiverSleepCtrl),
-
         "phone_screen_time_mins": _i(phoneScreenCtrl),
       };
 
-      // ✅ 1) Predict
       final data = await api.predictProgress(features);
       final result = data["result"];
 
-      final score = (result["predicted_score_next_14_days"] as num).toDouble();
+      final rawScore =
+          (result["predicted_score_next_14_days"] as num).toDouble();
+      final score = _clampScore(rawScore);
 
-      // ✅ 2) Update UI
       setState(() {
         predictedScore = score;
         positive = result["explainability"]?["top_positive_factors"] ?? [];
         negative = result["explainability"]?["top_negative_factors"] ?? [];
       });
 
-      // ✅ 3) Save using childId as userId
       await api.savePrediction(
         userId: childId,
         progressPrediction: score,
       );
+
+      await _loadHistory();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -211,6 +243,238 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
   }
 
+  // ----------------- Helpers (history -> chart points) -----------------
+  double? _safeScore(dynamic item) {
+    final v = item?["progress_prediction"];
+    if (v is num) return _clampScore(v.toDouble());
+    return null;
+  }
+
+  DateTime? _safeDate(dynamic item) {
+    final s = item?["createdAt"]?.toString();
+    if (s == null) return null;
+    return DateTime.tryParse(s);
+  }
+
+  String _fmtShortDate(DateTime d) {
+    final dd = d.toLocal().day.toString().padLeft(2, "0");
+    final mm = d.toLocal().month.toString().padLeft(2, "0");
+    return "$mm/$dd";
+  }
+
+  String _fmtDateTime(DateTime? d) {
+    if (d == null) return "-";
+    final dt = d.toLocal();
+    final y = dt.year.toString().padLeft(4, "0");
+    final m = dt.month.toString().padLeft(2, "0");
+    final day = dt.day.toString().padLeft(2, "0");
+    final hh = dt.hour.toString().padLeft(2, "0");
+    final min = dt.minute.toString().padLeft(2, "0");
+    return "$y-$m-$day $hh:$min";
+  }
+
+  /// Returns history sorted ASC by date, with bad rows removed
+  List<Map<String, dynamic>> _sortedHistoryForChart() {
+    final cleaned = <Map<String, dynamic>>[];
+
+    for (final item in history) {
+      final score = _safeScore(item);
+      final dt = _safeDate(item);
+      if (score == null || dt == null) continue;
+      cleaned.add({"date": dt, "score": score});
+    }
+
+    cleaned.sort((a, b) =>
+        (a["date"] as DateTime).compareTo(b["date"] as DateTime));
+
+    return cleaned;
+  }
+
+  Widget _insightChartCard() {
+    if (historyLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final points = _sortedHistoryForChart();
+    if (points.length < 2) {
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      "Insight Chart",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _loadHistory,
+                    icon: const Icon(Icons.refresh),
+                    tooltip: "Refresh",
+                  )
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                points.isEmpty
+                    ? "No saved predictions yet."
+                    : "Need at least 2 saved predictions to draw a chart.",
+              ),
+              const SizedBox(height: 6),
+              Text("Child ID: ${childIdResolved ?? "-"}"),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final spots = <FlSpot>[];
+    for (int i = 0; i < points.length; i++) {
+      spots.add(FlSpot(i.toDouble(), (points[i]["score"] as double)));
+    }
+
+    // ✅ FIXED Y RANGE: 0..100
+    const double minY = 0;
+    const double maxY = 100;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "Insight Chart",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loadHistory,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: "Refresh",
+                )
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text("Child ID: ${childIdResolved ?? "-"}"),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 240,
+              child: LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: (points.length - 1).toDouble(),
+                  minY: minY,
+                  maxY: maxY,
+
+                  // ✅ Grid lines each 10
+                  gridData: FlGridData(
+                    show: true,
+                    horizontalInterval: 10,
+                    verticalInterval: (points.length <= 6) ? 1 : 2,
+                  ),
+
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: true),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+
+                    // ✅ Y-axis labels: 0,10,20...100
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 44,
+                        interval: 10,
+                        getTitlesWidget: (value, meta) {
+                          // show only exact multiples of 10
+                          if (value % 10 != 0) return const SizedBox.shrink();
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 11),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ✅ X-axis labels: date
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: (points.length <= 6) ? 1 : 2,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.toInt();
+                          if (idx < 0 || idx >= points.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final dt = points[idx]["date"] as DateTime;
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              _fmtShortDate(dt),
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((s) {
+                          final idx = s.x.toInt();
+                          final dt = points[idx]["date"] as DateTime;
+                          final score = points[idx]["score"] as double;
+                          return LineTooltipItem(
+                            "${_fmtDateTime(dt)}\nScore: ${score.toStringAsFixed(2)}",
+                            const TextStyle(fontSize: 12),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ----------------- UI helpers -----------------
   Widget _numField(String label, TextEditingController ctrl, {String hint = ""}) {
     return TextFormField(
       controller: ctrl,
@@ -349,6 +613,11 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    // ✅ Insight chart (x=date, y=prediction)
+                    _insightChartCard(),
+                    const SizedBox(height: 12),
+
+                    // ✅ Prediction UI
                     _predictionSection(),
                     const SizedBox(height: 20),
                     const Divider(height: 1),
@@ -417,52 +686,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     const SizedBox(height: 12),
                     _numField("Phone Screen Time (mins)", phoneScreenCtrl,
                         hint: "e.g., 180"),
-                    const SizedBox(height: 12),
-
-                    _numField("Total Tasks Assigned", totalAssignedCtrl,
-                        hint: "e.g., 6"),
-                    const SizedBox(height: 12),
-                    _numField("Total Tasks Completed", totalCompletedCtrl,
-                        hint: "e.g., 5"),
-                    const SizedBox(height: 12),
-                    _numField("Completion Rate", completionRateCtrl,
-                        hint: "e.g., 0.83"),
-                    const SizedBox(height: 12),
-                    _numField("Engagement Minutes", engagementCtrl,
-                        hint: "e.g., 18.5"),
-                    const SizedBox(height: 12),
-
-                    _numField("Memory Accuracy", memoryAccCtrl, hint: "0.0 - 1.0"),
-                    const SizedBox(height: 12),
-                    _numField("Attention Accuracy", attentionAccCtrl,
-                        hint: "0.0 - 1.0"),
-                    const SizedBox(height: 12),
-                    _numField("Problem Solving Accuracy", problemAccCtrl,
-                        hint: "0.0 - 1.0"),
-                    const SizedBox(height: 12),
-                    _numField("Motor Skills Accuracy", motorAccCtrl,
-                        hint: "0.0 - 1.0"),
-                    const SizedBox(height: 12),
-                    _numField("Average Response Time (sec)", responseTimeCtrl,
-                        hint: "e.g., 3.4"),
-                    const SizedBox(height: 18),
-
-                    const Text("Caregiver Metrics",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 10),
-
-                    _numField("Caregiver Sentiment Score", caregiverSentimentCtrl,
-                        hint: "e.g., -0.15"),
-                    const SizedBox(height: 12),
-                    _numField("Caregiver Stress Score Combined", caregiverStressCtrl,
-                        hint: "e.g., 0.72"),
-                    const SizedBox(height: 12),
-                    _numField("Caregiver Phone Screen Time (mins)", caregiverScreenCtrl,
-                        hint: "e.g., 210"),
-                    const SizedBox(height: 12),
-                    _numField("Caregiver Sleep Hours", caregiverSleepCtrl,
-                        hint: "e.g., 5.8"),
                     const SizedBox(height: 20),
                   ],
                 ),

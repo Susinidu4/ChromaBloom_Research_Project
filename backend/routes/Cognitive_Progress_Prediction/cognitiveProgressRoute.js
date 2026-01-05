@@ -100,11 +100,34 @@ router.post("/predict-progress", async (req, res) => {
   }
 });
 
-// (Optional) CRUD endpoints if you want them later
+/**
+ * ✅ VIEW ALL
+ * GET /chromabloom/cognitiveProgress_2
+ */
 router.get("/", getAllProgress);
-router.get("/:id", getProgressById);
+
+/**
+ * ✅ VIEW BY userId (childId)
+ * GET /chromabloom/cognitiveProgress_2/user/:userId
+ */
 router.get("/user/:userId", getProgressByUserId);
+
+/**
+ * ✅ VIEW BY ID
+ * GET /chromabloom/cognitiveProgress_2/:id
+ */
+router.get("/:id", getProgressById);
+
+/**
+ * ✅ UPDATE
+ * PUT /chromabloom/cognitiveProgress_2/:id
+ */
 router.put("/:id", updateProgress);
+
+/**
+ * ✅ DELETE
+ * DELETE /chromabloom/cognitiveProgress_2/:id
+ */
 router.delete("/:id", deleteProgress);
 
 export default router;

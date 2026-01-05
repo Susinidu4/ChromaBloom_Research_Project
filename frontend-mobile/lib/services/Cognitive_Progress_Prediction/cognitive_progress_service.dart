@@ -34,7 +34,7 @@ class ProgressPredictionApi {
       url,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "userId": userId,
+        "userId": userId, // ✅ childId
         "progress_prediction": progressPrediction,
       }),
     );
@@ -43,6 +43,23 @@ class ProgressPredictionApi {
       return jsonDecode(res.body) as Map<String, dynamic>;
     } else {
       throw Exception('Save failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
+  /// ✅ NEW: Fetch saved predictions by userId == childId
+  /// GET /chromabloom/cognitiveProgress_2/user/:userId
+  Future<Map<String, dynamic>> getPredictionsByUserId(String userId) async {
+    final url = Uri.parse('$baseUrl/chromabloom/cognitiveProgress_2/user/$userId');
+
+    final res = await http.get(
+      url,
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Fetch failed: ${res.statusCode} ${res.body}');
     }
   }
 }
