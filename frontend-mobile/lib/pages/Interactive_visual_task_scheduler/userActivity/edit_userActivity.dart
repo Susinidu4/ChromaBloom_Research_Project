@@ -59,7 +59,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   bool saving = false;
 
   // TEMP caregiver (you said hard-code ok for now)
-  static const String hardcodedCaregiverId = "u-005";
+  static const String hardcodedCaregiverId = "p-0001";
 
   @override
   void initState() {
