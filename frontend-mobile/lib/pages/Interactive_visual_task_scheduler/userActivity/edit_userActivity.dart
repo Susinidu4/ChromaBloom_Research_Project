@@ -1,7 +1,8 @@
-// update_userActivity.dart
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+import 'package:quickalert/quickalert.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -20,7 +21,8 @@ class UpdateUserActivityScreen extends StatefulWidget {
   final Map<String, dynamic> activity;
 
   @override
-  State<UpdateUserActivityScreen> createState() => _UpdateUserActivityScreenState();
+  State<UpdateUserActivityScreen> createState() =>
+      _UpdateUserActivityScreenState();
 }
 
 class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
@@ -31,6 +33,21 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   static const Color textSoft = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
   static const Color btn = Color(0xFFBD9A6B);
+
+  void showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) {
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: "OK",
+      confirmBtnColor: btn,
+    );
+  }
 
   // ===== Form =====
   final _formKey = GlobalKey<FormState>();
@@ -61,6 +78,9 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   // TEMP caregiver (you said hard-code ok for now)
   static const String hardcodedCaregiverId = "p-0001";
 
+  final completedCtrl = TextEditingController();
+  int completedMinutes = 0;
+
   @override
   void initState() {
     super.initState();
@@ -80,16 +100,21 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     final parsedDate = DateTime.tryParse(dateStr);
     if (parsedDate != null) selectedDate = parsedDate;
 
-    // duration
-    final mins = int.tryParse((a["estimated_duration_minutes"] ?? "0").toString()) ?? 0;
-    durationA = mins ~/ 60;
-    durationB = mins % 60;
+    // duration (minutes from backend)
+    final mins =
+        int.tryParse((a["estimated_duration_minutes"] ?? "0").toString()) ?? 0;
+
+    // ✅ set completed minutes (0–60)
+    completedMinutes = mins.clamp(0, 60);
+    completedCtrl.text = completedMinutes.toString();
 
     // steps
     stepCtrls.clear();
     final steps = (a["steps"] as List?) ?? [];
     for (final s in steps) {
-      stepCtrls.add(TextEditingController(text: (s["instruction"] ?? "").toString()));
+      stepCtrls.add(
+        TextEditingController(text: (s["instruction"] ?? "").toString()),
+      );
     }
     if (stepCtrls.isEmpty) stepCtrls.add(TextEditingController());
 
@@ -114,7 +139,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   // ===== Helpers =====
   String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
-  int _estimatedDurationMinutes() => (durationA * 60) + durationB;
+  int _estimatedDurationMinutes() => completedMinutes;
 
   void _addStep() => setState(() => stepCtrls.add(TextEditingController()));
 
@@ -183,12 +208,15 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   }
 
   Future<void> _submitUpdate() async {
-    if (!_formKey.currentState!.validate()) return;
-
     final mongoId = (widget.activity["_id"] ?? "").toString();
     if (mongoId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Cannot update: missing _id")),
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: "Update Failed",
+        text: "Cannot update: missing activity ID.",
+        confirmBtnText: "OK",
+        confirmBtnColor: btn,
       );
       return;
     }
@@ -197,6 +225,64 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     final steps = List.generate(stepCtrls.length, (i) {
       return {"step_number": i + 1, "instruction": stepCtrls[i].text.trim()};
     });
+
+    // Required checks using QuickAlert
+    if (developmentArea.trim().isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Development Area Required",
+        text: "Please select a development area.",
+      );
+      return;
+    }
+
+    if (titleCtrl.text.trim().isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Title Required",
+        text: "Please enter the title.",
+      );
+      return;
+    }
+
+    if (descCtrl.text.trim().isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Description Required",
+        text: "Please enter the description.",
+      );
+      return;
+    }
+
+    if (completedMinutes <= 0) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Duration Required",
+        text: "Please enter duration (1–60 minutes).",
+      );
+      return;
+    }
+
+    // steps required
+    for (int i = 0; i < stepCtrls.length; i++) {
+      if (stepCtrls[i].text.trim().isEmpty) {
+        showThemedAlert(
+          type: QuickAlertType.warning,
+          title: "Step Required",
+          text: "Please fill step ${i + 1}.",
+        );
+        return;
+      }
+    }
+
+    if (difficulty.trim().isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Difficulty Required",
+        text: "Please select a difficulty level.",
+      );
+      return;
+    }
 
     setState(() => saving = true);
 
@@ -214,19 +300,29 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
         estimatedDurationMinutes: _estimatedDurationMinutes(),
         difficultyLevel: difficulty,
         steps: steps,
-        mediaImageBase64: imgBase64, // optional
+        mediaImageBase64: imgBase64,
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res["message"] ?? "Updated")),
-      );
 
-      Navigator.pop(context, true); // ✅ return to details/list to refresh
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: "Updated",
+        text: (res["message"] ?? "Activity updated successfully").toString(),
+        confirmBtnText: "OK",
+        confirmBtnColor: btn,
+        onConfirmBtnTap: () {
+          Navigator.of(context, rootNavigator: true).pop(); // close alert only
+          Navigator.pop(context, true); // go back + refresh
+        },
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Update failed: $e")),
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Update Failed",
+        text: "Update failed: $e",
       );
     } finally {
       if (mounted) setState(() => saving = false);
@@ -247,7 +343,10 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -344,13 +443,19 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                 child: DropdownButton<String>(
                   value: ageGroup,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSoft),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textSoft,
+                  ),
                   items: List.generate(10, (i) {
                     final v = "${i + 1}";
                     return DropdownMenuItem(value: v, child: Text(v));
                   }),
                   onChanged: (v) => setState(() => ageGroup = v ?? "1"),
-                  style: const TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -364,17 +469,36 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                 child: DropdownButton<String>(
                   value: developmentArea,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSoft),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textSoft,
+                  ),
                   items: const [
-                    DropdownMenuItem(value: "self-care", child: Text("self-care")),
+                    DropdownMenuItem(
+                      value: "self-care",
+                      child: Text("self-care"),
+                    ),
                     DropdownMenuItem(value: "motor", child: Text("motor")),
-                    DropdownMenuItem(value: "language", child: Text("language")),
-                    DropdownMenuItem(value: "cognitive", child: Text("cognitive")),
+                    DropdownMenuItem(
+                      value: "language",
+                      child: Text("language"),
+                    ),
+                    DropdownMenuItem(
+                      value: "cognitive",
+                      child: Text("cognitive"),
+                    ),
                     DropdownMenuItem(value: "social", child: Text("social")),
-                    DropdownMenuItem(value: "emotional", child: Text("emotional")),
+                    DropdownMenuItem(
+                      value: "emotional",
+                      child: Text("emotional"),
+                    ),
                   ],
-                  onChanged: (v) => setState(() => developmentArea = v ?? "motor"),
-                  style: const TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                  onChanged: (v) =>
+                      setState(() => developmentArea = v ?? "motor"),
+                  style: const TextStyle(
+                    color: textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -386,7 +510,8 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
             _underlineField(
               controller: titleCtrl,
               hint: "",
-              validator: (v) => (v == null || v.trim().isEmpty) ? "Title required" : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? "Title required" : null,
             ),
 
             const SizedBox(height: 12),
@@ -407,8 +532,9 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                   contentPadding: EdgeInsets.all(12),
                   border: InputBorder.none,
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? "Description required" : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? "Description required"
+                    : null,
               ),
             ),
 
@@ -419,18 +545,110 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
               children: [
                 const Text(
                   "Duration :",
-                  style: TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(width: 8),
 
-                _smallBoxNumber(durationB.toString().padLeft(2, "0")),
+                // editable number box
+                Container(
+                  width: 56,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0E8DA),
+                    border: Border.all(color: stroke, width: 1.2),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: shadow,
+                        blurRadius: 10,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: completedCtrl,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(2),
+                    ],
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    onChanged: (v) {
+                      final n = int.tryParse(v) ?? 0;
+                      final clamped = n.clamp(0, 60);
+                      setState(() => completedMinutes = clamped);
+                      completedCtrl.text = clamped.toString();
+                      completedCtrl.selection = TextSelection.collapsed(
+                        offset: completedCtrl.text.length,
+                      );
+                    },
+                  ),
+                ),
+
                 const SizedBox(width: 6),
-                _upDown(onUp: _incMins, onDown: _decMins),
+
+                // arrows
+                Container(
+                  width: 26,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0E8DA),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: stroke, width: 1.2),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(
+                              () => completedMinutes = (completedMinutes + 1)
+                                  .clamp(0, 60),
+                            );
+                            completedCtrl.text = completedMinutes.toString();
+                          },
+                          child: const Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            color: textSoft,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(
+                              () => completedMinutes = (completedMinutes - 1)
+                                  .clamp(0, 60),
+                            );
+                            completedCtrl.text = completedMinutes.toString();
+                          },
+                          child: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: textSoft,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 const SizedBox(width: 8),
                 const Text(
                   "min",
-                  style: TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -456,15 +674,19 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                       width: 22,
                       child: Text(
                         "${i + 1}.",
-                        style: const TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: textSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Expanded(
                       child: _underlineField(
                         controller: stepCtrls[i],
                         hint: "",
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? "Step required" : null,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? "Step required"
+                            : null,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -487,14 +709,20 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                 child: DropdownButton<String>(
                   value: difficulty,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSoft),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: textSoft,
+                  ),
                   items: const [
                     DropdownMenuItem(value: "easy", child: Text("Easy")),
                     DropdownMenuItem(value: "medium", child: Text("Medium")),
                     DropdownMenuItem(value: "hard", child: Text("Hard")),
                   ],
                   onChanged: (v) => setState(() => difficulty = v ?? "easy"),
-                  style: const TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: textSoft,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -512,7 +740,10 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     Expanded(
                       child: Text(
                         imageLabel.isEmpty ? "Choose an image" : imageLabel,
-                        style: const TextStyle(color: textSoft, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: textSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -548,7 +779,8 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     width: 180,
                     height: 160,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Text("Image load failed"),
+                    errorBuilder: (_, __, ___) =>
+                        const Text("Image load failed"),
                   ),
                 ),
               ),
@@ -566,15 +798,23 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     foregroundColor: Colors.white,
                     elevation: 10,
                     shadowColor: Colors.black54,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: saving
                       ? const SizedBox(
                           height: 18,
                           width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Text("Update", style: TextStyle(fontWeight: FontWeight.w700)),
+                      : const Text(
+                          "Update",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
             ),
@@ -587,97 +827,95 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   // ===== UI helpers (same as your create page style) =====
 
   Widget _label(String t) => Text(
-        t,
-        style: const TextStyle(
-          color: textSoft,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        ),
-      );
+    t,
+    style: const TextStyle(
+      color: textSoft,
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+    ),
+  );
 
   Widget _inputLike({required Widget child}) => Container(
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0E8DA),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: stroke, width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
-          ],
-        ),
-        alignment: Alignment.centerLeft,
-        child: child,
-      );
+    height: 42,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF0E8DA),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: stroke, width: 1.2),
+      boxShadow: const [
+        BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
+      ],
+    ),
+    alignment: Alignment.centerLeft,
+    child: child,
+  );
 
   Widget _underlineField({
     required TextEditingController controller,
     required String hint,
     String? Function(String?)? validator,
-  }) =>
-      TextFormField(
-        controller: controller,
-        validator: validator,
-        style: const TextStyle(
-          color: Color(0xFF2F2A22),
-          fontWeight: FontWeight.w600,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFFBFB2A0)),
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-          enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: stroke, width: 1.4),
-          ),
-          focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: stroke, width: 2.0),
-          ),
-        ),
-      );
+  }) => TextFormField(
+    controller: controller,
+    validator: validator,
+    style: const TextStyle(
+      color: Color(0xFF2F2A22),
+      fontWeight: FontWeight.w600,
+    ),
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFFBFB2A0)),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: stroke, width: 1.4),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: stroke, width: 2.0),
+      ),
+    ),
+  );
 
   Widget _circleIconButton({
     required IconData icon,
     required VoidCallback onTap,
     double size = 40,
-  }) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: size,
-          width: size,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: shadow, blurRadius: 10, offset: Offset(0, 5)),
-            ],
-          ),
-          child: Icon(icon, color: textSoft),
-        ),
-      );
+  }) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      height: size,
+      width: size,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: shadow, blurRadius: 10, offset: Offset(0, 5)),
+        ],
+      ),
+      child: Icon(icon, color: textSoft),
+    ),
+  );
 
   Widget _smallBoxNumber(String text) => Container(
-        width: 46,
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0E8DA),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: stroke, width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: textSoft,
-            fontWeight: FontWeight.w800,
-            fontSize: 14,
-          ),
-        ),
-      );
+    width: 46,
+    height: 38,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: const Color(0xFFF0E8DA),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: stroke, width: 1.2),
+      boxShadow: const [
+        BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
+      ],
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: textSoft,
+        fontWeight: FontWeight.w800,
+        fontSize: 14,
+      ),
+    ),
+  );
 
   Widget _upDown({required VoidCallback onUp, required VoidCallback onDown}) =>
       Container(
@@ -697,19 +935,25 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
               onTap: onUp,
               child: const SizedBox(
                 height: 19,
-                child: Icon(Icons.keyboard_arrow_up_rounded, color: textSoft, size: 18),
+                child: Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  color: textSoft,
+                  size: 18,
+                ),
               ),
             ),
             InkWell(
               onTap: onDown,
               child: const SizedBox(
                 height: 19,
-                child: Icon(Icons.keyboard_arrow_down_rounded, color: textSoft, size: 18),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: textSoft,
+                  size: 18,
+                ),
               ),
             ),
           ],
         ),
       );
 }
-
-
