@@ -519,17 +519,6 @@ class _DetailedSystemActivityScreenState
                                         value: stepDone[i],
                                         onChanged: (v) async {
                                           await TtsService.stop();
-
-                                          if (completedMinutes <= 0) {
-                                            showThemedAlert(
-                                              type: QuickAlertType.warning,
-                                              title: "Duration Required",
-                                              text:
-                                                  "Please enter completed duration (1–60 minutes) first.",
-                                            );
-                                            return;
-                                          }
-
                                           setState(() {
                                             stepDone[i] = v ?? false;
                                           });
