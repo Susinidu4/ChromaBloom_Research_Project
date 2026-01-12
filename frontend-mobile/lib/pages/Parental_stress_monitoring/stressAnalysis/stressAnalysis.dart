@@ -122,7 +122,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                               escalationTriggered: stress.escalationTriggered,
                             ),
                             const SizedBox(height: 14),
-                            _RecommendationCard(recommendation: rec),
+                            // _RecommendationCard(recommendation: rec),
                           ],
                         );
                       },
