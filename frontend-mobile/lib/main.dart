@@ -36,6 +36,7 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/lessons.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/lessonDetails.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/quize1.dart';
+import 'pages/Gamified_Knowlage_Builder/problemSolving/problemSComplete.dart';
 
 
 
@@ -91,6 +92,7 @@ class MyApp extends StatelessWidget {
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
         '/problemSolvingLessonDetail': (context) => const ProblemSolvingMiniTutorialPage(),
         '/problemSolvingQuiz1': (context) => const ProblemSolvingMatchPage(),
+        '/problemSolvingLessonComplete': (context) => const ProblemSolvingLessonCompletePage(),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
 
