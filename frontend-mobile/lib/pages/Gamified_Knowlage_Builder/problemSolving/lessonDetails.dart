@@ -5,6 +5,7 @@ import '../../others/navBar.dart';
 class ProblemSolvingMiniTutorialPage extends StatelessWidget {
   const ProblemSolvingMiniTutorialPage({super.key});
 
+  // Background
   static const Color pageBg = Color(0xFFF5ECEC);
 
   // Top row
@@ -13,13 +14,16 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
   static const Color circleBorder = Color(0xFFD8C6B4);
   static const Color circleIcon = Color(0xFFB0896E);
 
-  // Card colors
+  // Big card
   static const Color cardBg = Color(0xFFE9DDCC);
-  static const Color miniBoxBg = Color(0xFFF8F2E8);
-  static const Color miniBoxBorder = Color(0xFFD8C6B4);
 
+  // Inner “white” boxes (match UI)
+  static const Color innerBoxBg = Color(0xFFF7F3ED);
+  static const Color innerBoxBorder = Color(0xFFD8C6B4);
+
+  // Text
   static const Color titleBrown = Color(0xFFA07E6A);
-  static const Color bodyBrown = Color(0xFFB79B86);
+  static const Color bodyBlack = Color(0xFF111111);
 
   // Button
   static const Color btnBg = Color(0xFFB89A76);
@@ -46,9 +50,9 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                     Row(
                       children: [
                         Image.asset(
-                          "assets/problem_solving.png", // change if needed
-                          width: 24,
-                          height: 24,
+                          "assets/problem-solving.png",
+                          width: 30,
+                          height: 30,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.psychology_alt_rounded,
@@ -82,7 +86,7 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: cardBg,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x2A000000),
@@ -103,13 +107,13 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                 Expanded(
                                   flex: 5,
                                   child: Padding(
-                                    padding: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.only(top: 2),
                                     child: Image.asset(
-                                      "assets/ps_mini_1.png", // your top illustration
-                                      height: 120,
+                                      "assets/buildingbox.png",
+                                      height: 130,
                                       fit: BoxFit.contain,
                                       errorBuilder: (_, __, ___) => Container(
-                                        height: 120,
+                                        height: 130,
                                         decoration: BoxDecoration(
                                           color:
                                               Colors.black.withOpacity(0.06),
@@ -138,15 +142,15 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                     padding: const EdgeInsets.fromLTRB(
                                         12, 10, 12, 10),
                                     decoration: BoxDecoration(
-                                      color: miniBoxBg,
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: innerBoxBg,
+                                      borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: miniBoxBorder,
-                                        width: 1.1,
+                                        color: innerBoxBorder,
+                                        width: 1.2,
                                       ),
                                       boxShadow: const [
                                         BoxShadow(
-                                          color: Color(0x12000000),
+                                          color: Color(0x1E000000),
                                           blurRadius: 8,
                                           offset: Offset(0, 4),
                                         ),
@@ -166,7 +170,7 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                         ),
                                         SizedBox(height: 8),
                                         _MiniBullet(
-                                          "Show two sets of items\n(e.g., spoon–fork, sock–shoe, apple–banana).",
+                                          "Show two sets of items\n(e.g., spoon–fork, sock–shoe,\napple–banana).",
                                         ),
                                         _MiniBullet(
                                           "Ask: “Which two go together?”",
@@ -184,15 +188,26 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                               ],
                             ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
                             // ===== Second section box (Or:) =====
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                               decoration: BoxDecoration(
-                                color: miniBoxBg.withOpacity(0.28),
+                                color: innerBoxBg,
                                 borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: innerBoxBorder,
+                                  width: 1.1,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x14000000),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: const Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +227,7 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                     "they play.\n"
                                     "Your help improves learning and keeps them safe.",
                                     style: TextStyle(
-                                      color: bodyBrown,
+                                      color: bodyBlack,
                                       fontSize: 9.8,
                                       height: 1.25,
                                       fontWeight: FontWeight.w600,
@@ -232,11 +247,11 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
 
                             // bottom illustration
                             Image.asset(
-                              "assets/ps_mini_2.png", // your bottom illustration
-                              height: 110,
+                              "assets/playgames.png",
+                              height: 115,
                               fit: BoxFit.contain,
                               errorBuilder: (_, __, ___) => Container(
-                                height: 110,
+                                height: 115,
                                 width: double.infinity,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
@@ -250,14 +265,13 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                               ),
                             ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
-                            // Continue button (small, centered)
+                            // Continue button (small, centered like UI)
                             Center(
                               child: _PrimaryButton(
                                 label: "Continue",
                                 onTap: () {
-                                  // TODO: go to lesson list / first game
                                   // Navigator.pushNamed(context, '/problemSolvingUnit1');
                                 },
                               ),
@@ -341,18 +355,18 @@ class _MiniBullet extends StatelessWidget {
           const Text(
             "• ",
             style: TextStyle(
-              color: ProblemSolvingMiniTutorialPage.titleBrown,
+              color: ProblemSolvingMiniTutorialPage.bodyBlack,
               fontSize: 10.5,
               height: 1.25,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                color: ProblemSolvingMiniTutorialPage.titleBrown,
-                fontSize: 9.4,
+                color: ProblemSolvingMiniTutorialPage.bodyBlack,
+                fontSize: 9.6,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
               ),
@@ -378,17 +392,17 @@ class _OrBullet extends StatelessWidget {
           const Text(
             "• ",
             style: TextStyle(
-              color: ProblemSolvingMiniTutorialPage.bodyBrown,
+              color: ProblemSolvingMiniTutorialPage.bodyBlack,
               fontSize: 10.5,
               height: 1.25,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                color: ProblemSolvingMiniTutorialPage.bodyBrown,
+                color: ProblemSolvingMiniTutorialPage.bodyBlack,
                 fontSize: 9.8,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
@@ -420,8 +434,8 @@ class _PrimaryButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          height: 34,
-          width: 92, // matches your UI small button
+          height: 30,
+          width: 86, // small like UI
           decoration: BoxDecoration(
             color: ProblemSolvingMiniTutorialPage.btnBg,
             borderRadius: BorderRadius.circular(10),
@@ -438,7 +452,7 @@ class _PrimaryButton extends StatelessWidget {
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
