@@ -6,6 +6,11 @@ import 'package:frontend/pages/others/first_time_options.dart';
 import 'package:provider/provider.dart';
 import 'state/session_provider.dart';
 
+import 'pages/Others/onboardScreen1.dart';
+import 'pages/Others/onboardScreen2.dart';
+import 'pages/others/onboardScreen3.dart';
+import 'pages/others/getStartedScreen.dart';
+
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 
@@ -58,6 +63,11 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const SplashScreen(),
         '/welcome_screen': (context) => const WelcomePage(),
         '/first_time': (context) => const FirstTimeOptionsPage(),
+
+        '/onboard1': (context) => const OnboardScreen1(),
+        '/onboard2': (context) => const OnboardScreen2(),
+        '/onboard3': (context) => const OnboardScreen3(),
+        '/get_started': (context) => const GetStartedScreen(),
 
         '/': (context) => const HomePage(),
         '/profile_page': (context) => const ProfilePage(),
