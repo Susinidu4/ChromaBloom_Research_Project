@@ -48,6 +48,7 @@ class CaregiverStep extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFFB37A41),
             decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFB37A41),
           ),
         ),
         const SizedBox(height: 16),
@@ -78,6 +79,7 @@ class CaregiverStep extends StatelessWidget {
           label: "Gender",
           value: gender,
           items: const ["Male", "Female", "Other"],
+          hint: const Text("Gender", style: TextStyle(color: Color(0xFFC89B62))),
           onChanged: onGenderChanged,
         ),
         const SizedBox(height: 12),
@@ -115,7 +117,6 @@ class CaregiverStep extends StatelessWidget {
         RoundedTextField(
           label: "Address",
           controller: addressController,
-          maxLines: 2,
         ),
 
         const SizedBox(height: 24),
