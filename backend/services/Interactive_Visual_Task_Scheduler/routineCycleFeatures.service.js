@@ -1,8 +1,7 @@
 import RoutineRunModel from "../../models/Interactive_Visual_Task_Scheduler_Model/routineRunModel.js";
 
-/**
- * Safely compute minutes between two timestamps
- */
+// Helper to compute minutes between two timestamps
+// future upgrades (if user send start & end)
 function minutesBetween(startedAt, finishedAt) {
   if (!startedAt || !finishedAt) return null;
   const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
@@ -10,18 +9,18 @@ function minutesBetween(startedAt, finishedAt) {
   return ms / 60000;
 }
 
-/**
- * Mean helper
- */
+// Helper to compute mean of an array, ignoring non-finite values
+// This function ensures:
+    // ML features are clean
+    // no crashes
+    // no NaN values sent to ML
 function mean(arr) {
   const clean = arr.filter((x) => Number.isFinite(x));
   if (clean.length === 0) return 0;
   return clean.reduce((a, b) => a + b, 0) / clean.length;
 }
 
-/**
- * Format Date -> YYYY-MM-DD (UTC safe)
- */
+// Helper to convert date to into a standard 'YYYY-MM-DD' string
 function toYMD(date) {
   const d = new Date(date);
   const y = d.getUTCFullYear();
@@ -30,17 +29,10 @@ function toYMD(date) {
   return `${y}-${m}-${day}`;
 }
 
-/**
- * Compute completion_rate for a run.
- * Supports multiple possible schemas:
- * - completion_rate
- * - completed_steps & total_steps
- * - steps_done & steps_total
- * - completedSteps & totalSteps
- */
+// Get completion rate of a single activity
 function getCompletionRate(run) {
   if (Number.isFinite(run.completion_rate)) return run.completion_rate;
-
+  
   const completed =
     run.completed_steps ??
     run.steps_done ??
@@ -66,9 +58,7 @@ function getCompletionRate(run) {
   return null;
 }
 
-/**
- * Get skipped steps count for a run (supports variants)
- */
+// Get skipped steps count of a single activity
 function getSkippedSteps(run) {
   const skipped =
     run.skipped_steps_count ??
@@ -80,9 +70,7 @@ function getSkippedSteps(run) {
   return Number.isFinite(skipped) ? skipped : 0;
 }
 
-/**
- * Compute 14-day features for one plan cycle.
- */
+// Main function to compute cycle features
 export async function computeCycleFeatures({
   caregiverId,
   childId,
@@ -103,14 +91,15 @@ export async function computeCycleFeatures({
 
   const runs_count = runs.length;
 
-  // per-run lists
+  // Temporary lists that collect values from each activity run during the 14-day cycle
   const completionRates = [];
   const skippedSteps = [];
   const durations = [];
 
-  // for trend: daily avg completion rate
-  const dailyMap = new Map(); // ymd -> [rates...]
+  // daily avg completion rate
+  const dailyMap = new Map();
 
+  // process each run
   for (const r of runs) {
     const cr = getCompletionRate(r);
     if (Number.isFinite(cr)) completionRates.push(cr);
@@ -128,7 +117,7 @@ export async function computeCycleFeatures({
   }
 
   const avg_completion_rate = mean(completionRates);
-  const avg_skepped_steps = mean(skippedSteps); // keep your spelling
+  const avg_skepped_steps = mean(skippedSteps);
   const avg_duration_minutes = mean(durations);
 
   // build daily avg list ordered by day

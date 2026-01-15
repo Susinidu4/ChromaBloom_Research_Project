@@ -33,7 +33,7 @@ class _WelcomePageState extends State<WelcomePage> {
     //   // or: Navigator.pushReplacementNamed(context, '/');
     // }
     
-    Navigator.pushReplacementNamed(context, '/caregiver_login');
+    Navigator.pushReplacementNamed(context, '/onboard1');
   }
 
   @override

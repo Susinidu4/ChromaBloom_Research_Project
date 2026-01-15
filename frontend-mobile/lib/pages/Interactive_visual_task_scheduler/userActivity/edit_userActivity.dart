@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -76,7 +80,39 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   bool saving = false;
 
   // TEMP caregiver (you said hard-code ok for now)
-  static const String hardcodedCaregiverId = "p-0001";
+  // static const String hardcodedCaregiverId = "p-0001";
+
+  String _getCaregiverId() {
+    final session = context.read<SessionProvider>();
+    return (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+        .toString();
+  }
+
+  int calculateAgeFromDob(String dob) {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+
+    int age = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  Future<int?> _getLoggedCaregiverChildAge() async {
+    final caregiverId = _getCaregiverId();
+    if (caregiverId.isEmpty) return null;
+
+    final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+    if (children.isEmpty) return null;
+
+    final child = children.first; // if multiple children, later use a dropdown
+    final dob = child['dateOfBirth'];
+    if (dob == null) return null;
+
+    return calculateAgeFromDob(dob.toString());
+  }
 
   final completedCtrl = TextEditingController();
   int completedMinutes = 0;
@@ -85,13 +121,31 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   void initState() {
     super.initState();
     _prefillFromActivity(widget.activity);
+    _loadAgeGroupFromChild();
+  }
+
+  Future<void> _loadAgeGroupFromChild() async {
+    final age = await _getLoggedCaregiverChildAge();
+    if (!mounted) return;
+
+    if (age == null) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "No Child Found",
+        text: "Please add a child profile first.",
+      );
+      return;
+    }
+
+    setState(() {
+      ageGroup = age.toString(); // ✅ set age group
+    });
   }
 
   void _prefillFromActivity(Map<String, dynamic> a) {
     titleCtrl.text = (a["title"] ?? "").toString();
     descCtrl.text = (a["description"] ?? "").toString();
 
-    ageGroup = (a["age_group"] ?? "1").toString();
     developmentArea = (a["development_area"] ?? "motor").toString();
     difficulty = (a["difficulty_level"] ?? "easy").toString();
 
@@ -289,9 +343,20 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     try {
       final imgBase64 = await _fileToBase64DataUri(selectedImageFile);
 
+      final caregiverId = _getCaregiverId();
+
+      if (caregiverId.isEmpty) {
+        showThemedAlert(
+          type: QuickAlertType.error,
+          title: "Session Error",
+          text: "Please login again.",
+        );
+        return;
+      }
+
       final res = await UserActivityService.updateUserActivity(
         activityId: mongoId,
-        createdBy: hardcodedCaregiverId,
+        createdBy: caregiverId,
         title: titleCtrl.text.trim(),
         description: descCtrl.text.trim(),
         ageGroup: ageGroup,
@@ -430,32 +495,6 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     ),
                     const Icon(Icons.calendar_month_rounded, color: textSoft),
                   ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            _label("Age Group :"),
-            const SizedBox(height: 6),
-            _inputLike(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: ageGroup,
-                  isExpanded: true,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: textSoft,
-                  ),
-                  items: List.generate(10, (i) {
-                    final v = "${i + 1}";
-                    return DropdownMenuItem(value: v, child: Text(v));
-                  }),
-                  onChanged: (v) => setState(() => ageGroup = v ?? "1"),
-                  style: const TextStyle(
-                    color: textSoft,
-                    fontWeight: FontWeight.w700,
-                  ),
                 ),
               ),
             ),
