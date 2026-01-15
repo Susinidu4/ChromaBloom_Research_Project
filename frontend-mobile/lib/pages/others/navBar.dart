@@ -47,7 +47,7 @@ class MainNavBar extends StatelessWidget {
                 currentIndex: currentIndex,
                 icon: Icons.calendar_month_rounded,
                 label: "Routine",
-                route: '/displayUserActivity',
+                route: '/taskSchedulerHome',
               ),
               _NavItem(
                 index: 2,
