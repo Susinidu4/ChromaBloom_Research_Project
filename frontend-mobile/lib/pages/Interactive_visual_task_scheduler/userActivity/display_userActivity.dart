@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:provider/provider.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -25,12 +30,81 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   String searchQuery = "";
 
-  // ✅ TEMP hardcoded logged-in caregiver id, childID, ageGroup
-  //static const String hardcodedCaregiverId = "u-005";
+  // TEMP hardcoded logged-in caregiver id, childID, ageGroup
+  // static const String hardcodedCaregiverId = "p-0001";
+  // static const String hardcodedChildId = "c-0001";
+  // static const String hardcodedAgeGroup = "5";
 
-  static const String hardcodedCaregiverId = "p-0001";
-  static const String hardcodedChildId = "c-0001";
-  static const String hardcodedAgeGroup = "5";
+  String? caregiverId;
+  String? childId;
+  String? ageGroup;
+
+  int calculateAgeFromDob(String dob) {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+    int age = today.year - birthDate.year;
+
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  Future<void> _loadCaregiverAndChild() async {
+    setState(() {
+      loadingIdentity = true;
+      identityError = null;
+    });
+
+    try {
+      // ✅ 1) caregiverId from session
+      final session = context.read<SessionProvider>();
+      final cid = (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+          .toString();
+
+      if (cid.isEmpty) {
+        throw Exception(
+          "Session error: caregiverId not found. Please login again.",
+        );
+      }
+
+      // ✅ 2) fetch children
+      final children = await ChildApi.getChildrenByCaregiver(cid);
+      if (children.isEmpty) {
+        throw Exception("No child found. Please add a child profile first.");
+      }
+
+      // ✅ If multiple children exist, for now pick first
+      final child = children.first;
+
+      final cId = (child['_id'] ?? child['id'] ?? '').toString();
+      if (cId.isEmpty) {
+        throw Exception("Child ID missing from API response.");
+      }
+
+      final dob = (child['dateOfBirth'] ?? '').toString();
+      if (dob.isEmpty) {
+        throw Exception("Child dateOfBirth missing from API response.");
+      }
+
+      final age = calculateAgeFromDob(dob);
+
+      setState(() {
+        caregiverId = cid;
+        childId = cId;
+        ageGroup = age.toString();
+      });
+    } catch (e) {
+      setState(() => identityError = e.toString());
+    } finally {
+      if (!mounted) return;
+      setState(() => loadingIdentity = false);
+    }
+  }
+
+  bool loadingIdentity = false;
+  String? identityError;
 
   String? suggestedPlanMongoId;
   DateTime? suggestedStart;
@@ -101,9 +175,12 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   @override
   void initState() {
     super.initState();
-    // optional: if you want to auto-load when opening "Your tasks" first, set isSuggested=false
-
-    _fetchSuggestedPlan();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadCaregiverAndChild();
+      if (caregiverId != null && childId != null && ageGroup != null) {
+        _fetchSuggestedPlan();
+      }
+    });
   }
 
   Future<void> _refreshSuggestedProgressForDay() async {
@@ -116,11 +193,11 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         if (activityId.isEmpty) return t;
 
         final run = await ChildRoutinePlanService.getRoutineRunProgress(
-          caregiverId: hardcodedCaregiverId,
-          childId: hardcodedChildId,
+          caregiverId: caregiverId!,
+          childId: childId!,
           planMongoId: suggestedPlanMongoId!,
           activityMongoId: activityId,
-          runDate: selectedDate, // ✅ calendar day
+          runDate: selectedDate,
         );
 
         if (run == null) {
@@ -152,11 +229,11 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     String activityId,
   ) async {
     final run = await ChildRoutinePlanService.getRoutineRunProgress(
-      caregiverId: hardcodedCaregiverId,
-      childId: hardcodedChildId,
+      caregiverId: caregiverId!,
+      childId: childId!,
       planMongoId: planId,
       activityMongoId: activityId,
-      runDate: selectedDate, // ✅ per day
+      runDate: selectedDate,
     );
 
     if (run == null) return 0;
@@ -174,11 +251,13 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       suggestedError = null;
     });
 
+    if (caregiverId == null || childId == null || ageGroup == null) return;
+
     try {
       final res = await ChildRoutinePlanService.getOrCreateStarterPlan(
-        caregiverId: hardcodedCaregiverId,
-        childId: hardcodedChildId,
-        ageGroup: hardcodedAgeGroup,
+        caregiverId: caregiverId!,
+        childId: childId!,
+        ageGroup: ageGroup!,
       );
 
       final plan = (res["data"] as Map?) ?? {};
@@ -253,7 +332,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
     try {
       final data = await UserActivityService.getByDate(
-        caregiverId: hardcodedCaregiverId,
+        caregiverId: caregiverId!,
         date: selectedDate,
       );
 
@@ -329,6 +408,29 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loadingIdentity) {
+      return const Scaffold(
+        backgroundColor: pageBg,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (identityError != null) {
+      return Scaffold(
+        backgroundColor: pageBg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              "Session/Child load failed:\n$identityError",
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final bool showSuggestedForThisDate =
         isSuggested && _isWithinSuggestedCycle(selectedDate);
 
@@ -367,9 +469,11 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                 ),
                 child: Column(
                   children: [
-                    _SearchBar(
+                    _SearchBarWithBack(
+                      onBack: () => Navigator.pop(context),
                       onChanged: (v) => setState(() => searchQuery = v.trim()),
                     ),
+
                     const SizedBox(height: 14),
 
                     ExpandableCalendar(
@@ -458,9 +562,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                             ? "Completed"
                                             : "In Progress"));
 
-                            final img =
-                                (t["img"] ?? "assets/activityDemo.png")
-                                    .toString();
+                            final img = (t["img"] ?? "assets/activityDemo.png")
+                                .toString();
 
                             return _TaskCard(
                               title: title,
@@ -522,9 +625,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                               const SizedBox(height: 12),
                           itemBuilder: (context, i) {
                             final t = filteredTasks[i];
-                            final img =
-                                (t["img"] ?? "assets/activityDemo.png")
-                                    .toString();
+                            final img = (t["img"] ?? "assets/activityDemo.png")
+                                .toString();
 
                             return _TaskCard(
                               title: t["title"].toString(),
@@ -735,33 +837,71 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
 }
 
 /* ===================== SEARCH ===================== */
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.onChanged});
+class _SearchBarWithBack extends StatelessWidget {
+  const _SearchBarWithBack({
+    required this.onBack,
+    required this.onChanged,
+  });
+
+  final VoidCallback onBack;
   final ValueChanged<String> onChanged;
+
+  //static const Color shadow = Color(0x22000000);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: const Color(0xFFD9D9D9).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              onChanged: onChanged,
-              decoration: const InputDecoration(border: InputBorder.none),
+    return Row(
+      children: [
+        // Back button (small round)
+        InkWell(
+          onTap: onBack,
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9).withOpacity(0.8),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.chevron_left_rounded,
+              color: Colors.black54,
+              size: 26,
             ),
           ),
-          const Icon(Icons.search, color: Colors.black54),
-        ],
-      ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Search bar (same style)
+        Expanded(
+          child: Container(
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9).withOpacity(0.8),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: onChanged,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.search, color: Colors.black54),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
+
 
 /* ===================== TOGGLE ===================== */
 class SegmentToggle extends StatelessWidget {
