@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
 
 import '../others/header.dart';
 import '../others/navBar.dart';
+
+import '../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
 
 class RoutineHomeScreen extends StatefulWidget {
   const RoutineHomeScreen({super.key});
@@ -20,45 +24,218 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
   //static const Color accentBrown = Color(0xFFB0896E);
   static const Color textBrown = Color(0xFFBD9A6B);
 
-  static const Color cardBg = Color(0xFFF8F2E8);
-  static const Color chartFill = Color(0xFFD8C6B4);
+  static const Color cardBg = Color(0xFFF7EAD7);
+  static const Color chartFill = Color(0xFFDFC7A7);
   //static const Color chartLine = Color(0xFFB0896E);
 
-  // Dummy chart data (replace with your real API values)
-  final List<double> _overallProgress = [
-    2.2,
-    1.8,
-    2.5,
-    2.0,
-    1.1,
-    1.9,
-    1.2,
-    2.7,
-    2.6,
-    1.3,
-  ];
-  final int _completedSteps = 25;
-  final int _skippedSteps = 10;
+  Future<Map<String, dynamic>>? _latestSummaryFuture;
 
-  final List<double> _dailyProgress14 = [
-    35,
-    75,
-    45,
-    65,
-    5,
-    3,
-    2,
-    65,
-    6,
-    5,
-    50,
-    48,
-    60,
-    35,
-  ];
+  //final String caregiverId = "p-0001";
+
+  String _getLoggedCaregiverId(BuildContext context) {
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    return caregiverId;
+  }
+
+  // cycle label shown in the pill (from backend)
+  String _selectedCycleLabel = "Select Cycle";
+  String? _selectedPlanId; // selectedCycle.planMongoId
+
+  Map<String, dynamic>? _dashboardCache; // last successful dashboard response
+  bool _loadingCycle = false; // optional: show loader in pill
+
+  // ✅ chart values (NOT final, because must update)
+  List<double> _overallProgress = [];
+  int _completedSteps = 0;
+  int _skippedSteps = 0;
+  List<double> _dailyProgress14 = List.filled(14, 0);
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final caregiverId = _getLoggedCaregiverId(context);
+
+      if (caregiverId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Caregiver not logged in")),
+        );
+        return;
+      }
+
+      setState(() {
+        _latestSummaryFuture = ChildRoutinePlanService.getLatestRoutineSummary(
+          caregiverId: caregiverId,
+        );
+        _loadingCycle = true;
+      });
+
+      _loadDashboard(caregiverId: caregiverId);
+    });
+  }
+
+  double _diffToNumber(String diff) {
+    final d = diff.toLowerCase().trim();
+    if (d == "easy") return 1;
+    if (d == "medium") return 2;
+    if (d == "hard") return 3;
+    return 0;
+  }
+
+  Future<Map<String, dynamic>> _loadDashboard({
+    required String caregiverId,
+    String? planId,
+  }) async {
+    try {
+      final res = await ChildRoutinePlanService.getRoutineDashboard(
+        caregiverId: caregiverId,
+        planId: planId,
+      );
+
+      if (!mounted) return res;
+
+      _dashboardCache = res;
+
+      setState(() {
+        _applyDashboardToState(res);
+        _loadingCycle = false;
+      });
+
+      return res;
+    } catch (e) {
+      if (!mounted) rethrow;
+
+      setState(() {
+        _loadingCycle = false; // ✅ IMPORTANT: stop loading even on error
+      });
+
+      // optional: show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to load dashboard. Check server & planId."),
+        ),
+      );
+
+      rethrow;
+    }
+  }
+
+  String _cap(String s) {
+    final t = s.trim().toLowerCase();
+    if (t.isEmpty) return s;
+    return t[0].toUpperCase() + t.substring(1);
+  }
+
+  Future<void> _pickCycleFromDashboard(
+    Map<String, dynamic> dashboardRes,
+  ) async {
+    final data = (dashboardRes["data"] ?? {}) as Map<String, dynamic>;
+    final cycles = (data["cycles"] ?? []) as List;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF8F2E8),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) {
+        return ListView.separated(
+          padding: const EdgeInsets.all(14),
+          itemCount: cycles.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (ctx, i) {
+            final c = cycles[i] as Map<String, dynamic>;
+
+            final label = (c["label"] ?? "").toString();
+
+            // ✅ IMPORTANT: must be Mongo _id (ObjectId)
+            final planMongoId = (c["planMongoId"] ?? c["_id"] ?? "").toString();
+
+            return ListTile(
+              title: Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF8D6E4F),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () async {
+                Navigator.pop(ctx);
+
+                if (planMongoId.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Invalid plan id")),
+                  );
+                  return;
+                }
+
+                setState(() {
+                  _loadingCycle = true;
+                  _selectedPlanId =
+                      planMongoId; // ✅ keep selected plan id updated
+                });
+
+                await _loadDashboard(
+                  caregiverId: _getLoggedCaregiverId(context),
+                  planId: planMongoId,
+                );
+                // ✅ Mongo _id
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _applyDashboardToState(Map<String, dynamic> res) {
+    final data = (res["data"] ?? {}) as Map<String, dynamic>;
+
+    // ✅ Selected cycle label + plan id
+    final selected = (data["selectedCycle"] ?? {}) as Map<String, dynamic>;
+    final cycleStart = (selected["cycleStart"] ?? "")
+        .toString()
+        .split("T")
+        .first;
+    final cycleEnd = (selected["cycleEnd"] ?? "").toString().split("T").first;
+
+    _selectedPlanId = (selected["planMongoId"] ?? "").toString();
+    _selectedCycleLabel = "$cycleStart - $cycleEnd";
+
+    // ✅ Overall Progress (difficulty -> 1/2/3)
+    final overall = (data["overallProgress"] ?? []) as List;
+    _overallProgress = overall.map<double>((e) {
+      final diff = (e["difficulty"] ?? "").toString();
+      return _diffToNumber(diff);
+    }).toList();
+
+    // ✅ Step analysis (pie chart)
+    final step = (data["stepAnalysis"] ?? {}) as Map<String, dynamic>;
+    _completedSteps = (step["completedStepsTotal"] as num?)?.toInt() ?? 0;
+    _skippedSteps = (step["skippedStepsTotal"] as num?)?.toInt() ?? 0;
+
+    // ✅ Daily progress (bar chart) => completionPercent 0..100
+    final daily = (data["dailyProgress"] ?? []) as List;
+    _dailyProgress14 = List.generate(14, (i) {
+      if (i >= daily.length) return 0.0;
+      return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final int visibleCount = 14;
+    final double pointSpacing = 40;
     return Scaffold(
       backgroundColor: pageBg,
       body: SafeArea(
@@ -98,12 +275,63 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: _LatestSummaryCard(
-                  previous: "Easy",
-                  current: "Medium",
-                  message:
-                      "Wonderful progress! The child is ready for the next level with new Medium-difficulty activities.",
-                ),
+                child: (_latestSummaryFuture == null)
+                    ? const SizedBox(
+                        height: 170,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : FutureBuilder<Map<String, dynamic>>(
+                        future: _latestSummaryFuture!,
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 170,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          if (snap.hasError) {
+                            return _LatestSummaryCard(
+                              previous: "N/A",
+                              current: "N/A",
+                              message: "Failed to load summary.",
+                            );
+                          }
+
+                          final body = snap.data ?? {};
+                          final data =
+                              (body["data"] ?? {}) as Map<String, dynamic>;
+
+                          final prevRaw = data["previousDifficulty"];
+                          final currRaw = data["currentDifficulty"];
+                          final msgRaw = data["message"];
+
+                          // ✅ fallback for first-time user
+                          final previous =
+                              (prevRaw == null ||
+                                  prevRaw.toString().trim().isEmpty)
+                              ? "New"
+                              : _cap(prevRaw.toString());
+
+                          final current =
+                              (currRaw == null ||
+                                  currRaw.toString().trim().isEmpty)
+                              ? "N/A"
+                              : _cap(currRaw.toString());
+
+                          final message =
+                              (msgRaw == null ||
+                                  msgRaw.toString().trim().isEmpty)
+                              ? "No summary available."
+                              : msgRaw.toString();
+
+                          return _LatestSummaryCard(
+                            previous: previous,
+                            current: current,
+                            message: message,
+                          );
+                        },
+                      ),
               ),
 
               const SizedBox(height: 18),
@@ -114,7 +342,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 child: QuoteSection(
                   quote:
                       "Smart routines that adapt, support, and grow with your child.",
-                  imagePath: "assets/InteractiveVisualTaskScheduler/routine_home_Quote.png",
+                  imagePath:
+                      "assets/InteractiveVisualTaskScheduler/routine_home_Quote.png",
                 ),
               ),
 
@@ -126,12 +355,26 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 child: _SectionTitle("Overall Progress"),
               ),
               const SizedBox(height: 10),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: _ChartCard(
-                  child: SizedBox(
-                    height: 170,
-                    child: _OverallLineChart(values: _overallProgress),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+                    child: SizedBox(
+                      height: 220,
+                      child: (_overallProgress.length <= visibleCount)
+                          ? _OverallLineChart(values: _overallProgress)
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: _overallProgress.length * pointSpacing,
+                                child: _OverallLineChart(
+                                  values: _overallProgress,
+                                ),
+                              ),
+                            ),
+                    ),
                   ),
                 ),
               ),
@@ -141,8 +384,38 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               // 14 Day Plan Summary (pie)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: _SectionTitle("14 Day Plan Summary"),
+                child: Row(
+                  children: [
+                    const _SectionTitle("14 Day Plan Summary"),
+                    const Spacer(),
+                    _DatePill(
+                      text: _loadingCycle ? "Loading..." : _selectedCycleLabel,
+                      onTap: () async {
+                        final caregiverId = _getLoggedCaregiverId(context);
+                        if (caregiverId.isEmpty) return;
+
+                        final cache = _dashboardCache;
+
+                        if (cache == null) {
+                          setState(() => _loadingCycle = true);
+
+                          final fresh = await _loadDashboard(
+                            caregiverId: caregiverId,
+                            planId: null,
+                          );
+
+                          if (!mounted) return;
+                          await _pickCycleFromDashboard(fresh);
+                          return;
+                        }
+
+                        await _pickCycleFromDashboard(cache);
+                      },
+                    ),
+                  ],
+                ),
               ),
+
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -153,35 +426,31 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               "Step analysis",
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: textBrown,
                               ),
                             ),
-                            const Spacer(),
-                            _DatePill(
-                              text: "2/11/2025 - 15/11/2025",
-                              onTap: () {},
-                            ),
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 150,
-                              height: 150,
-                              child: _StepsPieChart(
-                                completed: _completedSteps,
-                                skipped: _skippedSteps,
+                        Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min, // 👈 IMPORTANT
+                            children: [
+                              SizedBox(
+                                width: 150,
+                                height: 150,
+                                child: _StepsPieChart(
+                                  completed: _completedSteps,
+                                  skipped: _skippedSteps,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
+                              const SizedBox(width: 14),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _LegendRow(
@@ -196,8 +465,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -217,18 +486,13 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               "Progress",
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: textBrown,
                               ),
-                            ),
-                            const Spacer(),
-                            _DatePill(
-                              text: "2/11/2025 - 15/11/2025",
-                              onTap: () {},
                             ),
                           ],
                         ),
@@ -348,9 +612,6 @@ class _LatestSummaryCard extends StatelessWidget {
           // ✅ Right-side image column width (responsive)
           final double imgColW = (card.maxWidth * 0.42).clamp(150.0, 220.0);
 
-          // ✅ Image height inside that column (responsive + elegant)
-          final double imgH = (imgColW * 0.85).clamp(130.0, 190.0);
-
           return Stack(
             clipBehavior:
                 Clip.none, // ✅ allow image to overflow without resizing card
@@ -450,11 +711,7 @@ class QuoteSection extends StatelessWidget {
   final String quote;
   final String imagePath;
 
-  const QuoteSection({
-    super.key,
-    required this.quote,
-    required this.imagePath,
-  });
+  const QuoteSection({super.key, required this.quote, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -477,10 +734,7 @@ class QuoteSection extends StatelessWidget {
           // LEFT IMAGE (big like UI)
           SizedBox(
             height: 150,
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.contain,
-            ),
+            child: Image.asset(imagePath, fit: BoxFit.contain),
           ),
 
           const SizedBox(width: 28),
@@ -503,7 +757,6 @@ class QuoteSection extends StatelessWidget {
   }
 }
 
-
 class _DatePill extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -518,8 +771,8 @@ class _DatePill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9DDCC),
-          border: Border.all(color: const Color(0xFFD8C6B4)),
+          color: const Color(0xFFF3E8E8),
+          border: Border.all(color: const Color(0xFFBD9A6B)),
           borderRadius: BorderRadius.circular(10),
           boxShadow: const [
             BoxShadow(
@@ -535,7 +788,7 @@ class _DatePill extends StatelessWidget {
             Text(
               text,
               style: const TextStyle(
-                color: Color(0xFF8D6E4F),
+                color: Color(0xFFBD9A6B),
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -553,6 +806,7 @@ class _DatePill extends StatelessWidget {
   }
 }
 
+// All chart Card containers
 class _ChartCard extends StatelessWidget {
   final Widget child;
   const _ChartCard({required this.child});
@@ -561,9 +815,9 @@ class _ChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F2E8),
+        color: const Color(0xFFE9DDCC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD8C6B4)),
+        border: Border.all(color: const Color(0xFFBD9A6B)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
@@ -577,44 +831,7 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-class _LegendRow extends StatelessWidget {
-  final Color color;
-  final Color? borderColor;
-  final String text;
-
-  const _LegendRow({required this.color, required this.text, this.borderColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(5),
-            border: borderColor != null
-                ? Border.all(color: borderColor!, width: 1.4)
-                : null,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(
-            color: Color(0xFF8D6E4F),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ==========================
-// Charts
-// ==========================
+// Overall Progress Line Chart
 class _OverallLineChart extends StatelessWidget {
   final List<double> values;
   const _OverallLineChart({required this.values});
@@ -630,9 +847,30 @@ class _OverallLineChart extends StatelessWidget {
     return LineChart(
       LineChartData(
         minY: 0.5,
-        maxY: 3.2,
-        gridData: FlGridData(show: true, drawVerticalLine: true),
-        borderData: FlBorderData(show: true),
+        maxY: 4,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7), // 👈 grid color
+            strokeWidth: 1,
+            dashArray: [6, 4], // optional: dashed look
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7),
+            strokeWidth: 1,
+            dashArray: [6, 4],
+          ),
+        ),
+
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: const Color(0xFFDFC7A7), // 👈 your theme color
+            width: 1.8,
+          ),
+        ),
+
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -642,7 +880,7 @@ class _OverallLineChart extends StatelessWidget {
           ),
           bottomTitles: AxisTitles(
             axisNameWidget: const Padding(
-              padding: EdgeInsets.only(top: 6),
+              padding: EdgeInsets.only(top: 4),
               child: Text(
                 "Plan no",
                 style: TextStyle(
@@ -663,7 +901,7 @@ class _OverallLineChart extends StatelessWidget {
           ),
           leftTitles: AxisTitles(
             axisNameWidget: const Padding(
-              padding: EdgeInsets.only(right: 6),
+              padding: EdgeInsets.only(right: 2),
               child: Text(
                 "Complexity",
                 style: TextStyle(
@@ -676,19 +914,17 @@ class _OverallLineChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               interval: 1,
-              reservedSize: 44,
+              reservedSize: 45,
               getTitlesWidget: (v, meta) {
-                String label = "";
-                if (v.round() == 1) label = "Easy";
-                if (v.round() == 2) label = "Medium";
-                if (v.round() == 3) label = "Hard";
-                return Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF8D6E4F),
-                    fontSize: 10,
-                  ),
-                );
+                const style = TextStyle(color: Color(0xFFBD9A6B), fontSize: 10);
+
+                bool isClose(double a, double b) => (a - b).abs() < 0.001;
+
+                if (isClose(v, 1)) return const Text("Easy", style: style);
+                if (isClose(v, 2)) return const Text("Medium", style: style);
+                if (isClose(v, 3)) return const Text("Hard", style: style);
+
+                return const SizedBox.shrink(); // hide everything else (including the bottom)
               },
             ),
           ),
@@ -697,12 +933,12 @@ class _OverallLineChart extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            barWidth: 3,
+            barWidth: 2,
             color: const Color(0xFFB0896E),
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFFD8C6B4).withOpacity(0.45),
+              color: const Color(0xFFDFC7A7).withOpacity(0.64),
             ),
           ),
         ],
@@ -711,6 +947,7 @@ class _OverallLineChart extends StatelessWidget {
   }
 }
 
+// Steps analysis Pie Chart
 class _StepsPieChart extends StatelessWidget {
   final int completed;
   final int skipped;
@@ -737,7 +974,8 @@ class _StepsPieChart extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
-            color: const Color(0xFFD8C6B4),
+            color: const Color(0xFFDFC7A7),
+            borderSide: const BorderSide(color: Color(0xFFBD9A6B), width: 2),
           ),
           PieChartSectionData(
             value: skippedPct * 100,
@@ -748,8 +986,8 @@ class _StepsPieChart extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
-            color: const Color(0xFFF8F2E8),
-            borderSide: const BorderSide(color: Color(0xFFD8C6B4), width: 2),
+            color: const Color(0xFFF7EAD7),
+            borderSide: const BorderSide(color: Color(0xFFBD9A6B), width: 2),
           ),
         ],
       ),
@@ -757,6 +995,43 @@ class _StepsPieChart extends StatelessWidget {
   }
 }
 
+// pie chart legend row
+class _LegendRow extends StatelessWidget {
+  final Color color;
+  final Color? borderColor;
+  final String text;
+
+  const _LegendRow({required this.color, required this.text, this.borderColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(5),
+            border: borderColor != null
+                ? Border.all(color: borderColor!, width: 1.4)
+                : null,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFFBD9A6B),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Progress Bar Chart
 class _ProgressBarChart extends StatelessWidget {
   final List<double> values;
   const _ProgressBarChart({required this.values});
@@ -771,9 +1046,9 @@ class _ProgressBarChart extends StatelessWidget {
           barRods: [
             BarChartRodData(
               toY: values[i],
-              width: 10,
-              borderRadius: BorderRadius.circular(3),
-              color: const Color(0xFFB0896E),
+              width: 15,
+              borderRadius: BorderRadius.circular(2),
+              color: const Color(0xFFBD9A6B),
             ),
           ],
         ),
@@ -782,9 +1057,32 @@ class _ProgressBarChart extends StatelessWidget {
 
     return BarChart(
       BarChartData(
-        maxY: 90,
-        gridData: FlGridData(show: true, horizontalInterval: 20),
-        borderData: FlBorderData(show: true),
+        maxY: 100,
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: 20,
+          drawVerticalLine: false,
+          verticalInterval: 0.04,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7), // 👈 grid line color
+            strokeWidth: 1,
+            dashArray: [6, 4], // optional dashed style
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7),
+            strokeWidth: 1,
+            dashArray: [6, 4],
+          ),
+        ),
+
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: const Color(0xFFDFC7A7), // 👈 border color
+            width: 1.8,
+          ),
+        ),
+
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
