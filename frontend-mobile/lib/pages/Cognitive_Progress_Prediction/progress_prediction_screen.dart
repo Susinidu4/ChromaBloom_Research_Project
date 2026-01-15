@@ -8,7 +8,7 @@ import '../../state/session_provider.dart';
 import '../others/header.dart';
 import '../others/navBar.dart';
 
-// ✅ NEW: insight widget extracted to separate file
+// ✅ extracted widget you already have
 import './insight_chart_card.dart';
 
 class ProgressPredictionScreen extends StatefulWidget {
@@ -22,7 +22,6 @@ class ProgressPredictionScreen extends StatefulWidget {
 class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   // ✅ If emulator use: http://10.0.2.2:5000
   final api = ProgressPredictionApi(baseUrl: "http://localhost:5000");
-  final childApi = ChildApi();
 
   bool loading = false;
   double? predictedScore;
@@ -35,15 +34,23 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   String? childIdResolved;
   List<dynamic> history = []; // { _id, userId, progress_prediction, createdAt, ... }
 
+  // ✅ Child auto load
+  bool childLoading = false;
+  Map<String, dynamic>? childData;
+
   final _formKey = GlobalKey<FormState>();
 
-  String gender = "male";
-  String diagnosisType = "Trisomy21";
+  // -------------------- dropdown / inputs (some will be auto-filled) --------------------
+  String gender = "male"; // auto from child.gender
+  String diagnosisType = "Trisomy21"; // auto from child.downSyndromeType mapping
   String activity = "Matching picture cards";
   String moodLabel = "tired";
   String caregiverMoodLabel = "stressed";
 
+  // ✅ age will be auto-calculated from child.dateOfBirth
   final ageCtrl = TextEditingController(text: "5");
+
+  // keep rest manual/default
   final durationCtrl = TextEditingController(text: "5");
   final sentimentCtrl = TextEditingController(text: "-0.2");
   final stressCtrl = TextEditingController(text: "0.68");
@@ -90,9 +97,45 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return v;
   }
 
-  /// ✅ Try to get childId from session JSON first.
-  /// If not present, fetch children using caregiverId.
-  Future<String> _resolveChildId(SessionProvider session) async {
+  // -------------------- CHILD AUTO LOAD HELPERS --------------------
+
+  String _normalizeGender(String raw) {
+    final g = raw.trim().toLowerCase();
+    if (g == "female" || g == "f") return "female";
+    return "male"; // default
+  }
+
+  /// Map backend downSyndromeType -> model expected
+  /// Your API dropdown expects: ["Trisomy21","Mosaicism","Translocation"]
+  String _mapDownSyndromeType(String raw) {
+    final v = raw.trim().toLowerCase();
+
+    // examples you showed: "Mosaic"
+    if (v.contains("mosaic")) return "Mosaicism";
+    if (v.contains("trans")) return "Translocation";
+    // treat Trisomy21 / Trisomy 21 / full trisomy as default
+    return "Trisomy21";
+  }
+
+  int _calcAgeYearsFromIso(String? iso) {
+    if (iso == null || iso.trim().isEmpty) return 0;
+    try {
+      final dob = DateTime.parse(iso).toLocal();
+      final now = DateTime.now();
+
+      int age = now.year - dob.year;
+      final hadBirthdayThisYear =
+          (now.month > dob.month) || (now.month == dob.month && now.day >= dob.day);
+      if (!hadBirthdayThisYear) age -= 1;
+      if (age < 0) age = 0;
+      return age;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// ✅ Get caregiverId from session
+  String _resolveCaregiverId(SessionProvider session) {
     final caregiver = session.caregiver;
     if (caregiver == null) throw Exception("Not logged in");
 
@@ -102,7 +145,15 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     if (caregiverId.isEmpty) {
       throw Exception("Caregiver ID not found in session");
     }
+    return caregiverId;
+  }
 
+  /// ✅ Pick first child and return childId
+  Future<String> _resolveChildId(SessionProvider session) async {
+    final caregiver = session.caregiver;
+    if (caregiver == null) throw Exception("Not logged in");
+
+    // Try direct childId fields in session first (if you already store it)
     final directChildId =
         (caregiver["childId"] ?? caregiver["child_id"] ?? "").toString();
     if (directChildId.isNotEmpty) return directChildId;
@@ -123,6 +174,8 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       }
     }
 
+    // Otherwise fetch via caregiverId
+    final caregiverId = _resolveCaregiverId(session);
     final kids = await ChildApi.getChildrenByCaregiver(caregiverId);
 
     if (kids.isEmpty) {
@@ -139,8 +192,59 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return childId;
   }
 
-  Future<void> _loadHistory() async {
+  /// ✅ NEW: Fetch child details and auto-fill UI fields
+  Future<void> _loadChildAndAutofill() async {
     final session = context.read<SessionProvider>();
+
+    setState(() {
+      childLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final caregiverId = _resolveCaregiverId(session);
+
+      // this returns List<dynamic> where each element is a child object
+      final kids = await ChildApi.getChildrenByCaregiver(caregiverId);
+
+      if (kids.isEmpty) throw Exception("No children found for this caregiver");
+
+      final first = kids.first;
+      if (first is! Map) throw Exception("Unexpected child response shape");
+
+      final cid = (first["_id"] ?? first["id"] ?? "").toString();
+      if (cid.isEmpty) throw Exception("Child ID missing in response");
+
+      // store resolved id for later usage
+      childIdResolved = cid;
+      childData = Map<String, dynamic>.from(first);
+
+      // auto-fill from child response
+      final childGender = (first["gender"] ?? "male").toString();
+      final dsType = (first["downSyndromeType"] ?? "Trisomy21").toString();
+      final dobIso = (first["dateOfBirth"] ?? "").toString();
+
+      final computedAge = _calcAgeYearsFromIso(dobIso);
+
+      setState(() {
+        gender = _normalizeGender(childGender);
+        diagnosisType = _mapDownSyndromeType(dsType);
+        ageCtrl.text = computedAge.toString();
+      });
+
+      // after child id is ready, load history too
+      await _loadHistory();
+    } catch (e) {
+      setState(() => errorMsg = e.toString());
+    } finally {
+      setState(() => childLoading = false);
+    }
+  }
+
+  // -------------------- HISTORY --------------------
+
+  Future<void> _loadHistory() async {
+    if (!mounted) return;
 
     setState(() {
       historyLoading = true;
@@ -148,8 +252,13 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     });
 
     try {
-      final childId = await _resolveChildId(session);
-      childIdResolved = childId;
+      // Prefer the already resolved childIdResolved (from child fetch)
+      String childId = childIdResolved ?? "";
+      if (childId.isEmpty) {
+        final session = context.read<SessionProvider>();
+        childId = await _resolveChildId(session);
+        childIdResolved = childId;
+      }
 
       final data = await api.getPredictionsByUserId(childId);
 
@@ -166,8 +275,11 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
+    // ✅ Load child first, auto fill fields, then history
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadChildAndAutofill());
   }
+
+  // -------------------- PREDICT --------------------
 
   Future<void> _predict() async {
     if (!_formKey.currentState!.validate()) return;
@@ -183,16 +295,20 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     });
 
     try {
-      final childId = await _resolveChildId(session);
+      // Use resolved child id if available
+      final childId = childIdResolved ?? await _resolveChildId(session);
       childIdResolved = childId;
 
       final features = <String, dynamic>{
+        // ✅ auto-filled
         "gender": gender,
         "diagnosis_type": diagnosisType,
+        "age": _i(ageCtrl),
+
+        // ✅ keep existing fields (manual/default)
         "activity": activity,
         "mood_label": moodLabel,
         "caregiver_mood_label": caregiverMoodLabel,
-        "age": _i(ageCtrl),
         "time_duration_for_activity": _i(durationCtrl),
         "sentiment_score": _d(sentimentCtrl),
         "stress_score_combined": _d(stressCtrl),
@@ -246,9 +362,12 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   }
 
   // ----------------- UI helpers -----------------
-  Widget _numField(String label, TextEditingController ctrl, {String hint = ""}) {
+
+  Widget _numField(String label, TextEditingController ctrl,
+      {String hint = "", bool enabled = true}) {
     return TextFormField(
       controller: ctrl,
+      enabled: enabled,
       keyboardType:
           const TextInputType.numberWithOptions(decimal: true, signed: true),
       validator: _numValidator,
@@ -265,20 +384,28 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     required T value,
     required List<T> items,
     required void Function(T?) onChanged,
+    bool enabled = true,
   }) {
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          items: items
-              .map((x) => DropdownMenuItem(value: x, child: Text(x.toString())))
-              .toList(),
-          onChanged: onChanged,
+    return IgnorePointer(
+      ignoring: !enabled,
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.6,
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            border: const OutlineInputBorder(),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              items: items
+                  .map((x) =>
+                      DropdownMenuItem(value: x, child: Text(x.toString())))
+                  .toList(),
+              onChanged: enabled ? onChanged : null,
+            ),
+          ),
         ),
       ),
     );
@@ -447,14 +574,17 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
           height: 48,
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: loading ? null : _predict,
-            child: Text(loading ? "Predicting..." : "Predict Now"),
+            onPressed: (loading || childLoading) ? null : _predict,
+            child: Text(
+              childLoading
+                  ? "Loading child..."
+                  : (loading ? "Predicting..." : "Predict Now"),
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (errorMsg != null)
           Text(errorMsg!, style: const TextStyle(color: Colors.red)),
-
         if (predictedScore != null) ...[
           const SizedBox(height: 10),
           _predictionScoreCard(predictedScore!),
@@ -491,6 +621,36 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     super.dispose();
   }
 
+  // -------------------- UI: show child summary card (optional but useful) --------------------
+  Widget _childSummaryCard() {
+    final c = childData;
+    if (c == null) return const SizedBox.shrink();
+
+    final name = (c["childName"] ?? "-").toString();
+    final id = (c["_id"] ?? "-").toString();
+    final dob = (c["dateOfBirth"] ?? "-").toString();
+    final ds = (c["downSyndromeType"] ?? "-").toString();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _pngCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Child Auto-Loaded",
+            style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text("ID: $id"),
+          Text("Name: $name"),
+          Text("DOB: $dob"),
+          Text("Down Syndrome Type: $ds"),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -510,6 +670,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    // ✅ Child summary
+                    _childSummaryCard(),
+                    if (childData != null) const SizedBox(height: 12),
+
                     // ✅ Insight chart (extracted)
                     InsightChartCard(
                       loading: historyLoading,
@@ -519,29 +683,32 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // ✅ Decorated Prediction UI (matches PNG style)
+                    // ✅ Predict area
                     _predictionSection(),
                     const SizedBox(height: 20),
                     const Divider(height: 1),
                     const SizedBox(height: 20),
 
+                    // ✅ auto-filled from child response (disabled editing)
                     _dropdown<String>(
-                      label: "Gender",
+                      label: "Gender (Auto)",
                       value: gender,
                       items: const ["male", "female"],
-                      onChanged: (v) => setState(() => gender = v ?? "male"),
+                      enabled: false,
+                      onChanged: (v) {},
                     ),
                     const SizedBox(height: 12),
 
                     _dropdown<String>(
-                      label: "Diagnosis Type",
+                      label: "Diagnosis Type (Auto)",
                       value: diagnosisType,
                       items: const ["Trisomy21", "Mosaicism", "Translocation"],
-                      onChanged: (v) =>
-                          setState(() => diagnosisType = v ?? "Trisomy21"),
+                      enabled: false,
+                      onChanged: (v) {},
                     ),
                     const SizedBox(height: 12),
 
+                    // ✅ keep manual
                     TextFormField(
                       initialValue: activity,
                       validator: _reqValidator,
@@ -578,9 +745,11 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    _numField("Age", ageCtrl, hint: "e.g., 5"),
+                    // ✅ auto age (disabled editing)
+                    _numField("Age (Auto)", ageCtrl, hint: "auto", enabled: false),
                     const SizedBox(height: 12),
 
+                    // ✅ keep rest same
                     _numField(
                       "Time Duration for Activity (minutes)",
                       durationCtrl,
@@ -602,6 +771,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     _numField("Phone Screen Time (mins)", phoneScreenCtrl,
                         hint: "e.g., 180"),
                     const SizedBox(height: 20),
+
+                    // (You can continue the rest of your fields below exactly as before)
+                    // totalAssignedCtrl, totalCompletedCtrl, completionRateCtrl, engagementCtrl...
+                    // caregiver fields...
                   ],
                 ),
               ),
