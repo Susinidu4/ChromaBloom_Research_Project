@@ -11,6 +11,7 @@ import 'pages/Others/onboardScreen2.dart';
 import 'pages/others/onboardScreen3.dart';
 import 'pages/others/getStartedScreen.dart';
 
+import 'pages/Interactive_visual_task_scheduler/taskSchedulerHome.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 
@@ -74,6 +75,7 @@ class MyApp extends StatelessWidget {
         '/profile_settings': (context) => const ProfileSettingsPage(),
         '/child_details': (context) => const ChildDetailsPage(),
         
+        '/taskSchedulerHome': (context) => const RoutineHomeScreen(),
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
 
