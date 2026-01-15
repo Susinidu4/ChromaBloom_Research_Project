@@ -1,4 +1,5 @@
 import { computeCycleFeatures } from "../../services/Interactive_Visual_Task_Scheduler/routineCycleFeatures.service.js";
+import mongoose from "mongoose";
 
 import SystemActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/systemActivityModel.js";
 import ChildRoutinePlan from "../../models/Interactive_Visual_Task_Scheduler_Model/childRoutinePlanModel.js";
@@ -152,6 +153,293 @@ export const getAllSystemActivities = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /chromabloom/routines/dashboard/:caregiverId
+ * Optional query:
+ *   - childId=xxx
+ *   - planId=<ChildRoutinePlan Mongo _id>
+ *   - cycleStart=YYYY-MM-DD
+ *   - cycleEnd=YYYY-MM-DD
+ *
+ * Returns:
+ *   - overallProgress: [{ version, difficulty, cycleStart, cycleEnd, planMongoId }]
+ *   - cycles: [{ label, cycleStart, cycleEnd, version, planMongoId, isActive }]
+ *   - selectedCycle: { planMongoId, version, difficulty, cycleStart, cycleEnd }
+ *   - stepAnalysis: { completedStepsTotal, skippedStepsTotal, totalStepsTotal }
+ *   - dailyProgress: [{ dayIndex: 1..14, date, completedSteps, totalSteps, completionPercent }]
+ */
+export const getRoutineDashboard = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    const { childId, planId, cycleStart, cycleEnd } = req.query;
+
+    if (!caregiverId) {
+      return res.status(400).json({ success: false, message: "caregiverId is required" });
+    }
+
+    // 1) Load plans for caregiver (optionally for a specific child)
+    const planFilter = { caregiverId };
+    if (childId) planFilter.childId = childId;
+
+    const plans = await ChildRoutinePlan.find(planFilter)
+      .sort({ version: 1 })
+      .lean();
+
+    if (!plans.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No routine plans found for this caregiver",
+      });
+    }
+
+    // 2) Build overallProgress + cycles list
+    const overallProgress = plans.map((p) => ({
+      version: p.version,
+      difficulty: p.current_difficulty_level,
+      cycleStart: p.cycle_start_date,
+      cycleEnd: p.cycle_end_date,
+      planMongoId: p._id,
+    }));
+
+    const cycles = plans
+      .slice()
+      .sort((a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date))
+      .map((p) => ({
+        label: `${formatDate(p.cycle_start_date)} - ${formatDate(p.cycle_end_date)}`,
+        cycleStart: p.cycle_start_date,
+        cycleEnd: p.cycle_end_date,
+        version: p.version,
+        planMongoId: p._id,
+        isActive: !!p.is_active,
+      }));
+
+    // 3) Decide which plan/cycle is selected
+    let selectedPlan = null;
+
+    if (planId && mongoose.Types.ObjectId.isValid(planId)) {
+      selectedPlan = plans.find((p) => String(p._id) === String(planId));
+    }
+
+    // If cycleStart & cycleEnd provided, find matching cycle
+    if (!selectedPlan && cycleStart && cycleEnd) {
+      const cs = startOfDay(new Date(cycleStart));
+      const ce = endOfDay(new Date(cycleEnd));
+      selectedPlan = plans.find((p) => {
+        const ps = startOfDay(new Date(p.cycle_start_date)).getTime();
+        const pe = endOfDay(new Date(p.cycle_end_date)).getTime();
+        return ps === cs.getTime() && pe === ce.getTime();
+      });
+    }
+
+    // Default: active plan, else latest plan
+    if (!selectedPlan) {
+      selectedPlan = plans.find((p) => p.is_active) || plans[plans.length - 1];
+    }
+
+    const cycleStartDate = startOfDay(new Date(selectedPlan.cycle_start_date));
+    const cycleEndDate = endOfDay(new Date(selectedPlan.cycle_end_date));
+
+    // 4) Fetch routine runs for that selected cycle
+    const runFilter = {
+      caregiverId,
+      planId: selectedPlan._id,
+      run_date: { $gte: cycleStartDate, $lte: cycleEndDate },
+    };
+    if (childId) runFilter.childId = childId;
+
+    const runs = await RoutineRunModel.find(runFilter)
+      .select("run_date total_steps completed_steps skipped_steps")
+      .lean();
+
+    // 5) Step Analysis totals (14 days total)
+    const completedStepsTotal = runs.reduce((sum, r) => sum + (r.completed_steps || 0), 0);
+    const skippedStepsTotal = runs.reduce((sum, r) => sum + (r.skipped_steps || 0), 0);
+    const totalStepsTotal = runs.reduce((sum, r) => sum + (r.total_steps || 0), 0);
+
+    // 6) Daily progress Day1..Day14
+    // Build map by date string -> aggregate
+    const byDate = new Map();
+    for (const r of runs) {
+      const key = yyyyMmDd(r.run_date);
+      const prev = byDate.get(key) || { completedSteps: 0, totalSteps: 0 };
+      byDate.set(key, {
+        completedSteps: prev.completedSteps + (r.completed_steps || 0),
+        totalSteps: prev.totalSteps + (r.total_steps || 0),
+      });
+    }
+
+    // Create 14 items from cycleStart
+    const dailyProgress = [];
+    for (let i = 0; i < 14; i++) {
+      const d = addDays(cycleStartDate, i);
+      const key = yyyyMmDd(d);
+      const agg = byDate.get(key) || { completedSteps: 0, totalSteps: 0 };
+
+      const completionPercent =
+        agg.totalSteps > 0 ? Math.round((agg.completedSteps / agg.totalSteps) * 100) : 0;
+
+      dailyProgress.push({
+        dayIndex: i + 1,
+        date: key,
+        completedSteps: agg.completedSteps,
+        totalSteps: agg.totalSteps,
+        completionPercent,
+      });
+    }
+
+    // 7) Response
+    return res.status(200).json({
+      success: true,
+      data: {
+        overallProgress,
+        cycles,
+        selectedCycle: {
+          planMongoId: selectedPlan._id,
+          version: selectedPlan.version,
+          difficulty: selectedPlan.current_difficulty_level,
+          cycleStart: selectedPlan.cycle_start_date,
+          cycleEnd: selectedPlan.cycle_end_date,
+        },
+        stepAnalysis: {
+          completedStepsTotal,
+          skippedStepsTotal,
+          totalStepsTotal,
+        },
+        dailyProgress,
+      },
+    });
+  } catch (error) {
+    console.error("getRoutineDashboard error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching routine dashboard",
+    });
+  }
+};
+
+/* ---------------- Helpers ---------------- */
+
+function formatDate(date) {
+  // DD/MM/YYYY for labels
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function yyyyMmDd(date) {
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+
+
+// GET routine summary: previous vs current difficulty level
+export const getLatestRoutineSummary = async (req, res) => {
+  try {
+    const { caregiverId  } = req.params;
+
+    // 1️⃣ Get ACTIVE plan (current)
+    const activePlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      is_active: true,
+    }).lean();
+
+    if (!activePlan) {
+      return res.status(404).json({
+        success: false,
+        message: "No active routine plan found",
+      });
+    }
+
+    const current = activePlan.current_difficulty_level;
+
+    // 2️⃣ Get PREVIOUS plan (same child, older version)
+    const previousPlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      version: activePlan.version - 1,
+    }).lean();
+
+    const previous = previousPlan
+      ? previousPlan.current_difficulty_level
+      : null;
+
+    // 3️⃣ Generate message
+    const summaryMessage = buildDifficultyMessage(previous, current);
+
+    // 4️⃣ Response
+    return res.status(200).json({
+      success: true,
+      data: {
+        previousDifficulty: previous,
+        currentDifficulty: current,
+        message: summaryMessage,
+      },
+    });
+  } catch (error) {
+    console.error("Routine summary error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching routine summary",
+    });
+  }
+};
+
+// Helper to build difficulty level change message
+function buildDifficultyMessage(previous, current) {
+  if (!previous) {
+    return "This is the first routine plan created for the child.";
+  }
+
+  if (previous === current) {
+    return "The difficulty level remains the same to reinforce consistency and confidence.";
+  }
+
+  const transitions = {
+    "easy->medium":
+      "Great progress! The child has successfully mastered Easy-level routines and is ready to move on to Medium difficulty.",
+    "medium->hard":
+      "Excellent improvement! The child is now ready to take on more challenging Hard-level routines.",
+    "hard->medium":
+      "The difficulty was adjusted to Medium to strengthen understanding and reduce cognitive load.",
+    "medium->easy":
+      "The routine difficulty was lowered to Easy to help rebuild confidence and consistency.",
+    "easy->hard":
+      "Outstanding performance! The child advanced directly from Easy to Hard difficulty.",
+    "hard->easy":
+      "The difficulty was reset to Easy to support the child with foundational activities.",
+  };
+
+  return (
+    transitions[`${previous}->${current}`] ||
+    "The routine difficulty level was updated based on recent performance."
+  );
+}
+
+
 
 // --------------------------- Special controller --------------------------- //
 
