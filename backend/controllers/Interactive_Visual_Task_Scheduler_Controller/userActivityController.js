@@ -337,6 +337,7 @@ export const updateUserActivityProgress = async (req, res) => {
 
     // Find existing activity
     const existing = await UserActivity.findById(activityId);
+    
     if (!existing) {
       return res.status(404).json({ error: "User activity not found" });
     }
