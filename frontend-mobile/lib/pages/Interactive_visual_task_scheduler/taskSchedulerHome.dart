@@ -512,7 +512,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 190,
+                          height: 220,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
@@ -1060,10 +1060,7 @@ class _ProgressBarChart extends StatelessWidget {
   final List<double> values;
   final List<String> dates;
 
-  const _ProgressBarChart({
-    required this.values,
-    required this.dates,
-  });
+  const _ProgressBarChart({required this.values, required this.dates});
 
   @override
   Widget build(BuildContext context) {
@@ -1090,6 +1087,26 @@ class _ProgressBarChart extends StatelessWidget {
         alignment: BarChartAlignment.spaceBetween, // 👈 nice spacing
         maxY: 100,
 
+        barTouchData: BarTouchData(
+          enabled: true,
+          handleBuiltInTouches: true,
+          touchTooltipData: BarTouchTooltipData(
+            fitInsideHorizontally: true, // ✅ keep inside chart width
+            fitInsideVertically: true, // ✅ keep inside chart height (IMPORTANT)
+            tooltipMargin: 8, // space between tooltip & bar
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final value = rod.toY.round(); // your progress percent
+              return BarTooltipItem(
+                "$value%",
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
+        ),
         gridData: FlGridData(
           show: true,
           horizontalInterval: 20,
@@ -1103,10 +1120,7 @@ class _ProgressBarChart extends StatelessWidget {
 
         borderData: FlBorderData(
           show: true,
-          border: Border.all(
-            color: const Color(0xFFDFC7A7),
-            width: 1.8,
-          ),
+          border: Border.all(color: const Color(0xFFDFC7A7), width: 1.8),
         ),
 
         titlesData: FlTitlesData(
@@ -1142,8 +1156,9 @@ class _ProgressBarChart extends StatelessWidget {
                 if (d.isEmpty) return const SizedBox.shrink();
 
                 final parts = d.split("-");
-                final label =
-                    (parts.length == 3) ? "${parts[2]}/${parts[1]}" : d;
+                final label = (parts.length == 3)
+                    ? "${parts[2]}/${parts[1]}"
+                    : d;
 
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
@@ -1166,4 +1181,3 @@ class _ProgressBarChart extends StatelessWidget {
     );
   }
 }
-
