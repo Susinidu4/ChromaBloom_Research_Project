@@ -27,6 +27,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
   static const Color cardBg = Color(0xFFF7EAD7);
   static const Color chartFill = Color(0xFFDFC7A7);
   //static const Color chartLine = Color(0xFFB0896E);
+  List<String> _dailyDates14 = List.filled(14, "");
 
   Future<Map<String, dynamic>>? _latestSummaryFuture;
 
@@ -144,7 +145,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFFF8F2E8),
+      backgroundColor: const Color(0xFFE9DDCC),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -226,9 +227,22 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
 
     // ✅ Daily progress (bar chart) => completionPercent 0..100
     final daily = (data["dailyProgress"] ?? []) as List;
+
     _dailyProgress14 = List.generate(14, (i) {
       if (i >= daily.length) return 0.0;
       return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
+    });
+
+    // percent values
+    _dailyProgress14 = List.generate(14, (i) {
+      if (i >= daily.length) return 0.0;
+      return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
+    });
+
+    // ✅ dates (YYYY-MM-DD)
+    _dailyDates14 = List.generate(14, (i) {
+      if (i >= daily.length) return "";
+      return (daily[i]["date"] ?? "").toString(); // already "YYYY-MM-DD"
     });
   }
 
@@ -498,8 +512,18 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 170,
-                          child: _ProgressBarChart(values: _dailyProgress14),
+                          height: 190,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: (_dailyProgress14.length * 42)
+                                  .toDouble(), // 👈 spacing per day
+                              child: _ProgressBarChart(
+                                values: _dailyProgress14,
+                                dates: _dailyDates14,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -717,7 +741,7 @@ class QuoteSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -733,11 +757,11 @@ class QuoteSection extends StatelessWidget {
         children: [
           // LEFT IMAGE (big like UI)
           SizedBox(
-            height: 150,
+            height: 200,
             child: Image.asset(imagePath, fit: BoxFit.contain),
           ),
 
-          const SizedBox(width: 28),
+          const SizedBox(width: 8),
 
           // RIGHT QUOTE TEXT
           Expanded(
@@ -1034,19 +1058,25 @@ class _LegendRow extends StatelessWidget {
 // Progress Bar Chart
 class _ProgressBarChart extends StatelessWidget {
   final List<double> values;
-  const _ProgressBarChart({required this.values});
+  final List<String> dates;
+
+  const _ProgressBarChart({
+    required this.values,
+    required this.dates,
+  });
 
   @override
   Widget build(BuildContext context) {
     final groups = <BarChartGroupData>[];
+
     for (int i = 0; i < values.length; i++) {
       groups.add(
         BarChartGroupData(
-          x: i + 1,
+          x: i, // 👈 use index as x (0..13)
           barRods: [
             BarChartRodData(
               toY: values[i],
-              width: 15,
+              width: 16,
               borderRadius: BorderRadius.circular(2),
               color: const Color(0xFFBD9A6B),
             ),
@@ -1057,18 +1087,14 @@ class _ProgressBarChart extends StatelessWidget {
 
     return BarChart(
       BarChartData(
+        alignment: BarChartAlignment.spaceBetween, // 👈 nice spacing
         maxY: 100,
+
         gridData: FlGridData(
           show: true,
           horizontalInterval: 20,
           drawVerticalLine: false,
-          verticalInterval: 0.04,
           getDrawingHorizontalLine: (value) => FlLine(
-            color: const Color(0xFFDFC7A7), // 👈 grid line color
-            strokeWidth: 1,
-            dashArray: [6, 4], // optional dashed style
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
             color: const Color(0xFFDFC7A7),
             strokeWidth: 1,
             dashArray: [6, 4],
@@ -1078,7 +1104,7 @@ class _ProgressBarChart extends StatelessWidget {
         borderData: FlBorderData(
           show: true,
           border: Border.all(
-            color: const Color(0xFFDFC7A7), // 👈 border color
+            color: const Color(0xFFDFC7A7),
             width: 1.8,
           ),
         ),
@@ -1090,6 +1116,7 @@ class _ProgressBarChart extends StatelessWidget {
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
+
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -1101,26 +1128,42 @@ class _ProgressBarChart extends StatelessWidget {
               ),
             ),
           ),
+
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               interval: 1,
+              reservedSize: 34,
               getTitlesWidget: (v, meta) {
-                final n = v.toInt();
-                if (n < 1 || n > values.length) return const SizedBox.shrink();
-                return Text(
-                  n.toString(),
-                  style: const TextStyle(
-                    color: Color(0xFF8D6E4F),
-                    fontSize: 10,
+                final i = v.toInt(); // 0..13
+                if (i < 0 || i >= dates.length) return const SizedBox.shrink();
+
+                final d = dates[i]; // "YYYY-MM-DD"
+                if (d.isEmpty) return const SizedBox.shrink();
+
+                final parts = d.split("-");
+                final label =
+                    (parts.length == 3) ? "${parts[2]}/${parts[1]}" : d;
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color(0xFF8D6E4F),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 );
               },
             ),
           ),
         ),
+
         barGroups: groups,
       ),
     );
   }
 }
+
