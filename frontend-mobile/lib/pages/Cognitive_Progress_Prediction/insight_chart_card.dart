@@ -186,7 +186,7 @@ class InsightChartCard extends StatelessWidget {
                         maxY: maxY,
 
                         // Minimalist grid
-                        gridData: FlGridData(show: false),
+                        gridData: FlGridData(show: true),
 
                         // Stronger Borders for X and Y axis only
                         borderData: FlBorderData(
@@ -235,7 +235,7 @@ class InsightChartCard extends StatelessWidget {
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(
-                                    _fmtShortMonth(dt),
+                                    "${dt.day} ${_fmtShortMonth(dt)}",
                                     style: const TextStyle(
                                       fontSize: 10,
                                       color: Color(0xFF8D7B68),
