@@ -462,10 +462,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     return BoxDecoration(
       color: _cardBg,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: _outlineBlue, width: 2),
+      // border: Border.all(color: _outlineBlue, width: 2),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.10),
+          color: Colors.black.withOpacity(0.50),
           blurRadius: 10,
           offset: const Offset(0, 5),
         ),
