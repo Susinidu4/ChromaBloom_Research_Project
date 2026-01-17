@@ -476,7 +476,7 @@ function buildDifficultyMessage(previous, current) {
 
 // --------------------------- Special controller --------------------------- //
 
-// GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 7 days)
+// GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 14 days)
 export const getOrCreateStarterPlan = async (req, res) => {
   try {
     // extract caregiverId, childId, ageGroup from body
