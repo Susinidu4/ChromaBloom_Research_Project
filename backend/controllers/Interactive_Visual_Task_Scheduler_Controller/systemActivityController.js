@@ -154,28 +154,17 @@ export const getAllSystemActivities = async (req, res) => {
   }
 };
 
-/**
- * GET /chromabloom/routines/dashboard/:caregiverId
- * Optional query:
- *   - childId=xxx
- *   - planId=<ChildRoutinePlan Mongo _id>
- *   - cycleStart=YYYY-MM-DD
- *   - cycleEnd=YYYY-MM-DD
- *
- * Returns:
- *   - overallProgress: [{ version, difficulty, cycleStart, cycleEnd, planMongoId }]
- *   - cycles: [{ label, cycleStart, cycleEnd, version, planMongoId, isActive }]
- *   - selectedCycle: { planMongoId, version, difficulty, cycleStart, cycleEnd }
- *   - stepAnalysis: { completedStepsTotal, skippedStepsTotal, totalStepsTotal }
- *   - dailyProgress: [{ dayIndex: 1..14, date, completedSteps, totalSteps, completionPercent }]
- */
+
+// GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)
 export const getRoutineDashboard = async (req, res) => {
   try {
     const { caregiverId } = req.params;
     const { childId, planId, cycleStart, cycleEnd } = req.query;
 
     if (!caregiverId) {
-      return res.status(400).json({ success: false, message: "caregiverId is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "caregiverId is required" });
     }
 
     // 1) Load plans for caregiver (optionally for a specific child)
@@ -183,7 +172,7 @@ export const getRoutineDashboard = async (req, res) => {
     if (childId) planFilter.childId = childId;
 
     const plans = await ChildRoutinePlan.find(planFilter)
-      .sort({ version: 1 })
+      .sort({ version: 1 }) // keep overallProgress stable
       .lean();
 
     if (!plans.length) {
@@ -204,9 +193,13 @@ export const getRoutineDashboard = async (req, res) => {
 
     const cycles = plans
       .slice()
-      .sort((a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date))
+      .sort(
+        (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+      )
       .map((p) => ({
-        label: `${formatDate(p.cycle_start_date)} - ${formatDate(p.cycle_end_date)}`,
+        label: `${formatDate(p.cycle_start_date)} - ${formatDate(
+          p.cycle_end_date
+        )}`,
         cycleStart: p.cycle_start_date,
         cycleEnd: p.cycle_end_date,
         version: p.version,
@@ -217,11 +210,12 @@ export const getRoutineDashboard = async (req, res) => {
     // 3) Decide which plan/cycle is selected
     let selectedPlan = null;
 
+    // (a) If planId provided
     if (planId && mongoose.Types.ObjectId.isValid(planId)) {
       selectedPlan = plans.find((p) => String(p._id) === String(planId));
     }
 
-    // If cycleStart & cycleEnd provided, find matching cycle
+    // (b) If cycleStart & cycleEnd provided
     if (!selectedPlan && cycleStart && cycleEnd) {
       const cs = startOfDay(new Date(cycleStart));
       const ce = endOfDay(new Date(cycleEnd));
@@ -232,15 +226,46 @@ export const getRoutineDashboard = async (req, res) => {
       });
     }
 
-    // Default: active plan, else latest plan
+    // (c) Default: active plan, else latest plan by cycle_start_date (NOT by version)
     if (!selectedPlan) {
-      selectedPlan = plans.find((p) => p.is_active) || plans[plans.length - 1];
+      selectedPlan =
+        plans.find((p) => p.is_active) ||
+        plans
+          .slice()
+          .sort(
+            (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+          )[0];
+    }
+
+    if (!selectedPlan) {
+      return res.status(404).json({
+        success: false,
+        message: "No valid plan found to select",
+      });
     }
 
     const cycleStartDate = startOfDay(new Date(selectedPlan.cycle_start_date));
     const cycleEndDate = endOfDay(new Date(selectedPlan.cycle_end_date));
 
-    // 4) Fetch routine runs for that selected cycle
+    // 4) ✅ Compute TOTAL STEPS PER DAY from the PLAN activities
+    // selectedPlan.activities = [{ activityId(ObjectId), order }]
+    const activityIds = (selectedPlan.activities || [])
+      .map((a) => a.activityId)
+      .filter(Boolean);
+
+    const activities = await SystemActivity.find({ _id: { $in: activityIds } })
+      .select("steps")
+      .lean();
+
+    const stepsPerDay = activities.reduce((sum, a) => {
+      const count = Array.isArray(a.steps) ? a.steps.length : 0;
+      return sum + count;
+    }, 0);
+
+    // total expected steps for 14 days
+    const totalStepsTotal = stepsPerDay * 14;
+
+    // 5) Fetch routine runs for that selected cycle (we only NEED completed_steps per date now)
     const runFilter = {
       caregiverId,
       planId: selectedPlan._id,
@@ -249,46 +274,54 @@ export const getRoutineDashboard = async (req, res) => {
     if (childId) runFilter.childId = childId;
 
     const runs = await RoutineRunModel.find(runFilter)
-      .select("run_date total_steps completed_steps skipped_steps")
+      .select("run_date completed_steps")
       .lean();
 
-    // 5) Step Analysis totals (14 days total)
-    const completedStepsTotal = runs.reduce((sum, r) => sum + (r.completed_steps || 0), 0);
-    const skippedStepsTotal = runs.reduce((sum, r) => sum + (r.skipped_steps || 0), 0);
-    const totalStepsTotal = runs.reduce((sum, r) => sum + (r.total_steps || 0), 0);
+    // 6) Completed total (from runs)
+    let completedStepsTotal = runs.reduce(
+      (sum, r) => sum + (r.completed_steps || 0),
+      0
+    );
 
-    // 6) Daily progress Day1..Day14
-    // Build map by date string -> aggregate
+    // If completedStepsTotal is bigger than expected total (edge case), clamp it
+    if (completedStepsTotal > totalStepsTotal) completedStepsTotal = totalStepsTotal;
+
+    // 7) ✅ Skipped total = expected - completed (this is the fix you asked)
+    const skippedStepsTotal = Math.max(totalStepsTotal - completedStepsTotal, 0);
+
+    // 8) Daily progress Day1..Day14
+    // Build map by date string -> completedSteps
     const byDate = new Map();
     for (const r of runs) {
       const key = yyyyMmDd(r.run_date);
-      const prev = byDate.get(key) || { completedSteps: 0, totalSteps: 0 };
-      byDate.set(key, {
-        completedSteps: prev.completedSteps + (r.completed_steps || 0),
-        totalSteps: prev.totalSteps + (r.total_steps || 0),
-      });
+      byDate.set(key, (byDate.get(key) || 0) + (r.completed_steps || 0));
     }
 
-    // Create 14 items from cycleStart
     const dailyProgress = [];
     for (let i = 0; i < 14; i++) {
       const d = addDays(cycleStartDate, i);
       const key = yyyyMmDd(d);
-      const agg = byDate.get(key) || { completedSteps: 0, totalSteps: 0 };
+
+      let completedSteps = byDate.get(key) || 0;
+
+      // if multiple runs cause completed > stepsPerDay, clamp
+      if (stepsPerDay > 0 && completedSteps > stepsPerDay) {
+        completedSteps = stepsPerDay;
+      }
 
       const completionPercent =
-        agg.totalSteps > 0 ? Math.round((agg.completedSteps / agg.totalSteps) * 100) : 0;
+        stepsPerDay > 0 ? Math.round((completedSteps / stepsPerDay) * 100) : 0;
 
       dailyProgress.push({
         dayIndex: i + 1,
         date: key,
-        completedSteps: agg.completedSteps,
-        totalSteps: agg.totalSteps,
+        completedSteps,
+        totalSteps: stepsPerDay, // ✅ fixed: from plan
         completionPercent,
       });
     }
 
-    // 7) Response
+    // 9) Response
     return res.status(200).json({
       success: true,
       data: {
@@ -303,8 +336,8 @@ export const getRoutineDashboard = async (req, res) => {
         },
         stepAnalysis: {
           completedStepsTotal,
-          skippedStepsTotal,
-          totalStepsTotal,
+          skippedStepsTotal, // ✅ fixed
+          totalStepsTotal,   // ✅ fixed (plan-based)
         },
         dailyProgress,
       },
@@ -321,7 +354,6 @@ export const getRoutineDashboard = async (req, res) => {
 /* ---------------- Helpers ---------------- */
 
 function formatDate(date) {
-  // DD/MM/YYYY for labels
   const d = new Date(date);
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -354,6 +386,7 @@ function addDays(d, n) {
   x.setDate(x.getDate() + n);
   return x;
 }
+
 
 
 
