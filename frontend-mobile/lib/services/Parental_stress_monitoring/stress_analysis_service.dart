@@ -24,7 +24,7 @@ class StressAnalysisService {
   }
 
 // get stress history by caregiverId
-  static Future<List<StressDto>> getHistoryByCaregiver({
+ static Future<List<StressDto>> getHistoryByCaregiver({
     required String caregiverId,
   }) async {
     final uri = Uri.parse("$_base/chromabloom/stressAnalysis/$caregiverId");
@@ -35,13 +35,28 @@ class StressAnalysisService {
       throw Exception("Get history failed (${res.statusCode}): ${res.body}");
     }
 
-    final data = jsonDecode(res.body) as List<dynamic>;
-    return data
-        .map((e) => StressDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final decoded = jsonDecode(res.body);
+
+    // Expected:
+    // { "scores": [ {..}, {..} ] }
+    if (decoded is Map<String, dynamic>) {
+      final list = (decoded["scores"] as List?) ?? [];
+      return list
+          .map((e) => StressDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    // fallback: if backend ever returns List directly
+    if (decoded is List) {
+      return decoded
+          .map((e) => StressDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw Exception("Unexpected stress history response shape: ${res.body}");
   }
-    
 }
+
 
 class StressComputeResponse {
   final StressDto stress;
@@ -127,5 +142,3 @@ class RecommendationDto {
     );
   }
 }
-
-// get stress analysis data by caregiver id
