@@ -30,6 +30,9 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
   String searchQuery = "";
 
+  int suggestedDayTotalSteps = 0;
+  int suggestedDayCompletedSteps = 0;
+
   // TEMP hardcoded logged-in caregiver id, childID, ageGroup
   // static const String hardcodedCaregiverId = "p-0001";
   // static const String hardcodedChildId = "c-0001";
@@ -49,6 +52,21 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       age--;
     }
     return age;
+  }
+
+  int _dailyProgressPercentForYourTasks(List<dynamic> taskList) {
+    int sumTotal = 0;
+    int sumCompleted = 0;
+
+    for (final t in taskList) {
+      final task = Map<String, dynamic>.from(t as Map);
+      final steps = (task["steps"] as List?) ?? [];
+
+      sumTotal += steps.length;
+      sumCompleted += steps.where((s) => s["status"] == true).length;
+    }
+
+    return sumTotal == 0 ? 0 : ((sumCompleted / sumTotal) * 100).round();
   }
 
   Future<void> _loadCaregiverAndChild() async {
@@ -188,6 +206,9 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     if (suggestedTasks.isEmpty) return;
 
     try {
+      int sumTotal = 0;
+      int sumCompleted = 0;
+
       final futures = suggestedTasks.map((t) async {
         final activityId = (t["_id"] ?? "").toString();
         if (activityId.isEmpty) return t;
@@ -201,14 +222,17 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         );
 
         if (run == null) {
-          // no progress saved for this day
           return {...t, "percent": 0, "status": "Pending"};
         }
 
         final total = (run["total_steps"] ?? 0) as int;
         final completed = (run["completed_steps"] ?? 0) as int;
-        final percent = total == 0 ? 0 : ((completed / total) * 100).round();
 
+        // ✅ daily totals (NOT activity average)
+        sumTotal += total;
+        sumCompleted += completed;
+
+        final percent = total == 0 ? 0 : ((completed / total) * 100).round();
         final status = percent == 0
             ? "Pending"
             : (percent == 100 ? "Completed" : "In Progress");
@@ -218,9 +242,14 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
       final updated = await Future.wait(futures);
       if (!mounted) return;
-      setState(() => suggestedTasks = updated);
+
+      setState(() {
+        suggestedTasks = updated;
+        suggestedDayTotalSteps = sumTotal;
+        suggestedDayCompletedSteps = sumCompleted;
+      });
     } catch (_) {
-      // ignore for UI
+      // ignore
     }
   }
 
@@ -385,27 +414,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     return ((done / steps.length) * 100).round();
   }
 
-  int _dailyProgressPercentForList(
-    List<dynamic> taskList, {
-    required bool suggested,
-  }) {
-    if (taskList.isEmpty) return 0;
-
-    int total = 0;
-
-    for (final t in taskList) {
-      final task = Map<String, dynamic>.from(t as Map);
-
-      final p = suggested
-          ? ((task["percent"] as num?)?.toInt() ?? 0) // suggestedTasks percent
-          : _calcProgressPercent(task); // yourTasks from steps.status
-
-      total += p;
-    }
-
-    return (total / taskList.length).round(); // average
-  }
-
   @override
   Widget build(BuildContext context) {
     if (loadingIdentity) {
@@ -443,10 +451,12 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       return title.contains(searchQuery.toLowerCase());
     }).toList();
 
-    final dailyProgress = _dailyProgressPercentForList(
-      filteredTasks,
-      suggested: isSuggested,
-    );
+    final dailyProgress = isSuggested
+        ? (suggestedDayTotalSteps == 0
+              ? 0
+              : ((suggestedDayCompletedSteps / suggestedDayTotalSteps) * 100)
+                    .round())
+        : _dailyProgressPercentForYourTasks(filteredTasks);
 
     final showYour = !isSuggested;
     final bool isDailyLimitReached = yourTasks.length >= 10;
@@ -838,10 +848,7 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
 
 /* ===================== SEARCH ===================== */
 class _SearchBarWithBack extends StatelessWidget {
-  const _SearchBarWithBack({
-    required this.onBack,
-    required this.onChanged,
-  });
+  const _SearchBarWithBack({required this.onBack, required this.onChanged});
 
   final VoidCallback onBack;
   final ValueChanged<String> onChanged;
@@ -887,9 +894,7 @@ class _SearchBarWithBack extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     onChanged: onChanged,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                    ),
+                    decoration: const InputDecoration(border: InputBorder.none),
                   ),
                 ),
                 const Icon(Icons.search, color: Colors.black54),
@@ -901,7 +906,6 @@ class _SearchBarWithBack extends StatelessWidget {
     );
   }
 }
-
 
 /* ===================== TOGGLE ===================== */
 class SegmentToggle extends StatelessWidget {
