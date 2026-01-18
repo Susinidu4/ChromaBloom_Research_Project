@@ -1,4 +1,5 @@
 import { computeCycleFeatures } from "../../services/Interactive_Visual_Task_Scheduler/routineCycleFeatures.service.js";
+import mongoose from "mongoose";
 
 import SystemActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/systemActivityModel.js";
 import ChildRoutinePlan from "../../models/Interactive_Visual_Task_Scheduler_Model/childRoutinePlanModel.js";
@@ -7,6 +8,8 @@ import Child from "../../models/Users/child.model.js";
 import axios from "axios";
 
 import cloudinary from "../../config/cloudinary.js";
+
+// ------------------------- Admin ------------------------- //
 
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
@@ -153,9 +156,336 @@ export const getAllSystemActivities = async (req, res) => {
   }
 };
 
-// --------------------------- Special controller --------------------------- //
 
-// GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 7 days)
+
+
+
+// ------------------------- Caregiver ------------------------- //
+
+
+// Used by Task Scheduler Home page
+
+// GET routine summary: previous vs current difficulty level
+export const getLatestRoutineSummary = async (req, res) => {
+  try {
+    const { caregiverId  } = req.params;
+
+    // 1️⃣ Get ACTIVE plan (current)
+    const activePlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      is_active: true,
+    }).lean();
+
+    if (!activePlan) {
+      return res.status(404).json({
+        success: false,
+        message: "No active routine plan found",
+      });
+    }
+
+    const current = activePlan.current_difficulty_level;
+
+    // 2️⃣ Get PREVIOUS plan (same child, older version)
+    const previousPlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      version: activePlan.version - 1,
+    }).lean();
+
+    const previous = previousPlan
+      ? previousPlan.current_difficulty_level
+      : null;
+
+    // 3️⃣ Generate message
+    const summaryMessage = buildDifficultyMessage(previous, current);
+
+    // 4️⃣ Response
+    return res.status(200).json({
+      success: true,
+      data: {
+        previousDifficulty: previous,
+        currentDifficulty: current,
+        message: summaryMessage,
+      },
+    });
+  } catch (error) {
+    console.error("Routine summary error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching routine summary",
+    });
+  }
+};
+// Helper to build difficulty level change message
+function buildDifficultyMessage(previous, current) {
+  if (!previous) {
+    return "This is the first routine plan created for the child.";
+  }
+
+  if (previous === current) {
+    return "The difficulty level remains the same to reinforce consistency and confidence.";
+  }
+
+  const transitions = {
+    "easy->medium":
+      "Great progress! The child has successfully mastered Easy-level routines and is ready to move on to Medium difficulty.",
+    "medium->hard":
+      "Excellent improvement! The child is now ready to take on more challenging Hard-level routines.",
+    "hard->medium":
+      "The difficulty was adjusted to Medium to strengthen understanding and reduce cognitive load.",
+    "medium->easy":
+      "The routine difficulty was lowered to Easy to help rebuild confidence and consistency.",
+    "easy->hard":
+      "Outstanding performance! The child advanced directly from Easy to Hard difficulty.",
+    "hard->easy":
+      "The difficulty was reset to Easy to support the child with foundational activities.",
+  };
+
+  return (
+    transitions[`${previous}->${current}`] ||
+    "The routine difficulty level was updated based on recent performance."
+  );
+}
+
+
+// GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)
+export const getRoutineDashboard = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    const { childId, planId, cycleStart, cycleEnd } = req.query;
+
+    if (!caregiverId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "caregiverId is required" });
+    }
+
+    // 1) Load plans for caregiver (optionally for a specific child)
+    const planFilter = { caregiverId };
+    if (childId) planFilter.childId = childId;
+
+    const plans = await ChildRoutinePlan.find(planFilter)
+      .sort({ version: 1 }) // keep overallProgress stable
+      .lean();
+
+    if (!plans.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No routine plans found for this caregiver",
+      });
+    }
+
+    // 2) Build overallProgress + cycles list
+    const overallProgress = plans.map((p) => ({
+      version: p.version,
+      difficulty: p.current_difficulty_level,
+      cycleStart: p.cycle_start_date,
+      cycleEnd: p.cycle_end_date,
+      planMongoId: p._id,
+    }));
+
+    const cycles = plans
+      .slice()
+      .sort(
+        (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+      )
+      .map((p) => ({
+        label: `${formatDate(p.cycle_start_date)} - ${formatDate(
+          p.cycle_end_date
+        )}`,
+        cycleStart: p.cycle_start_date,
+        cycleEnd: p.cycle_end_date,
+        version: p.version,
+        planMongoId: p._id,
+        isActive: !!p.is_active,
+      }));
+
+    // 3) Decide which plan/cycle is selected
+    let selectedPlan = null;
+
+    // (a) If planId provided
+    if (planId && mongoose.Types.ObjectId.isValid(planId)) {
+      selectedPlan = plans.find((p) => String(p._id) === String(planId));
+    }
+
+    // (b) If cycleStart & cycleEnd provided
+    if (!selectedPlan && cycleStart && cycleEnd) {
+      const cs = startOfDay(new Date(cycleStart));
+      const ce = endOfDay(new Date(cycleEnd));
+      selectedPlan = plans.find((p) => {
+        const ps = startOfDay(new Date(p.cycle_start_date)).getTime();
+        const pe = endOfDay(new Date(p.cycle_end_date)).getTime();
+        return ps === cs.getTime() && pe === ce.getTime();
+      });
+    }
+
+    // (c) Default: active plan, else latest plan by cycle_start_date (NOT by version)
+    if (!selectedPlan) {
+      selectedPlan =
+        plans.find((p) => p.is_active) ||
+        plans
+          .slice()
+          .sort(
+            (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+          )[0];
+    }
+
+    if (!selectedPlan) {
+      return res.status(404).json({
+        success: false,
+        message: "No valid plan found to select",
+      });
+    }
+
+    const cycleStartDate = startOfDay(new Date(selectedPlan.cycle_start_date));
+    const cycleEndDate = endOfDay(new Date(selectedPlan.cycle_end_date));
+
+    // 4) Compute TOTAL STEPS PER DAY from the PLAN activities
+    // selectedPlan.activities = [{ activityId(ObjectId), order }]
+    const activityIds = (selectedPlan.activities || [])
+      .map((a) => a.activityId)
+      .filter(Boolean);
+
+    const activities = await SystemActivity.find({ _id: { $in: activityIds } })
+      .select("steps")
+      .lean();
+
+    const stepsPerDay = activities.reduce((sum, a) => {
+      const count = Array.isArray(a.steps) ? a.steps.length : 0;
+      return sum + count;
+    }, 0);
+
+    // total expected steps for 14 days
+    const totalStepsTotal = stepsPerDay * 14;
+
+    // 5) Fetch routine runs for that selected cycle (we only NEED completed_steps per date now)
+    const runFilter = {
+      caregiverId,
+      planId: selectedPlan._id,
+      run_date: { $gte: cycleStartDate, $lte: cycleEndDate },
+    };
+    if (childId) runFilter.childId = childId;
+
+    const runs = await RoutineRunModel.find(runFilter)
+      .select("run_date completed_steps")
+      .lean();
+
+    // 6) Completed total (from runs)
+    let completedStepsTotal = runs.reduce(
+      (sum, r) => sum + (r.completed_steps || 0),
+      0
+    );
+
+    // If completedStepsTotal is bigger than expected total (edge case), clamp it
+    if (completedStepsTotal > totalStepsTotal) completedStepsTotal = totalStepsTotal;
+
+    // 7) Skipped total = expected - completed (this is the fix you asked)
+    const skippedStepsTotal = Math.max(totalStepsTotal - completedStepsTotal, 0);
+
+    // 8) Daily progress Day1..Day14
+    // Build map by date string -> completedSteps
+    const byDate = new Map();
+    for (const r of runs) {
+      const key = yyyyMmDd(r.run_date);
+      byDate.set(key, (byDate.get(key) || 0) + (r.completed_steps || 0));
+    }
+
+    const dailyProgress = [];
+    for (let i = 0; i < 14; i++) {
+      const d = addDays(cycleStartDate, i);
+      const key = yyyyMmDd(d);
+
+      let completedSteps = byDate.get(key) || 0;
+
+      // if multiple runs cause completed > stepsPerDay, clamp
+      if (stepsPerDay > 0 && completedSteps > stepsPerDay) {
+        completedSteps = stepsPerDay;
+      }
+
+      const completionPercent =
+        stepsPerDay > 0 ? Math.round((completedSteps / stepsPerDay) * 100) : 0;
+
+      dailyProgress.push({
+        dayIndex: i + 1,
+        date: key,
+        completedSteps,
+        totalSteps: stepsPerDay,
+        completionPercent,
+      });
+    }
+
+    // 9) Response
+    return res.status(200).json({
+      success: true,
+      data: {
+        overallProgress,
+        cycles,
+        selectedCycle: {
+          planMongoId: selectedPlan._id,
+          version: selectedPlan.version,
+          difficulty: selectedPlan.current_difficulty_level,
+          cycleStart: selectedPlan.cycle_start_date,
+          cycleEnd: selectedPlan.cycle_end_date,
+        },
+        stepAnalysis: {
+          completedStepsTotal,
+          skippedStepsTotal, // ✅ fixed
+          totalStepsTotal,   // ✅ fixed (plan-based)
+        },
+        dailyProgress,
+      },
+    });
+  } catch (error) {
+    console.error("getRoutineDashboard error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching routine dashboard",
+    });
+  }
+};
+// GetRoutineDashboard helper functions
+function formatDate(date) {
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, "0"); 
+  const mm = String(d.getMonth() + 1).padStart(2, "0"); 
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function yyyyMmDd(date) {
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+
+
+
+
+// ------------------------- Special controllers ------------------------- //
+
+// Used in display_userActivity page
+
+// GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 14 days)
 export const getOrCreateStarterPlan = async (req, res) => {
   try {
     // extract caregiverId, childId, ageGroup from body
@@ -361,8 +691,7 @@ export const getRoutineRunProgress = async (req, res) => {
 };
 
 
-//---------------------------- ML integration --------------------------- //
-
+// ------------------------- ML integration ------------------------- //
 
 //This function use for testing ML integration only
 
@@ -443,7 +772,6 @@ async function callMlForNextDifficulty(payload) {
 
   return resp.data; // { childId, next_difficulty_level }
 }
-
 
 //---------------------------- next routine plan --------------------------- //
 
