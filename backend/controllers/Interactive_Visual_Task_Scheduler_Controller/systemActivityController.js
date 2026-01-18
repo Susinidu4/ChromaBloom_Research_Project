@@ -9,6 +9,8 @@ import axios from "axios";
 
 import cloudinary from "../../config/cloudinary.js";
 
+// ------------------------- Admin ------------------------- //
+
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
@@ -155,6 +157,96 @@ export const getAllSystemActivities = async (req, res) => {
 };
 
 
+
+
+
+// ------------------------- Caregiver ------------------------- //
+
+
+// Used by Task Scheduler Home page
+
+// GET routine summary: previous vs current difficulty level
+export const getLatestRoutineSummary = async (req, res) => {
+  try {
+    const { caregiverId  } = req.params;
+
+    // 1️⃣ Get ACTIVE plan (current)
+    const activePlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      is_active: true,
+    }).lean();
+
+    if (!activePlan) {
+      return res.status(404).json({
+        success: false,
+        message: "No active routine plan found",
+      });
+    }
+
+    const current = activePlan.current_difficulty_level;
+
+    // 2️⃣ Get PREVIOUS plan (same child, older version)
+    const previousPlan = await ChildRoutinePlan.findOne({
+      caregiverId,
+      version: activePlan.version - 1,
+    }).lean();
+
+    const previous = previousPlan
+      ? previousPlan.current_difficulty_level
+      : null;
+
+    // 3️⃣ Generate message
+    const summaryMessage = buildDifficultyMessage(previous, current);
+
+    // 4️⃣ Response
+    return res.status(200).json({
+      success: true,
+      data: {
+        previousDifficulty: previous,
+        currentDifficulty: current,
+        message: summaryMessage,
+      },
+    });
+  } catch (error) {
+    console.error("Routine summary error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching routine summary",
+    });
+  }
+};
+// Helper to build difficulty level change message
+function buildDifficultyMessage(previous, current) {
+  if (!previous) {
+    return "This is the first routine plan created for the child.";
+  }
+
+  if (previous === current) {
+    return "The difficulty level remains the same to reinforce consistency and confidence.";
+  }
+
+  const transitions = {
+    "easy->medium":
+      "Great progress! The child has successfully mastered Easy-level routines and is ready to move on to Medium difficulty.",
+    "medium->hard":
+      "Excellent improvement! The child is now ready to take on more challenging Hard-level routines.",
+    "hard->medium":
+      "The difficulty was adjusted to Medium to strengthen understanding and reduce cognitive load.",
+    "medium->easy":
+      "The routine difficulty was lowered to Easy to help rebuild confidence and consistency.",
+    "easy->hard":
+      "Outstanding performance! The child advanced directly from Easy to Hard difficulty.",
+    "hard->easy":
+      "The difficulty was reset to Easy to support the child with foundational activities.",
+  };
+
+  return (
+    transitions[`${previous}->${current}`] ||
+    "The routine difficulty level was updated based on recent performance."
+  );
+}
+
+
 // GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)
 export const getRoutineDashboard = async (req, res) => {
   try {
@@ -247,7 +339,7 @@ export const getRoutineDashboard = async (req, res) => {
     const cycleStartDate = startOfDay(new Date(selectedPlan.cycle_start_date));
     const cycleEndDate = endOfDay(new Date(selectedPlan.cycle_end_date));
 
-    // 4) ✅ Compute TOTAL STEPS PER DAY from the PLAN activities
+    // 4) Compute TOTAL STEPS PER DAY from the PLAN activities
     // selectedPlan.activities = [{ activityId(ObjectId), order }]
     const activityIds = (selectedPlan.activities || [])
       .map((a) => a.activityId)
@@ -286,7 +378,7 @@ export const getRoutineDashboard = async (req, res) => {
     // If completedStepsTotal is bigger than expected total (edge case), clamp it
     if (completedStepsTotal > totalStepsTotal) completedStepsTotal = totalStepsTotal;
 
-    // 7) ✅ Skipped total = expected - completed (this is the fix you asked)
+    // 7) Skipped total = expected - completed (this is the fix you asked)
     const skippedStepsTotal = Math.max(totalStepsTotal - completedStepsTotal, 0);
 
     // 8) Daily progress Day1..Day14
@@ -316,7 +408,7 @@ export const getRoutineDashboard = async (req, res) => {
         dayIndex: i + 1,
         date: key,
         completedSteps,
-        totalSteps: stepsPerDay, // ✅ fixed: from plan
+        totalSteps: stepsPerDay,
         completionPercent,
       });
     }
@@ -350,13 +442,11 @@ export const getRoutineDashboard = async (req, res) => {
     });
   }
 };
-
-/* ---------------- Helpers ---------------- */
-
+// GetRoutineDashboard helper functions
 function formatDate(date) {
   const d = new Date(date);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0"); 
+  const mm = String(d.getMonth() + 1).padStart(2, "0"); 
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
@@ -390,91 +480,10 @@ function addDays(d, n) {
 
 
 
-// GET routine summary: previous vs current difficulty level
-export const getLatestRoutineSummary = async (req, res) => {
-  try {
-    const { caregiverId  } = req.params;
 
-    // 1️⃣ Get ACTIVE plan (current)
-    const activePlan = await ChildRoutinePlan.findOne({
-      caregiverId,
-      is_active: true,
-    }).lean();
+// ------------------------- Special controllers ------------------------- //
 
-    if (!activePlan) {
-      return res.status(404).json({
-        success: false,
-        message: "No active routine plan found",
-      });
-    }
-
-    const current = activePlan.current_difficulty_level;
-
-    // 2️⃣ Get PREVIOUS plan (same child, older version)
-    const previousPlan = await ChildRoutinePlan.findOne({
-      caregiverId,
-      version: activePlan.version - 1,
-    }).lean();
-
-    const previous = previousPlan
-      ? previousPlan.current_difficulty_level
-      : null;
-
-    // 3️⃣ Generate message
-    const summaryMessage = buildDifficultyMessage(previous, current);
-
-    // 4️⃣ Response
-    return res.status(200).json({
-      success: true,
-      data: {
-        previousDifficulty: previous,
-        currentDifficulty: current,
-        message: summaryMessage,
-      },
-    });
-  } catch (error) {
-    console.error("Routine summary error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching routine summary",
-    });
-  }
-};
-
-// Helper to build difficulty level change message
-function buildDifficultyMessage(previous, current) {
-  if (!previous) {
-    return "This is the first routine plan created for the child.";
-  }
-
-  if (previous === current) {
-    return "The difficulty level remains the same to reinforce consistency and confidence.";
-  }
-
-  const transitions = {
-    "easy->medium":
-      "Great progress! The child has successfully mastered Easy-level routines and is ready to move on to Medium difficulty.",
-    "medium->hard":
-      "Excellent improvement! The child is now ready to take on more challenging Hard-level routines.",
-    "hard->medium":
-      "The difficulty was adjusted to Medium to strengthen understanding and reduce cognitive load.",
-    "medium->easy":
-      "The routine difficulty was lowered to Easy to help rebuild confidence and consistency.",
-    "easy->hard":
-      "Outstanding performance! The child advanced directly from Easy to Hard difficulty.",
-    "hard->easy":
-      "The difficulty was reset to Easy to support the child with foundational activities.",
-  };
-
-  return (
-    transitions[`${previous}->${current}`] ||
-    "The routine difficulty level was updated based on recent performance."
-  );
-}
-
-
-
-// --------------------------- Special controller --------------------------- //
+// Used in display_userActivity page
 
 // GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 14 days)
 export const getOrCreateStarterPlan = async (req, res) => {
@@ -682,8 +691,7 @@ export const getRoutineRunProgress = async (req, res) => {
 };
 
 
-//---------------------------- ML integration --------------------------- //
-
+// ------------------------- ML integration ------------------------- //
 
 //This function use for testing ML integration only
 
@@ -764,7 +772,6 @@ async function callMlForNextDifficulty(payload) {
 
   return resp.data; // { childId, next_difficulty_level }
 }
-
 
 //---------------------------- next routine plan --------------------------- //
 
