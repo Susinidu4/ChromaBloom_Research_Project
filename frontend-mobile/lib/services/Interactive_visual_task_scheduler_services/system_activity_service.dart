@@ -144,24 +144,17 @@ class ChildRoutinePlanService {
     }
   }
 
-
-
-
-
-  
-
-  /// ✅ Dashboard API
-  /// Optional: childId, planId, cycleStart, cycleEnd
+  // Fetches aggregated dashboard data for caregiver routines
   static Future<Map<String, dynamic>> getRoutineDashboard({
     required String caregiverId,
     String? childId,
-    String? planId, // <-- planMongoId from backend
-    String? cycleStart, // YYYY-MM-DD
-    String? cycleEnd,   // YYYY-MM-DD
+    String? planId, 
+    String? cycleStart,
+    String? cycleEnd,   
   }) async {
     final uri = Uri.parse("$_base/chromabloom/systemActivities/dashboard/$caregiverId")
         .replace(queryParameters: {
-      //if (childId != null && childId.isNotEmpty) "childId": childId,
+      
       if (planId != null && planId.isNotEmpty) "planId": planId,
       if (cycleStart != null && cycleStart.isNotEmpty) "cycleStart": cycleStart,
       if (cycleEnd != null && cycleEnd.isNotEmpty) "cycleEnd": cycleEnd,
@@ -171,15 +164,10 @@ class ChildRoutinePlanService {
     final body = jsonDecode(res.body);
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      return body; // { success, data: {...} }
+      return body;
     } else {
       throw Exception(body["message"] ?? "Failed to load routine dashboard");
     }
   }
-
-  
-
-
-
 
 }
