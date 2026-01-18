@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:provider/provider.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -33,6 +37,51 @@ class _DetailedSystemActivityScreenState
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x22000000);
+
+  String? caregiverID;
+  String? childID;
+
+  bool loadingIdentity = true;
+  String? identityError;
+
+  String _getCaregiverIdFromSession() {
+    final session = context.read<SessionProvider>();
+    return (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+        .toString();
+  }
+
+  Future<void> _loadCaregiverAndChild() async {
+    try {
+      final caregiverID = _getCaregiverIdFromSession();
+      if (caregiverID.isEmpty) {
+        throw Exception("Session error. Please login again.");
+      }
+
+      final children = await ChildApi.getChildrenByCaregiver(caregiverID);
+      if (children.isEmpty) {
+        throw Exception("No child profile found.");
+      }
+
+      final child = children.first;
+      final childID = (child['_id'] ?? child['id'] ?? '').toString();
+      if (childID.isEmpty) {
+        throw Exception("Child ID missing.");
+      }
+
+      if (!mounted) return;
+      setState(() {
+        this.caregiverID = caregiverID;
+        this.childID = childID;
+        loadingIdentity = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        identityError = e.toString();
+        loadingIdentity = false;
+      });
+    }
+  }
 
   // Themed alert dialog
   Future<void> showThemedAlert({
@@ -83,7 +132,15 @@ class _DetailedSystemActivityScreenState
     stepDone = List<bool>.filled(steps.length, false);
 
     // 3) Load saved progress from RoutineRun collection
-    _loadSavedProgress();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadCaregiverAndChild();
+      await _loadCaregiverAndChild();
+      if (caregiverID != null && childID != null) {
+        await _loadSavedProgress();
+      } else {
+        if (mounted) setState(() => loadingProgress = false);
+      }
+    });
   }
 
   @override
@@ -144,8 +201,13 @@ class _DetailedSystemActivityScreenState
 
   Future<void> _loadSavedProgress() async {
     try {
-      const caregiverId = "p-0001";
-      const childId = "c-0001";
+      final caregiverId = caregiverID;
+      final childId = childID;
+
+      if (caregiverId == null || childId == null) {
+        if (mounted) setState(() => loadingProgress = false);
+        return;
+      }
 
       final planId = widget.planMongoId;
       final activityId = _getActivityMongoId();
@@ -159,8 +221,8 @@ class _DetailedSystemActivityScreenState
         caregiverId: caregiverId,
         childId: childId,
         planMongoId: widget.planMongoId,
-        activityMongoId: widget.activity["_id"],
-        runDate: widget.selectedDate, // ✅ calendar date
+        activityMongoId: activityId,
+        runDate: widget.selectedDate,
       );
 
       if (run != null) {
@@ -206,6 +268,25 @@ class _DetailedSystemActivityScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (loadingIdentity) {
+      return const Scaffold(
+        backgroundColor: pageBg,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (identityError != null) {
+      return Scaffold(
+        backgroundColor: pageBg,
+        body: Center(
+          child: Text(
+            identityError!,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+
     final activity = _getActivityObj();
 
     final title = (widget.activity["title"] ?? "").toString();
@@ -519,17 +600,6 @@ class _DetailedSystemActivityScreenState
                                         value: stepDone[i],
                                         onChanged: (v) async {
                                           await TtsService.stop();
-
-                                          if (completedMinutes <= 0) {
-                                            showThemedAlert(
-                                              type: QuickAlertType.warning,
-                                              title: "Duration Required",
-                                              text:
-                                                  "Please enter completed duration (1–60 minutes) first.",
-                                            );
-                                            return;
-                                          }
-
                                           setState(() {
                                             stepDone[i] = v ?? false;
                                           });
@@ -678,8 +748,18 @@ class _DetailedSystemActivityScreenState
                               height: 44,
                               child: ElevatedButton(
                                 onPressed: () async {
-                                  final caregiverId = "p-0001";
-                                  final childId = "c-0001";
+                                  final caregiverId = caregiverID;
+                                  final childId = childID;
+
+                                  if (caregiverId == null || childId == null) {
+                                    await showThemedAlert(
+                                      type: QuickAlertType.error,
+                                      title: "Session Error",
+                                      text:
+                                          "Missing caregiver or child. Please login again.",
+                                    );
+                                    return;
+                                  }
                                   final planId = widget.planMongoId;
                                   final activityId = _getActivityMongoId();
 

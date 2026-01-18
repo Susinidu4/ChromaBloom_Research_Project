@@ -61,8 +61,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _therapistError;
 
   // ------- Step 3: T&C -------
+  bool acceptedPurpose = false;
+  bool acceptedDataUsage = false;
   bool acceptedTerms = false;
-  bool acceptedPrivacy = false;
 
   @override
   void initState() {
@@ -141,10 +142,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _submitSignUp() async {
-    if (!acceptedTerms || !acceptedPrivacy) {
+    if (!acceptedPurpose || !acceptedDataUsage || !acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please accept Terms & Conditions and Privacy Policy."),
+          content: Text(
+            "Please confirm the app’s purpose, data usage, and accept the Terms & Conditions.",
+          ),
         ),
       );
       return;
@@ -177,15 +180,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (pw.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password must be at least 6 characters.")),
+        const SnackBar(
+          content: Text("Password must be at least 6 characters."),
+        ),
       );
       return;
     }
 
     if (pw != cpw) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match.")));
       return;
     }
 
@@ -214,8 +219,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // 2) Extract therapistId from dropdown
       String? therapistId;
-      if (selectedTherapist != null &&
-          selectedTherapist!.contains(' - ')) {
+      if (selectedTherapist != null && selectedTherapist!.contains(' - ')) {
         final parts = selectedTherapist!.split(' - ');
         if (parts.length >= 2) {
           therapistId = parts.last.trim(); // "t-0001"
@@ -246,18 +250,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final msg = childResult['message'] ?? "Sign up completed successfully";
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
       // ✅ Navigate after success (update route to your app)
       // Navigator.pushReplacementNamed(context, '/home');
-
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Sign up failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Sign up failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -355,12 +356,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       )
                     else
                       TermsStep(
+                        acceptedPurpose: acceptedPurpose,
+                        acceptedDataUsage: acceptedDataUsage,
                         acceptedTerms: acceptedTerms,
-                        acceptedPrivacy: acceptedPrivacy,
+                        onPurposeChanged: (v) =>
+                            setState(() => acceptedPurpose = v),
+                        onDataUsageChanged: (v) =>
+                            setState(() => acceptedDataUsage = v),
                         onTermsChanged: (v) =>
                             setState(() => acceptedTerms = v),
-                        onPrivacyChanged: (v) =>
-                            setState(() => acceptedPrivacy = v),
                       ),
 
                     const SizedBox(height: 80),
@@ -382,9 +386,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
       decoration: BoxDecoration(
         color: _primaryBlue,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(32),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: Column(
         children: [
@@ -407,17 +409,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(height: 4),
                   Text(
                     "Let’s get Started",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
-              Image.asset(
-                'assets/chromabloom1.png',
-                height: 70,
-              ),
+              Image.asset('assets/chromabloom1.png', height: 70),
             ],
           ),
         ],
@@ -449,48 +445,92 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        stepButton("Step 1", 0),
-        stepButton("Step 2", 1),
-        stepButton("Step 3", 2),
-      ],
-    );
+  children: [
+    _buildBackButton(context), 
+
+    const SizedBox(width: 12),
+
+    Expanded(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          stepButton("Step 1", 0),
+          stepButton("Step 2", 1),
+          stepButton("Step 3", 2),
+        ],
+      ),
+    ),
+  ],
+);
+
   }
 
   // ---------- bottom button ----------
   Widget _buildBottomButton() {
     final bool isLast = _currentStep == 2;
-    final bool canFinish = !isLast || (acceptedTerms && acceptedPrivacy);
+    final bool canFinish =
+        !isLast || (acceptedPurpose && acceptedDataUsage && acceptedTerms);
 
     return Container(
       color: _background,
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: (!canFinish || _isSubmitting) ? null : _handleNext,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _gold,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          ElevatedButton(
+            onPressed: (!canFinish || _isSubmitting) ? null : _handleNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _gold,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 28),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
+            child: _isSubmitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(isLast ? "Finish" : "Next"),
           ),
-          child: _isSubmitting
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(isLast ? "Finish" : "Next"),
-        ),
+        ],
       ),
     );
   }
 }
+
+Widget _buildBackButton(BuildContext context) {
+  return InkWell(
+    onTap: () {
+      Navigator.pushReplacementNamed(context, '/caregiver_login');
+    },
+    borderRadius: BorderRadius.circular(30),
+    child: Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3ECE6),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.arrow_back_ios_new_rounded,
+        size: 18,
+        color: Color(0xFFC89B62),
+      ),
+    ),
+  );
+}
+

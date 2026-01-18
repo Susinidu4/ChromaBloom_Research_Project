@@ -281,7 +281,7 @@ class _HomePageState extends State<HomePage> {
             imagePath: 'assets/h2.png',
             bgColor: const Color(0xFFDFC7A7),
             onTap: () {
-              Navigator.pushNamed(context, '/displayUserActivity');
+              Navigator.pushNamed(context, '/taskSchedulerHome');
             },
           ),
 
