@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:quickalert/quickalert.dart';
+
 import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
 
@@ -16,23 +18,70 @@ class RoutineHomeScreen extends StatefulWidget {
 }
 
 class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
-  // ---------- Colors (picked to match your UI) ----------
+  // Theme colors
   static const Color pageBg = Color(0xFFF3E8E8);
-
   static const Color cardBorder = Color(0xFFD8C6B4);
-
-  //static const Color accentBrown = Color(0xFFB0896E);
   static const Color textBrown = Color(0xFFBD9A6B);
-
   static const Color cardBg = Color(0xFFF7EAD7);
   static const Color chartFill = Color(0xFFDFC7A7);
-  //static const Color chartLine = Color(0xFFB0896E);
-  List<String> _dailyDates14 = List.filled(14, "");
 
-  Future<Map<String, dynamic>>? _latestSummaryFuture;
+  // Show alert dialogs
+  void _showError(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.error,
+      title: "Error",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
 
+  void _showSuccess(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: "Success",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
+
+  void _showInfo(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.info,
+      title: "Info",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
+
+  // Hardcoded caregiverId
   //final String caregiverId = "p-0001";
 
+  // 14 day labels for bar chart
+  List<String> _dailyDates14 = List.filled(14, "");
+
+  // Future for latest summary card
+  Future<Map<String, dynamic>>? _latestSummaryFuture;
+
+  // cycle label shown in the pill
+  String _selectedCycleLabel = "Select Cycle";
+
+  // Selected cycle's plan Mongo id
+  String? _selectedPlanId;
+
+  // last successful dashboard response
+  Map<String, dynamic>? _dashboardCache;
+  bool _loadingCycle = false;
+
+  // chart values
+  List<double> _overallProgress = [];
+  int _completedSteps = 0;
+  int _skippedSteps = 0;
+  List<double> _dailyProgress14 = List.filled(14, 0);
+
+  // Get logged caregiver id
   String _getLoggedCaregiverId(BuildContext context) {
     final session = context.read<SessionProvider>();
 
@@ -43,19 +92,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
     return caregiverId;
   }
 
-  // cycle label shown in the pill (from backend)
-  String _selectedCycleLabel = "Select Cycle";
-  String? _selectedPlanId; // selectedCycle.planMongoId
-
-  Map<String, dynamic>? _dashboardCache; // last successful dashboard response
-  bool _loadingCycle = false; // optional: show loader in pill
-
-  // ✅ chart values (NOT final, because must update)
-  List<double> _overallProgress = [];
-  int _completedSteps = 0;
-  int _skippedSteps = 0;
-  List<double> _dailyProgress14 = List.filled(14, 0);
-
+  // Initialize state
   @override
   void initState() {
     super.initState();
@@ -66,9 +103,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
       final caregiverId = _getLoggedCaregiverId(context);
 
       if (caregiverId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Caregiver not logged in")),
-        );
+        _showError("Caregiver not logged in. Please login again.");
         return;
       }
 
@@ -83,6 +118,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
     });
   }
 
+  // Convert difficulty to number
   double _diffToNumber(String diff) {
     final d = diff.toLowerCase().trim();
     if (d == "easy") return 1;
@@ -91,6 +127,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
     return 0;
   }
 
+  // Load dashboard data from API
   Future<Map<String, dynamic>> _loadDashboard({
     required String caregiverId,
     String? planId,
@@ -103,6 +140,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
 
       if (!mounted) return res;
 
+      // Cache response so we can reuse later
       _dashboardCache = res;
 
       setState(() {
@@ -115,26 +153,23 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
       if (!mounted) rethrow;
 
       setState(() {
-        _loadingCycle = false; // ✅ IMPORTANT: stop loading even on error
+        _loadingCycle = false;
       });
 
-      // optional: show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to load dashboard. Check server & planId."),
-        ),
-      );
+      _showError("Failed to load dashboard. Check server & planId.");
 
       rethrow;
     }
   }
 
+  // Capitalize first letter
   String _cap(String s) {
     final t = s.trim().toLowerCase();
     if (t.isEmpty) return s;
     return t[0].toUpperCase() + t.substring(1);
   }
 
+  // Pick cycle from dashboard
   Future<void> _pickCycleFromDashboard(
     Map<String, dynamic> dashboardRes,
   ) async {
@@ -159,7 +194,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
 
             final label = (c["label"] ?? "").toString();
 
-            // ✅ IMPORTANT: must be Mongo _id (ObjectId)
+            // Get plan Mongo id (fallback to _id)
             final planMongoId = (c["planMongoId"] ?? c["_id"] ?? "").toString();
 
             return ListTile(
@@ -174,23 +209,20 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 Navigator.pop(ctx);
 
                 if (planMongoId.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Invalid plan id")),
-                  );
+                  _showError("Invalid plan id.");
+
                   return;
                 }
-
+                // Set selected plan and show loading
                 setState(() {
                   _loadingCycle = true;
-                  _selectedPlanId =
-                      planMongoId; // ✅ keep selected plan id updated
+                  _selectedPlanId = planMongoId;
                 });
-
+                // Reload dashboard with chosen plan
                 await _loadDashboard(
                   caregiverId: _getLoggedCaregiverId(context),
                   planId: planMongoId,
                 );
-                // ✅ Mongo _id
               },
             );
           },
@@ -199,10 +231,11 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
     );
   }
 
+  // Apply dashboard data into state
   void _applyDashboardToState(Map<String, dynamic> res) {
     final data = (res["data"] ?? {}) as Map<String, dynamic>;
 
-    // ✅ Selected cycle label + plan id
+    // Selected cycle label + plan id
     final selected = (data["selectedCycle"] ?? {}) as Map<String, dynamic>;
     final cycleStart = (selected["cycleStart"] ?? "")
         .toString()
@@ -213,19 +246,19 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
     _selectedPlanId = (selected["planMongoId"] ?? "").toString();
     _selectedCycleLabel = "$cycleStart - $cycleEnd";
 
-    // ✅ Overall Progress (difficulty -> 1/2/3)
+    // Overall Progress (difficulty -> 1/2/3)
     final overall = (data["overallProgress"] ?? []) as List;
     _overallProgress = overall.map<double>((e) {
       final diff = (e["difficulty"] ?? "").toString();
       return _diffToNumber(diff);
     }).toList();
 
-    // ✅ Step analysis (pie chart)
+    // Step analysis (pie chart)
     final step = (data["stepAnalysis"] ?? {}) as Map<String, dynamic>;
     _completedSteps = (step["completedStepsTotal"] as num?)?.toInt() ?? 0;
     _skippedSteps = (step["skippedStepsTotal"] as num?)?.toInt() ?? 0;
 
-    // ✅ Daily progress (bar chart) => completionPercent 0..100
+    // Daily progress (bar chart) => completionPercent 0..100
     final daily = (data["dailyProgress"] ?? []) as List;
 
     _dailyProgress14 = List.generate(14, (i) {
@@ -239,16 +272,20 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
       return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
     });
 
-    // ✅ dates (YYYY-MM-DD)
+    // dates (YYYY-MM-DD)
     _dailyDates14 = List.generate(14, (i) {
       if (i >= daily.length) return "";
-      return (daily[i]["date"] ?? "").toString(); // already "YYYY-MM-DD"
+      return (daily[i]["date"] ?? "").toString();
     });
   }
 
+  // Build UI
   @override
   Widget build(BuildContext context) {
+    // Number of points visible at once in the line chart
     final int visibleCount = 14;
+
+    // Horizontal spacing between chart points
     final double pointSpacing = 40;
     return Scaffold(
       backgroundColor: pageBg,
@@ -258,6 +295,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header
               const MainHeader(
                 title: "Hello!",
                 subtitle: "Welcome back",
@@ -289,6 +327,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
+
+                // Show loading if summary future is null
                 child: (_latestSummaryFuture == null)
                     ? const SizedBox(
                         height: 170,
@@ -304,6 +344,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                             );
                           }
 
+                          // If error occurred
                           if (snap.hasError) {
                             return _LatestSummaryCard(
                               previous: "N/A",
@@ -312,6 +353,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                             );
                           }
 
+                          // Extract response data
                           final body = snap.data ?? {};
                           final data =
                               (body["data"] ?? {}) as Map<String, dynamic>;
@@ -320,7 +362,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                           final currRaw = data["currentDifficulty"];
                           final msgRaw = data["message"];
 
-                          // ✅ fallback for first-time user
+                          // fallback for first-time user
                           final previous =
                               (prevRaw == null ||
                                   prevRaw.toString().trim().isEmpty)
@@ -339,6 +381,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                               ? "No summary available."
                               : msgRaw.toString();
 
+                          // Summary card UI
                           return _LatestSummaryCard(
                             previous: previous,
                             current: current,
@@ -395,7 +438,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
 
               const SizedBox(height: 18),
 
-              // 14 Day Plan Summary (pie)
+              // 14 Day Plan Summary
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
@@ -431,6 +474,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               ),
 
               const SizedBox(height: 10),
+
+              // Step Analysis (Pie Chart)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: _ChartCard(
@@ -453,8 +498,9 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                         const SizedBox(height: 14),
                         Center(
                           child: Row(
-                            mainAxisSize: MainAxisSize.min, // 👈 IMPORTANT
+                            mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Pie Chart
                               SizedBox(
                                 width: 150,
                                 height: 150,
@@ -466,6 +512,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                               const SizedBox(width: 14),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+
+                                // Legend
                                 children: [
                                   _LegendRow(
                                     color: chartFill,
@@ -511,13 +559,14 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
+
+                        // Horizontal scrollable bar chart
                         SizedBox(
                           height: 220,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              width: (_dailyProgress14.length * 42)
-                                  .toDouble(), // 👈 spacing per day
+                              width: (_dailyProgress14.length * 42).toDouble(),
                               child: _ProgressBarChart(
                                 values: _dailyProgress14,
                                 dates: _dailyDates14,
@@ -534,6 +583,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
           ),
         ),
       ),
+
+      // Navigation Bar
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
   }
@@ -570,6 +621,7 @@ class _PillButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
+            // Arrow Icon
             const Icon(
               Icons.arrow_forward_rounded,
               size: 18,
@@ -633,14 +685,13 @@ class _LatestSummaryCard extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, card) {
-          // ✅ Right-side image column width (responsive)
+          // Calculates responsive width for the image area (keeps layout stable)
           final double imgColW = (card.maxWidth * 0.42).clamp(150.0, 220.0);
 
           return Stack(
-            clipBehavior:
-                Clip.none, // ✅ allow image to overflow without resizing card
+            clipBehavior: Clip.none,
             children: [
-              // ✅ This Row decides the card height (based on TEXT only)
+              // Main row: left text + reserved right space
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -662,6 +713,7 @@ class _LatestSummaryCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 14),
+                        // Message body
                         Text(
                           message,
                           style: const TextStyle(
@@ -677,18 +729,18 @@ class _LatestSummaryCard extends StatelessWidget {
 
                   const SizedBox(width: 14),
 
-                  // ✅ Reserve right space so text doesn't go under image
+                  // Reserve space so text doesn’t go under the overlay image
                   SizedBox(width: imgColW),
                 ],
               ),
 
-              // ✅ Image overlay (can be BIGGER, but doesn't change card height)
+              // Overlay image positioned on the right (not affecting card height)
               Positioned(
                 right: 0,
-                top: -50, // adjust up/down
+                top: -50, // Move image up
                 child: SizedBox(
                   width: imgColW,
-                  height: 240, // ✅ increase image size here
+                  height: 240,
                   child: Image.asset(
                     "assets/InteractiveVisualTaskScheduler/routine_home_summary.png",
                     fit: BoxFit.contain,
@@ -702,6 +754,7 @@ class _LatestSummaryCard extends StatelessWidget {
     );
   }
 
+  // Helper row for “Label : Value”
   Widget _kvLine(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -747,8 +800,8 @@ class QuoteSection extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFF7EAD7), // warm left
-            const Color(0xFFF3E8E8).withOpacity(0.85), // merge with bg right
+            const Color(0xFFF7EAD7),
+            const Color(0xFFF3E8E8).withOpacity(0.85),
           ],
         ),
       ),
@@ -781,6 +834,7 @@ class QuoteSection extends StatelessWidget {
   }
 }
 
+// Date selection pill
 class _DatePill extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -809,6 +863,7 @@ class _DatePill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Date/cycle label
             Text(
               text,
               style: const TextStyle(
@@ -862,7 +917,7 @@ class _OverallLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // y: 1=Easy, 2=Medium, 3=Hard (like your axis labels)
+    // Convert list values into chart points y: 1=Easy, 2=Medium, 3=Hard
     final spots = <FlSpot>[];
     for (int i = 0; i < values.length; i++) {
       spots.add(FlSpot(i.toDouble(), values[i]));
@@ -872,13 +927,15 @@ class _OverallLineChart extends StatelessWidget {
       LineChartData(
         minY: 0.5,
         maxY: 4,
+
+        // Grid lines
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
           getDrawingHorizontalLine: (value) => FlLine(
-            color: const Color(0xFFDFC7A7), // 👈 grid color
+            color: const Color(0xFFDFC7A7),
             strokeWidth: 1,
-            dashArray: [6, 4], // optional: dashed look
+            dashArray: [6, 4],
           ),
           getDrawingVerticalLine: (value) => FlLine(
             color: const Color(0xFFDFC7A7),
@@ -887,14 +944,13 @@ class _OverallLineChart extends StatelessWidget {
           ),
         ),
 
+        // Chart border
         borderData: FlBorderData(
           show: true,
-          border: Border.all(
-            color: const Color(0xFFDFC7A7), // 👈 your theme color
-            width: 1.8,
-          ),
+          border: Border.all(color: const Color(0xFFDFC7A7), width: 1.8),
         ),
 
+        // Axis titles/labels
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -902,6 +958,8 @@ class _OverallLineChart extends StatelessWidget {
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
+
+          // Bottom axis (x-axis)
           bottomTitles: AxisTitles(
             axisNameWidget: const Padding(
               padding: EdgeInsets.only(top: 4),
@@ -923,6 +981,8 @@ class _OverallLineChart extends StatelessWidget {
               ),
             ),
           ),
+
+          // Left axis (y-axis)
           leftTitles: AxisTitles(
             axisNameWidget: const Padding(
               padding: EdgeInsets.only(right: 2),
@@ -953,6 +1013,8 @@ class _OverallLineChart extends StatelessWidget {
             ),
           ),
         ),
+
+        // Line date
         lineBarsData: [
           LineChartBarData(
             spots: spots,
@@ -1069,7 +1131,7 @@ class _ProgressBarChart extends StatelessWidget {
     for (int i = 0; i < values.length; i++) {
       groups.add(
         BarChartGroupData(
-          x: i, // 👈 use index as x (0..13)
+          x: i,
           barRods: [
             BarChartRodData(
               toY: values[i],
@@ -1084,18 +1146,18 @@ class _ProgressBarChart extends StatelessWidget {
 
     return BarChart(
       BarChartData(
-        alignment: BarChartAlignment.spaceBetween, // 👈 nice spacing
+        alignment: BarChartAlignment.spaceBetween,
         maxY: 100,
 
         barTouchData: BarTouchData(
           enabled: true,
           handleBuiltInTouches: true,
           touchTooltipData: BarTouchTooltipData(
-            fitInsideHorizontally: true, // ✅ keep inside chart width
-            fitInsideVertically: true, // ✅ keep inside chart height (IMPORTANT)
-            tooltipMargin: 8, // space between tooltip & bar
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipMargin: 8,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              final value = rod.toY.round(); // your progress percent
+              final value = rod.toY.round();
               return BarTooltipItem(
                 "$value%",
                 const TextStyle(
@@ -1149,10 +1211,10 @@ class _ProgressBarChart extends StatelessWidget {
               interval: 1,
               reservedSize: 34,
               getTitlesWidget: (v, meta) {
-                final i = v.toInt(); // 0..13
+                final i = v.toInt();
                 if (i < 0 || i >= dates.length) return const SizedBox.shrink();
 
-                final d = dates[i]; // "YYYY-MM-DD"
+                final d = dates[i];
                 if (d.isEmpty) return const SizedBox.shrink();
 
                 final parts = d.split("-");
