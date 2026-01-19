@@ -1,143 +1,170 @@
-// lib/services/Gamified_Knowlage_Builder/problem_solving_lesson_service.dart
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:http/http.dart' as http;
 
+/// Problem Solving Lesson Service
+/// Matches backend:
+/// POST   /chromabloom/problem-solving-lessons
+/// GET    /chromabloom/problem-solving-lessons
+/// GET    /chromabloom/problem-solving-lessons/:id
+/// PUT    /chromabloom/problem-solving-lessons/:id
+/// DELETE /chromabloom/problem-solving-lessons/:id
 class ProblemSolvingLessonService {
-  /// ✅ Change base URL depending on platform:
-  /// Android emulator: http://10.0.2.2:5000
-  /// Real device:      http://<YOUR_PC_IP>:5000
-  /// Flutter web:      http://localhost:5000
-  static const String _baseUrl = "http://localhost:5000";
+  ProblemSolvingLessonService._();
+
+  // TODO: change to your server IP / domain
+  static const String _baseUrl = "http://10.0.2.2:5000"; // Android emulator
+  // static const String _baseUrl = "http://localhost:5000"; // Flutter web
+  // static const String _baseUrl = "http://192.168.x.x:5000"; // real device WiFi
 
   static const String _path = "/chromabloom/problem-solving-lessons";
 
-  // ---------------------------
+  static Map<String, String> _headers() => const {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+  // -----------------------------
   // Helpers
-  // ---------------------------
-  static Uri _uri(String endpoint) => Uri.parse("$_baseUrl$_path$endpoint");
-
-  static Map<String, dynamic> _decode(http.Response res) {
-    final dynamic body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return body is Map<String, dynamic> ? body : {"data": body};
+  // -----------------------------
+  static Exception _errFromResponse(http.Response res) {
+    try {
+      final body = jsonDecode(res.body);
+      final msg = body is Map && body["message"] != null
+          ? body["message"].toString()
+          : "Request failed (${res.statusCode})";
+      return Exception(msg);
+    } catch (_) {
+      return Exception("Request failed (${res.statusCode})");
     }
-    final msg = (body is Map && body["message"] != null)
-        ? body["message"].toString()
-        : "Request failed (${res.statusCode})";
-    throw Exception(msg);
   }
 
-  // ---------------------------
-  // GET: all lessons
-  // ---------------------------
-  static Future<List<dynamic>> getAllLessons() async {
-    final res = await http.get(_uri("")).timeout(const Duration(seconds: 20));
-    final data = _decode(res);
-    return (data["data"] as List<dynamic>? ?? []);
+  /// Mini tutorial item builder
+  /// tip_number: Number (required)
+  /// tip_content: String (required)
+  static Map<String, dynamic> miniTutorial({
+    required int tipNumber,
+    required String tipContent,
+  }) {
+    return {
+      "tip_number": tipNumber,
+      "tip_content": tipContent,
+    };
   }
 
-  // ---------------------------
-  // GET: lesson by id
-  // ---------------------------
-  static Future<Map<String, dynamic>> getLessonById(String id) async {
-    final res =
-        await http.get(_uri("/$id")).timeout(const Duration(seconds: 20));
-    final data = _decode(res);
-    return (data["data"] as Map<String, dynamic>? ?? {});
-  }
+  // -----------------------------
+  // CRUD
+  // -----------------------------
 
-  // ---------------------------
-  // DELETE: lesson
-  // ---------------------------
-  static Future<String> deleteLesson(String id) async {
-    final res =
-        await http.delete(_uri("/$id")).timeout(const Duration(seconds: 20));
-    final data = _decode(res);
-    return data["message"]?.toString() ?? "Deleted";
-  }
-
-  // ---------------------------
-  // POST: create lesson (multipart + images)
-  // tips must be JSON array string if you follow your controller
-  // images field name MUST be: "images"
-  // ---------------------------
+  /// Create a lesson
+  /// Backend expects:
+  /// { title, description, difficulty_level, miniTutorialsName, miniTutorials }
+  ///
+  /// miniTutorials can be an array OR JSON string (your controller supports both).
   static Future<Map<String, dynamic>> createLesson({
     required String title,
-    String? content,
-    required String difficultyLevel,
-    required String correctAnswer,
-    List<String>? tips,
-    String? category, // your backend uses "catergory"
-    List<File>? images, // up to 5
+    required String description,
+    required String difficultyLevel, // Beginner | Intermediate | Advanced
+    String? miniTutorialsName,
+    List<Map<String, dynamic>>? miniTutorials,
+    bool sendMiniTutorialsAsString = false, // optional
   }) async {
-    final req = http.MultipartRequest("POST", _uri(""));
+    final uri = Uri.parse("$_baseUrl$_path");
 
-    // text fields
-    req.fields["title"] = title;
-    req.fields["difficultyLevel"] = difficultyLevel;
-    req.fields["correct_answer"] = correctAnswer;
+    final payload = <String, dynamic>{
+      "title": title,
+      "description": description,
+      "difficulty_level": difficultyLevel,
+      if (miniTutorialsName != null) "miniTutorialsName": miniTutorialsName,
+      if (miniTutorials != null)
+        "miniTutorials": sendMiniTutorialsAsString
+            ? jsonEncode(miniTutorials)
+            : miniTutorials,
+    };
 
-    if (content != null) req.fields["content"] = content;
+    final res = await http
+        .post(uri, headers: _headers(), body: jsonEncode(payload))
+        .timeout(const Duration(seconds: 15));
 
-    // Backend expects "tips" can be stringified JSON in multipart
-    if (tips != null) req.fields["tips"] = jsonEncode(tips);
-
-    // NOTE: backend variable name is "catergory" (typo). Keep same key.
-    if (category != null) req.fields["catergory"] = category;
-
-    // images
-    if (images != null && images.isNotEmpty) {
-      final limited = images.take(5).toList();
-      for (final file in limited) {
-        req.files.add(await http.MultipartFile.fromPath("images", file.path));
-      }
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
     }
-
-    final streamed =
-        await req.send().timeout(const Duration(seconds: 60));
-    final res = await http.Response.fromStream(streamed);
-
-    final data = _decode(res);
-    return (data["data"] as Map<String, dynamic>? ?? {});
+    throw _errFromResponse(res);
   }
 
-  // ---------------------------
-  // PUT: update lesson (multipart + optional replace images)
-  // If you pass images, your controller REPLACES old images.
-  // ---------------------------
+  /// Get all lessons
+  static Future<List<dynamic>> getAllLessons() async {
+    final uri = Uri.parse("$_baseUrl$_path");
+
+    final res = await http
+        .get(uri, headers: _headers())
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return (body["data"] as List<dynamic>? ?? []);
+    }
+    throw _errFromResponse(res);
+  }
+
+  /// Get lesson by ID (LP-0001)
+  static Future<Map<String, dynamic>> getLessonById(String id) async {
+    final uri = Uri.parse("$_baseUrl$_path/$id");
+
+    final res = await http
+        .get(uri, headers: _headers())
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw _errFromResponse(res);
+  }
+
+  /// Update lesson by ID
+  /// Any field can be updated (send only what you want to change)
   static Future<Map<String, dynamic>> updateLesson({
     required String id,
     String? title,
-    String? content,
-    String? difficultyLevel,
-    String? correctAnswer,
-    List<String>? tips,
-    String? category,
-    List<File>? images, // if provided -> replace images
+    String? description,
+    String? difficultyLevel, // Beginner | Intermediate | Advanced
+    String? miniTutorialsName,
+    List<Map<String, dynamic>>? miniTutorials,
+    bool sendMiniTutorialsAsString = false,
   }) async {
-    final req = http.MultipartRequest("PUT", _uri("/$id"));
+    final uri = Uri.parse("$_baseUrl$_path/$id");
 
-    if (title != null) req.fields["title"] = title;
-    if (content != null) req.fields["content"] = content;
-    if (difficultyLevel != null) req.fields["difficultyLevel"] = difficultyLevel;
-    if (correctAnswer != null) req.fields["correct_answer"] = correctAnswer;
-    if (tips != null) req.fields["tips"] = jsonEncode(tips);
-    if (category != null) req.fields["catergory"] = category;
+    final payload = <String, dynamic>{
+      if (title != null) "title": title,
+      if (description != null) "description": description,
+      if (difficultyLevel != null) "difficulty_level": difficultyLevel,
+      if (miniTutorialsName != null) "miniTutorialsName": miniTutorialsName,
+      if (miniTutorials != null)
+        "miniTutorials": sendMiniTutorialsAsString
+            ? jsonEncode(miniTutorials)
+            : miniTutorials,
+    };
 
-    if (images != null && images.isNotEmpty) {
-      final limited = images.take(5).toList();
-      for (final file in limited) {
-        req.files.add(await http.MultipartFile.fromPath("images", file.path));
-      }
+    final res = await http
+        .put(uri, headers: _headers(), body: jsonEncode(payload))
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
     }
+    throw _errFromResponse(res);
+  }
 
-    final streamed =
-        await req.send().timeout(const Duration(seconds: 60));
-    final res = await http.Response.fromStream(streamed);
+  /// Delete lesson by ID
+  static Future<Map<String, dynamic>> deleteLesson(String id) async {
+    final uri = Uri.parse("$_baseUrl$_path/$id");
 
-    final data = _decode(res);
-    return (data["data"] as Map<String, dynamic>? ?? {});
+    final res = await http
+        .delete(uri, headers: _headers())
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw _errFromResponse(res);
   }
 }

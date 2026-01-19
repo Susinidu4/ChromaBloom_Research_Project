@@ -52,8 +52,7 @@ class InsightChartCard extends StatelessWidget {
       cleaned.add({"date": dt, "score": score});
     }
     cleaned.sort(
-          (a, b) =>
-          (a["date"] as DateTime).compareTo(b["date"] as DateTime),
+      (a, b) => (a["date"] as DateTime).compareTo(b["date"] as DateTime),
     );
     return cleaned;
   }
@@ -61,8 +60,7 @@ class InsightChartCard extends StatelessWidget {
   String _trendLabel(List<Map<String, dynamic>> points) {
     if (points.length < 2) return "Stable";
     final diff =
-        (points.last["score"] as double) -
-            (points.first["score"] as double);
+        (points.last["score"] as double) - (points.first["score"] as double);
     if (diff > 2) return "Improving";
     if (diff < -2) return "Declining";
     return "Stable";
@@ -120,7 +118,7 @@ class InsightChartCard extends StatelessWidget {
 
     final spots = List.generate(
       points.length,
-          (i) => FlSpot(i.toDouble(), points[i]["score"] as double),
+      (i) => FlSpot(i.toDouble(), points[i]["score"] as double),
     );
 
     final ys = spots.map((e) => e.y).toList();
@@ -230,7 +228,9 @@ class InsightChartCard extends StatelessWidget {
                               interval: 1,
                               getTitlesWidget: (value, _) {
                                 final idx = value.toInt();
-                                if (idx >= points.length) return const SizedBox();
+                                if (idx < 0 || idx >= points.length) {
+                                  return const SizedBox.shrink();
+                                }
                                 final dt = points[idx]["date"] as DateTime;
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 8),
@@ -267,10 +267,11 @@ class InsightChartCard extends StatelessWidget {
                             ),
                           ),
                         ],
-                        // Touch disabled or minimal
+
+                        // Touch (fixed for new versions)
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
-                            tooltipBgColor: const Color.fromARGB(255, 255, 255, 255),
+                            getTooltipColor: (touchedSpot) => Colors.white,
                           ),
                         ),
                       ),
@@ -302,11 +303,14 @@ class InsightChartCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 _dot(),
                 const Spacer(),
-                // Optional: put refresh here if needed, or invisible implementation
                 IconButton(
-                   icon: const Icon(Icons.refresh, color: Colors.transparent, size: 20),
-                   onPressed: onRefresh,
-                 ),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Colors.transparent,
+                    size: 20,
+                  ),
+                  onPressed: onRefresh,
+                ),
               ],
             ),
           ),
