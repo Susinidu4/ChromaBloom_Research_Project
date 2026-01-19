@@ -11,7 +11,7 @@ import cloudinary from "../../config/cloudinary.js";
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
+    const stream = cloudinary.uploader.upload_stream( // create upload stream from Cloudinary
       { folder },
       (error, result) => {
         if (error) return reject(error);
@@ -35,7 +35,7 @@ export const createSystemActivity = async (req, res) => {
       difficulty_level,
     } = req.body;
 
-    // 🔹 steps might come as a string when using multipart/form-data
+    // steps might come as a string when using multipart/form-data
     let parsedSteps = steps;
     if (typeof steps === "string") {
       try {
@@ -45,7 +45,7 @@ export const createSystemActivity = async (req, res) => {
       }
     }
 
-    // 🔹 convert estimated_duration_minutes to Number if it's a string
+    // convert estimated_duration_minutes to Number if it's a string
     if (typeof estimated_duration_minutes === "string") {
       estimated_duration_minutes = Number(estimated_duration_minutes);
     }
@@ -110,7 +110,7 @@ export const createSystemActivity = async (req, res) => {
       }
     }
 
-    // ---------------- CREATE SYSTEM ACTIVITY ----------------
+    // CREATE system activity
     const activity = await SystemActivity.create({
       title,
       description,
@@ -155,9 +155,10 @@ export const getAllSystemActivities = async (req, res) => {
 
 // --------------------------- Special controller --------------------------- //
 
-// GET or CREATE starter plan (5 easy) for 14-day cycle
+// GET or CREATE starter plan (5 easy) for 14-day cycle (1 cycle = 7 days)
 export const getOrCreateStarterPlan = async (req, res) => {
   try {
+    // extract caregiverId, childId, ageGroup from body
     const { caregiverId, childId, ageGroup } = req.body;
 
     if (!caregiverId || !childId || !ageGroup) {
@@ -176,7 +177,7 @@ export const getOrCreateStarterPlan = async (req, res) => {
       cycle_end_date: { $gte: now },
     }).populate({
       path: "activities.activityId",
-      model: "SystemActivity", // ✅ important
+      model: "SystemActivity", 
     });
 
     if (existingPlan) {
@@ -214,9 +215,10 @@ export const getOrCreateStarterPlan = async (req, res) => {
     const nextVersion = (lastPlan?.version || 0) + 1;
 
     // 5) 14-day cycle (today → +13 days end-of-day)
+    // cycle starts today 00:00
     const cycleStart = new Date(now);
     cycleStart.setHours(0, 0, 0, 0);
-
+    // cycle ends in 13 days end-of-day
     const cycleEnd = new Date(cycleStart);
     cycleEnd.setDate(cycleEnd.getDate() + 13);
     cycleEnd.setHours(23, 59, 59, 999);
@@ -254,7 +256,7 @@ export const getOrCreateStarterPlan = async (req, res) => {
   }
 };
 
-// POST /chromabloom/systemActivities/updateSystemActivityProgress
+// system activity progress update (SAVE or UPDATE)
 export const updateSystemActivityProgress = async (req, res) => {
   try {
     const {
@@ -277,6 +279,7 @@ export const updateSystemActivityProgress = async (req, res) => {
     const [y, m, d] = run_date.split("-").map(Number);
     const runDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
+    // fetch activity to get total steps
     const activity = await SystemActivity.findById(activityId).lean();
     if (!activity) return res.status(404).json({ error: "Activity not found" });
 
@@ -287,8 +290,10 @@ export const updateSystemActivityProgress = async (req, res) => {
       return { step_number: i + 1, status: !!found?.status };
     });
 
+    // count completed steps
     const completed_steps = normalized.filter((s) => s.status).length;
 
+    // upsert routine run
     const run = await RoutineRunModel.findOneAndUpdate(
       {
         caregiverId,
@@ -316,9 +321,10 @@ export const updateSystemActivityProgress = async (req, res) => {
   }
 };
 
-// GET routine run progress for a specific planId + activityId + caregiverId + childId
+// Display routine run progress for a specific planId + activityId + caregiverId + childId (READ)
 export const getRoutineRunProgress = async (req, res) => {
   try {
+    // extract params and query
     const { planId, activityId } = req.params;
     const { caregiverId, childId, run_date } = req.query;
 
@@ -328,12 +334,15 @@ export const getRoutineRunProgress = async (req, res) => {
       });
     }
 
+    // normalize date (YYYY-MM-DD)
     const [y, m, d] = run_date.split("-").map(Number);
     if (!y || !m || !d) {
       return res.status(400).json({ error: "run_date must be YYYY-MM-DD" });
     }
+    // convert to UTC date
     const runDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
 
+    // fetch routine run
     const run = await RoutineRunModel.findOne({
       planId,
       activityId,
@@ -351,27 +360,14 @@ export const getRoutineRunProgress = async (req, res) => {
   }
 };
 
-/**
- * Call ML service to predict next difficulty level
- */
-async function callMlForNextDifficulty(payload) {
-  const base = process.env.PYTHON_SERVICE_URL; // http://localhost:8000
-  if (!base) throw new Error("PYTHON_SERVICE_URL is not set in .env");
 
-  const url = `${base}/routine/predict-difficulty`;
+//---------------------------- ML integration --------------------------- //
 
-  const resp = await axios.post(url, payload, {
-    headers: { "Content-Type": "application/json" },
-    timeout: 15000,
-  });
 
-  return resp.data; // { childId, next_difficulty_level }
-}
+//This function use for testing ML integration only
 
-/**
- * POST /chromabloom/systemActivities/closeCycleAndSendToML
- * body: { caregiverId, childId }
- */
+// This function computes features for the ended cycle and sends them to ML 
+// to get the next difficulty level recommendation.
 export const closeCycleAndSendToML = async (req, res) => {
   try {
     const { caregiverId, childId } = req.body;
@@ -381,7 +377,7 @@ export const closeCycleAndSendToML = async (req, res) => {
         .status(400)
         .json({ error: "caregiverId and childId required" });
     }
-
+    // current date-time
     const now = new Date();
 
     // 1) find ended active plan
@@ -409,6 +405,7 @@ export const closeCycleAndSendToML = async (req, res) => {
     });
 
     // 3) call ML
+    // send features, get next level
     const mlResult = await callMlForNextDifficulty(features);
     const nextLevel = mlResult?.next_difficulty_level;
 
@@ -432,46 +429,25 @@ export const closeCycleAndSendToML = async (req, res) => {
   }
 };
 
+// Helper to call ML service for next difficulty level
+async function callMlForNextDifficulty(payload) {
+  const base = process.env.PYTHON_SERVICE_URL; // http://localhost:8000
+  if (!base) throw new Error("PYTHON_SERVICE_URL is not set in .env");
+
+  const url = `${base}/routine/predict-difficulty`; // full URL
+
+  const resp = await axios.post(url, payload, {
+    headers: { "Content-Type": "application/json" },
+    timeout: 15000,
+  });
+
+  return resp.data; // { childId, next_difficulty_level }
+}
+
+
 //---------------------------- next routine plan --------------------------- //
-// Helper to compute next cycle dates (tomorrow 00:00 to +13 days end-of-day)
-function computeNextCycleDates() {
-  const now = new Date();
 
-  // tomorrow 00:00
-  const start = new Date(now);
-  start.setDate(start.getDate() + 1);
-  start.setHours(0, 0, 0, 0);
-
-  // start + 13 days end-of-day
-  const end = new Date(start);
-  end.setDate(end.getDate() + 13);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
-// Helper to get age group from date of birth
-function getAgeGroupFromDOB(dateOfBirth) {
-  const dob = new Date(dateOfBirth);
-  const today = new Date();
-
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-
-  if (age <= 2) return "2";
-  if (age === 3) return "3";
-  if (age === 4) return "4";
-  if (age === 5) return "5";
-  if (age === 6) return "6";
-  if (age === 7) return "7";
-  if (age === 8) return "8";
-  if (age === 9) return "9";
-  return "10";
-}
+// Real production flow 
 
 // This function closes the ended plan, sends features to ML, gets next level,
 // picks new activities, and creates the next 14-day plan.
@@ -575,6 +551,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
     // 7) Create new 14-day plan (new cycle)
     const { start, end } = computeNextCycleDates();
 
+    // create new plan
     const newPlan = await ChildRoutinePlan.create({
       caregiverId,
       childId,
@@ -606,3 +583,49 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: e.message });
   }
 };
+
+// Helper to compute next cycle dates (tomorrow 00:00 to +13 days end-of-day)
+function computeNextCycleDates() {
+  // current date-time
+  const now = new Date();
+
+  // create start date tomorrow 00:00
+  const start = new Date(now);
+  start.setDate(start.getDate() + 1);
+  start.setHours(0, 0, 0, 0);
+
+  // create the end date -> start + 13 days 
+  const end = new Date(start);
+  end.setDate(end.getDate() + 13);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+// Helper to get age group from date of birth
+function getAgeGroupFromDOB(dateOfBirth) {
+  // child’s date of birth
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  // calculate age
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+
+  // adjust if birthday hasn't occurred yet this year
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  // map age to age_group string
+  if (age <= 2) return "2";
+  if (age === 3) return "3";
+  if (age === 4) return "4";
+  if (age === 5) return "5";
+  if (age === 6) return "6";
+  if (age === 7) return "7";
+  if (age === 8) return "8";
+  if (age === 9) return "9";
+  return "10";
+}
+
+
