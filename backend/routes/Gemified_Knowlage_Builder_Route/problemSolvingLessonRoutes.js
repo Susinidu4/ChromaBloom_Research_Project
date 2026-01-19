@@ -1,6 +1,5 @@
 // routes/Gemified_Knowlage_Builder_Route/problemSolvingLesson.routes.js
 import express from "express";
-import multer from "multer";
 
 import {
   createProblemSolvingLesson,
@@ -8,32 +7,21 @@ import {
   getProblemSolvingLessonById,
   updateProblemSolvingLesson,
   deleteProblemSolvingLesson,
-} from "../../controllers/Gemified_knowlage_Builder_Controller/problemSolvingLessonController.js"; // adjust path if needed
+} from "../../controllers/Gemified_knowlage_Builder_Controller/problemSolvingLessonController.js";
 
 const router = express.Router();
 
-// Multer in-memory storage for image uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB per image (adjust as needed)
-  },
-});
-
-// Create lesson (with optional multiple images)
-// Body: multipart/form-data
-// Fields: title, content, difficultyLevel, correct_answer, tips (JSON string)
-// Files: images (one or more image files)
-router.post("/", upload.array("images", 5), createProblemSolvingLesson);
+// Create lesson
+router.post("/", createProblemSolvingLesson);
 
 // Get all lessons
 router.get("/", getAllProblemSolvingLessons);
 
-// Get lesson by ID
+// Get lesson by ID (LP-0001)
 router.get("/:id", getProblemSolvingLessonById);
 
-// Update lesson (optionally replace images)
-router.put("/:id", upload.array("images", 5), updateProblemSolvingLesson);
+// Update lesson
+router.put("/:id", updateProblemSolvingLesson);
 
 // Delete lesson
 router.delete("/:id", deleteProblemSolvingLesson);
