@@ -16,6 +16,10 @@ import ProblemSolvingLessonCreate from "./pages/Gemified_Knowledge_Builder/Probl
 import ProblemSolvingLessonView from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonView";
 import ProblemSolvingLessonEdit from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonEdit";
 import ProblemSolvingLessonList from "./pages/Gemified_Knowledge_Builder/Problem_Solving_Lessons/ProblemSolvingLessonList";
+import QuizeCreate from "./pages/Gemified_Knowledge_Builder/Quize/QuizeCreate";
+import QuizeList from "./pages/Gemified_Knowledge_Builder/Quize/QuizeList";
+import QuizeView from "./pages/Gemified_Knowledge_Builder/Quize/QuizeView";
+import QuizeEdit from "./pages/Gemified_Knowledge_Builder/Quize/QuizeEdit";
 
 function App() {
 
@@ -40,6 +44,11 @@ function App() {
         <Route path="/problem_solving_lessons/:id" element={<ProblemSolvingLessonView />} />
         <Route path="/problem_solving_lessons/:id/edit" element={<ProblemSolvingLessonEdit />} />
         <Route path="/problem_solving_lessons" element={<ProblemSolvingLessonList />} />
+
+        <Route path="/quizes_create" element={<QuizeCreate />} />
+        <Route path="/quizes_list" element={<QuizeList />} />
+        <Route path="/quizes/view/:id" element={<QuizeView />} />
+        <Route path="/quizes/edit/:id" element={<QuizeEdit />} />
       </Routes>
     </>
   );
