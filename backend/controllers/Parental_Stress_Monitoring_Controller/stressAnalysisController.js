@@ -200,3 +200,18 @@ export const computeStressAndRecommendation = async (req, res) => {
       .json({ error: "Server error", details: String(err.message || err) });
   }
 };
+
+// get stress scores history by caregiverId
+export const getStressScoresByCaregiver = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    if (!caregiverId)
+      return res.status(400).json({ error: "caregiverId required" });
+
+    const scores = await StressScoreModel.find({ caregiverId }).lean();
+    return res.status(200).json({ scores });
+  } catch (err) {
+    console.error("getStressScoresByCaregiver:", err);
+    return res.status(500).json({ message: "Server error", error: String(err) });
+  }
+};
