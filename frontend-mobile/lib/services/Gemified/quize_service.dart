@@ -10,7 +10,7 @@ class QuizeService {
   /// - Android emulator: use 10.0.2.2 instead of localhost
   /// - Real device: use your PC IP (same WiFi), e.g. http://192.168.1.20:5000
   /// - iOS simulator: localhost usually works
-  static const String _base = "http://10.0.2.2:5000"; // <-- change if needed
+  static const String _base = "http://localhost:5000"; // <-- change if needed
 
   static const String _path = "/chromabloom/quizes";
 
