@@ -3,7 +3,11 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 class ProblemSolvingLessonCompletePage extends StatelessWidget {
-  const ProblemSolvingLessonCompletePage({super.key});
+  const ProblemSolvingLessonCompletePage({
+    super.key,
+    required this.correctness,
+    required this.improvement,
+  });
 
   static const Color pageBg = Color(0xFFF5ECEC);
 
@@ -13,17 +17,19 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
   static const Color circleBorder = Color(0xFFD8C6B4);
   static const Color circleIcon = Color(0xFFB0896E);
 
-  // Progress colors (match your UI)
+  // Progress colors
   static const Color track = Color(0xFFD8D1C7);
   static const Color fill = Color(0xFFB89A76);
 
   static const Color labelColor = Color(0xFF111111);
 
+  final double correctness; // 0.0 - 1.0
+  final double improvement; // 0.0 - 1.0 (you can replace later)
+
   @override
   Widget build(BuildContext context) {
-    // Example values (0.0 - 1.0)
-    final improvement = 0.62;
-    final correctness = 0.84;
+    final correctnessClamped = correctness.clamp(0.0, 1.0);
+    final improvementClamped = improvement.clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -35,14 +41,12 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ===== Top row: icon + title + close =====
                     Row(
                       children: [
                         Image.asset(
@@ -74,9 +78,7 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 14),
-
                     const Text(
                       "Lesson Complete",
                       style: TextStyle(
@@ -85,13 +87,11 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     const SizedBox(height: 18),
 
-                    // ===== Illustration =====
                     Center(
                       child: Image.asset(
-                        "assets/win2.png", 
+                        "assets/win2.png",
                         height: 235,
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Container(
@@ -112,7 +112,6 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
 
                     const SizedBox(height: 18),
 
-                    // ===== Improvement =====
                     const Text(
                       "Improvement",
                       style: TextStyle(
@@ -122,21 +121,20 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _ThickProgressBar(value: improvement),
+                    _ThickProgressBar(value: improvementClamped),
 
                     const SizedBox(height: 14),
 
-                    // ===== Correctness =====
-                    const Text(
-                      "Correctness",
-                      style: TextStyle(
+                    Text(
+                      "Correctness  (${(correctnessClamped * 100).round()}%)",
+                      style: const TextStyle(
                         color: labelColor,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _ThickProgressBar(value: correctness),
+                    _ThickProgressBar(value: correctnessClamped),
                   ],
                 ),
               ),
@@ -149,13 +147,8 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
   }
 }
 
-/* ===================== TOP RIGHT CIRCLE BUTTON ===================== */
-
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _CircleActionButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -196,8 +189,6 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-/* ===================== PROGRESS BAR (THICK) ===================== */
-
 class _ThickProgressBar extends StatelessWidget {
   const _ThickProgressBar({required this.value});
   final double value;
@@ -208,7 +199,7 @@ class _ThickProgressBar extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 14, // ✅ thicker like your UI
+      height: 14,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(999),
         child: Stack(

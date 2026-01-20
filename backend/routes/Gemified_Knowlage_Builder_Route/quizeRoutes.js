@@ -7,6 +7,7 @@ import {
   getQuizeById,
   updateQuize,
   deleteQuize,
+  getQuizeByLessonId,
 } from "../../controllers/Gemified_knowlage_Builder_Controller/quizeController.js";
 
 const router = express.Router();
@@ -28,4 +29,6 @@ router.put("/:id", upload.array("images", 10), updateQuize);
 // Delete
 router.delete("/:id", deleteQuize);
 
+// Get quize by lesson ID
+router.get("/lesson/:lessonId", getQuizeByLessonId);
 export default router;

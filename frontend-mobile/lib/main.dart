@@ -105,7 +105,7 @@ class MyApp extends StatelessWidget {
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
         '/problemSolvingLessonDetail': (context) => const ProblemSolvingMiniTutorialPage(lessonId: '',),
         '/problemSolvingQuiz1': (context) => const ProblemSolvingMatchPage(),
-        '/problemSolvingLessonComplete': (context) => const ProblemSolvingLessonCompletePage(),
+        '/problemSolvingLessonComplete': (context) => const ProblemSolvingLessonCompletePage(correctness: 0.0, improvement: 0.0),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
 

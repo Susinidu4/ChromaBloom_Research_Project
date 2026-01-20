@@ -310,7 +310,11 @@ class _ProblemSolvingMiniTutorialPageState
                               child: _PrimaryButton(
                                 label: "Continue",
                                 onTap: () {
-                                  // TODO: Navigate to the actual game/lesson page
+                                   Navigator.pushNamed(
+                                    context,
+                                    '/problemSolvingQuiz1',
+                                    arguments: {'lessonId': widget.lessonId},
+                                  );
                                 },
                               ),
                             ),

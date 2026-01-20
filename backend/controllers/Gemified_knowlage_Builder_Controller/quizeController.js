@@ -1,5 +1,5 @@
 // controllers/quize.controller.js
-import Quize from "../../models/Gamified_Knowlage_Builder_Model/Quize.js"; // adjust path
+import Quize from "../../models/Gamified_Knowlage_Builder_Model/Quize.js";
 import cloudinary from "../../config/cloudinary.js";
 
 // Upload a single buffer to Cloudinary
@@ -31,12 +31,13 @@ export const createQuize = async (req, res) => {
       name_tag,
       difficulty_level,
       correct_answer,
-      // answers can come as JSON string when using form-data
-      answers,
+      answers, // can be JSON string in form-data
     } = req.body;
 
     if (!question || !lesson_id || !difficulty_level) {
-      return res.status(400).json({ message: "question, lesson_id, difficulty_level are required" });
+      return res.status(400).json({
+        message: "question, lesson_id, difficulty_level are required",
+      });
     }
 
     // Parse answers safely
@@ -54,14 +55,13 @@ export const createQuize = async (req, res) => {
     // Upload files if present (field: images)
     const files = req.files || [];
     if (files.length > 0) {
-      // Ensure answers array size matches or initialize
       if (!Array.isArray(parsedAnswers)) parsedAnswers = [];
-      // If answers array is shorter, expand it
+
+      // Expand answers to match files length
       while (parsedAnswers.length < files.length) {
         parsedAnswers.push({});
       }
 
-      // Upload in order and assign
       for (let i = 0; i < files.length; i++) {
         const uploadRes = await uploadImageToCloudinary(files[i].buffer);
         parsedAnswers[i] = {
@@ -76,7 +76,7 @@ export const createQuize = async (req, res) => {
       lesson_id,
       name_tag,
       difficulty_level,
-      correct_answer: Number(correct_answer),
+      correct_answer: correct_answer !== undefined ? Number(correct_answer) : undefined,
       answers: parsedAnswers,
     });
 
@@ -89,7 +89,7 @@ export const createQuize = async (req, res) => {
 
 // ------------------------------
 // GET ALL (optional filter by lesson_id)
-// GET /quizes?lesson_id=PSL-0001
+// GET /quizes?lesson_id=LP-0001
 // ------------------------------
 export const getAllQuizes = async (req, res) => {
   try {
@@ -108,6 +108,7 @@ export const getAllQuizes = async (req, res) => {
 
 // ------------------------------
 // GET ONE BY ID
+// GET /quizes/:id
 // ------------------------------
 export const getQuizeById = async (req, res) => {
   try {
@@ -119,6 +120,24 @@ export const getQuizeById = async (req, res) => {
     return res.status(200).json({ data: quiz });
   } catch (err) {
     console.error("getQuizeById error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ------------------------------
+// GET QUIZ BY LESSON ID
+// GET /quizes/lesson/:lessonId
+// Example: /quizes/lesson/LP-0001
+// ------------------------------
+export const getQuizeByLessonId = async (req, res) => {
+  try {
+    // ✅ FIX: read correct param name from route
+    const { lessonId } = req.params;
+
+    const list = await Quize.find({ lesson_id: lessonId }).sort({ _id: 1 });
+    return res.status(200).json({ data: list });
+  } catch (err) {
+    console.error("getQuizeByLessonId error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -187,6 +206,7 @@ export const updateQuize = async (req, res) => {
 
 // ------------------------------
 // DELETE QUIZ
+// DELETE /quizes/:id
 // ------------------------------
 export const deleteQuize = async (req, res) => {
   try {
