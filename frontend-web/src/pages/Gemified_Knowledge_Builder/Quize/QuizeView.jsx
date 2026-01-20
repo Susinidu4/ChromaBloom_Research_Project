@@ -36,7 +36,7 @@ export default function QuizeView() {
 
           <div className="flex gap-2">
             <Link
-              to="/quizes_list"
+              to="/quizes/list"
               className="px-3 py-2 rounded-xl border border-black/20 bg-white font-bold text-[13px] text-black no-underline inline-flex items-center justify-center"
             >
               Back

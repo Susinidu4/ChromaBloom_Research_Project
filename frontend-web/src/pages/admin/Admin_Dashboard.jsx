@@ -48,7 +48,7 @@ export const Admin_Dashboard = () => {
         {/* Create Quize */}
         <div
           style={styles.card}
-          onClick={() => navigate("/quizes_create")}
+          onClick={() => navigate("/quizes/create")}
         >
           <h3>Create Quize</h3>
           <p>Add new quizes with video & tips</p>
@@ -57,7 +57,7 @@ export const Admin_Dashboard = () => {
         {/* View Quizes */}
         <div
           style={styles.card}
-          onClick={() => navigate("/quizes_list")}
+          onClick={() => navigate("/quizes/list")}
         >
           <h3>Manage Quizes</h3>
           <p>View, edit, or delete existing quizes</p>
