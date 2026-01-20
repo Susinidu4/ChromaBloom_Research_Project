@@ -3,8 +3,8 @@ import { createDigitalWellbeingLog } from "../../controllers/Parental_Stress_Mon
 
 const router = express.Router();
 
-
-
+// Route to create a new digital wellbeing log
+// POST /chromabloom/digitalWellbeingLog/create
 router.post("/create", createDigitalWellbeingLog);
 
 export default router;
