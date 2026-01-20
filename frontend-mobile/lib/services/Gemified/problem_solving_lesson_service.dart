@@ -12,7 +12,7 @@ class ProblemSolvingLessonService {
   ProblemSolvingLessonService._();
 
   // TODO: change to your server IP / domain
-  static const String _baseUrl = "http://10.0.2.2:5000"; // Android emulator
+  static const String _baseUrl = "http://localhost:5000"; // Android emulator
   // static const String _baseUrl = "http://localhost:5000"; // Flutter web
   // static const String _baseUrl = "http://192.168.x.x:5000"; // real device WiFi
 

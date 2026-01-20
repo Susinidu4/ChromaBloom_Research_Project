@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+import '../../../services/Gemified/problem_solving_lesson_service.dart';
 
-class ProblemSolvingMiniTutorialPage extends StatelessWidget {
-  const ProblemSolvingMiniTutorialPage({super.key});
+class ProblemSolvingMiniTutorialPage extends StatefulWidget {
+  final String lessonId;
 
+  const ProblemSolvingMiniTutorialPage({
+    super.key,
+    required this.lessonId,
+  });
+
+  @override
+  State<ProblemSolvingMiniTutorialPage> createState() =>
+      _ProblemSolvingMiniTutorialPageState();
+}
+
+class _ProblemSolvingMiniTutorialPageState
+    extends State<ProblemSolvingMiniTutorialPage> {
   // Background
   static const Color pageBg = Color(0xFFF5ECEC);
 
@@ -17,7 +30,7 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
   // Big card
   static const Color cardBg = Color(0xFFE9DDCC);
 
-  // Inner “white” boxes (match UI)
+  // Inner boxes
   static const Color innerBoxBg = Color(0xFFF7F3ED);
   static const Color innerBoxBorder = Color(0xFFD8C6B4);
 
@@ -27,6 +40,61 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
 
   // Button
   static const Color btnBg = Color(0xFFB89A76);
+
+  bool loading = true;
+  String? error;
+
+  String miniTutorialName = "Mini Tutorial :";
+  List<Map<String, dynamic>> tips = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLesson();
+  }
+
+  Future<void> _loadLesson() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+
+    try {
+      final res = await ProblemSolvingLessonService.getLessonById(widget.lessonId);
+
+      // backend returns { success: true, data: {...} }
+      final data = (res["data"] as Map<String, dynamic>?);
+
+      if (data == null) {
+        throw Exception("Lesson data not found");
+      }
+
+      final name = (data["miniTutorialsName"] ?? "Mini Tutorial :").toString();
+
+      final rawTips = (data["miniTutorials"] as List<dynamic>? ?? []);
+      final parsedTips = rawTips
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      // Sort by tip_number (nice order)
+      parsedTips.sort((a, b) {
+        final an = (a["tip_number"] is num) ? (a["tip_number"] as num).toInt() : 0;
+        final bn = (b["tip_number"] is num) ? (b["tip_number"] as num).toInt() : 0;
+        return an.compareTo(bn);
+      });
+
+      setState(() {
+        miniTutorialName = name.isEmpty ? "Mini Tutorial :" : name;
+        tips = parsedTips;
+        loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,10 +183,8 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                       errorBuilder: (_, __, ___) => Container(
                                         height: 130,
                                         decoration: BoxDecoration(
-                                          color:
-                                              Colors.black.withOpacity(0.06),
-                                          borderRadius:
-                                              BorderRadius.circular(14),
+                                          color: Colors.black.withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(14),
                                         ),
                                         alignment: Alignment.center,
                                         child: const Text(
@@ -135,12 +201,11 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
 
                                 const SizedBox(width: 10),
 
-                                // right mini tutorial box
+                                // right mini tutorial box (DYNAMIC)
                                 Expanded(
                                   flex: 6,
                                   child: Container(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        12, 10, 12, 10),
+                                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                                     decoration: BoxDecoration(
                                       color: innerBoxBg,
                                       borderRadius: BorderRadius.circular(14),
@@ -156,33 +221,7 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                    child: const Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Mini Tutorial :",
-                                          style: TextStyle(
-                                            color: titleBrown,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        SizedBox(height: 8),
-                                        _MiniBullet(
-                                          "Show two sets of items\n(e.g., spoon–fork, sock–shoe,\napple–banana).",
-                                        ),
-                                        _MiniBullet(
-                                          "Ask: “Which two go together?”",
-                                        ),
-                                        _MiniBullet(
-                                          "Let the child choose by\npointing or dragging.",
-                                        ),
-                                        _MiniBullet(
-                                          "Praise correct matches\nwith: “Great matching!”",
-                                        ),
-                                      ],
-                                    ),
+                                    child: _miniTutorialContent(),
                                   ),
                                 ),
                               ],
@@ -267,12 +306,11 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
 
                             const SizedBox(height: 12),
 
-                            // Continue button (small, centered like UI)
                             Center(
                               child: _PrimaryButton(
                                 label: "Continue",
                                 onTap: () {
-                                  // Navigator.pushNamed(context, '/problemSolvingUnit1');
+                                  // TODO: Navigate to the actual game/lesson page
                                 },
                               ),
                             ),
@@ -288,6 +326,80 @@ class ProblemSolvingMiniTutorialPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const MainNavBar(currentIndex: 2),
+    );
+  }
+
+  Widget _miniTutorialContent() {
+    if (loading) {
+      return const Center(
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Mini Tutorial :",
+            style: TextStyle(
+              color: titleBrown,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error!,
+            style: const TextStyle(
+              color: bodyBlack,
+              fontSize: 9.6,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _PrimaryButton(
+            label: "Retry",
+            onTap: _loadLesson,
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          miniTutorialName,
+          style: const TextStyle(
+            color: titleBrown,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (tips.isEmpty)
+          const Text(
+            "No mini tutorials available.",
+            style: TextStyle(
+              color: bodyBlack,
+              fontSize: 9.6,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else
+          ...tips.map((t) {
+            final content = (t["tip_content"] ?? "").toString().trim();
+            if (content.isEmpty) return const SizedBox.shrink();
+            return _MiniBullet(content);
+          }),
+      ],
     );
   }
 }
@@ -314,10 +426,10 @@ class _CircleActionButton extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: ProblemSolvingMiniTutorialPage.circleBg,
+            color: _ProblemSolvingMiniTutorialPageState.circleBg,
             shape: BoxShape.circle,
             border: Border.all(
-              color: ProblemSolvingMiniTutorialPage.circleBorder,
+              color: _ProblemSolvingMiniTutorialPageState.circleBorder,
               width: 1,
             ),
             boxShadow: const [
@@ -331,7 +443,7 @@ class _CircleActionButton extends StatelessWidget {
           child: Icon(
             icon,
             size: 20,
-            color: ProblemSolvingMiniTutorialPage.circleIcon,
+            color: _ProblemSolvingMiniTutorialPageState.circleIcon,
           ),
         ),
       ),
@@ -355,7 +467,7 @@ class _MiniBullet extends StatelessWidget {
           const Text(
             "• ",
             style: TextStyle(
-              color: ProblemSolvingMiniTutorialPage.bodyBlack,
+              color: _ProblemSolvingMiniTutorialPageState.bodyBlack,
               fontSize: 10.5,
               height: 1.25,
               fontWeight: FontWeight.w900,
@@ -365,7 +477,7 @@ class _MiniBullet extends StatelessWidget {
             child: Text(
               text,
               style: const TextStyle(
-                color: ProblemSolvingMiniTutorialPage.bodyBlack,
+                color: _ProblemSolvingMiniTutorialPageState.bodyBlack,
                 fontSize: 9.6,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
@@ -392,7 +504,7 @@ class _OrBullet extends StatelessWidget {
           const Text(
             "• ",
             style: TextStyle(
-              color: ProblemSolvingMiniTutorialPage.bodyBlack,
+              color: _ProblemSolvingMiniTutorialPageState.bodyBlack,
               fontSize: 10.5,
               height: 1.25,
               fontWeight: FontWeight.w900,
@@ -402,7 +514,7 @@ class _OrBullet extends StatelessWidget {
             child: Text(
               text,
               style: const TextStyle(
-                color: ProblemSolvingMiniTutorialPage.bodyBlack,
+                color: _ProblemSolvingMiniTutorialPageState.bodyBlack,
                 fontSize: 9.8,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
@@ -415,7 +527,7 @@ class _OrBullet extends StatelessWidget {
   }
 }
 
-/* ===================== CONTINUE BUTTON ===================== */
+/* ===================== BUTTON ===================== */
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({
@@ -435,9 +547,9 @@ class _PrimaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Container(
           height: 30,
-          width: 86, // small like UI
+          width: 86,
           decoration: BoxDecoration(
-            color: ProblemSolvingMiniTutorialPage.btnBg,
+            color: _ProblemSolvingMiniTutorialPageState.btnBg,
             borderRadius: BorderRadius.circular(10),
             boxShadow: const [
               BoxShadow(
