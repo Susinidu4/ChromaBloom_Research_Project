@@ -1,4 +1,4 @@
-// controllers/quize.controller.js
+// controllers/quizeController.js
 import Quize from "../../models/Gamified_Knowlage_Builder_Model/Quize.js";
 import cloudinary from "../../config/cloudinary.js";
 
@@ -18,10 +18,10 @@ const uploadImageToCloudinary = (fileBuffer, folder = "chromabloom/quizes") => {
 
 // ------------------------------
 // CREATE QUIZ
-// supports:
-// - JSON only
-// - OR multipart/form-data with "images" (multiple)
-// images will map to answers[i].img_url in order
+// multipart/form-data fields:
+// - correctImage (single)  -> correct_img_url
+// - answerImages (multiple)-> answers[i].img_url in order
+// also supports JSON-only (no files)
 // ------------------------------
 export const createQuize = async (req, res) => {
   try {
@@ -31,7 +31,8 @@ export const createQuize = async (req, res) => {
       name_tag,
       difficulty_level,
       correct_answer,
-      answers, // can be JSON string in form-data
+      correct_img_url, // optional if sending URL directly
+      answers, // optional JSON string/array (image_no only, etc.)
     } = req.body;
 
     if (!question || !lesson_id || !difficulty_level) {
@@ -52,21 +53,30 @@ export const createQuize = async (req, res) => {
       parsedAnswers = answers;
     }
 
-    // Upload files if present (field: images)
-    const files = req.files || [];
-    if (files.length > 0) {
+    // Files from multer.fields()
+    const filesMap = req.files || {};
+    const correctFile = filesMap.correctImage?.[0];
+    const answerFiles = filesMap.answerImages || [];
+
+    // Upload correct image if provided
+    let finalCorrectImgUrl = correct_img_url;
+    if (correctFile) {
+      const up = await uploadImageToCloudinary(correctFile.buffer);
+      finalCorrectImgUrl = up.secure_url;
+    }
+
+    // Upload answer images if provided
+    if (answerFiles.length > 0) {
       if (!Array.isArray(parsedAnswers)) parsedAnswers = [];
 
       // Expand answers to match files length
-      while (parsedAnswers.length < files.length) {
-        parsedAnswers.push({});
-      }
+      while (parsedAnswers.length < answerFiles.length) parsedAnswers.push({});
 
-      for (let i = 0; i < files.length; i++) {
-        const uploadRes = await uploadImageToCloudinary(files[i].buffer);
+      for (let i = 0; i < answerFiles.length; i++) {
+        const up = await uploadImageToCloudinary(answerFiles[i].buffer);
         parsedAnswers[i] = {
           image_no: parsedAnswers[i]?.image_no ?? i + 1,
-          img_url: uploadRes.secure_url,
+          img_url: up.secure_url,
         };
       }
     }
@@ -76,7 +86,9 @@ export const createQuize = async (req, res) => {
       lesson_id,
       name_tag,
       difficulty_level,
-      correct_answer: correct_answer !== undefined ? Number(correct_answer) : undefined,
+      correct_answer:
+        correct_answer !== undefined ? Number(correct_answer) : undefined,
+      correct_img_url: finalCorrectImgUrl,
       answers: parsedAnswers,
     });
 
@@ -88,17 +100,12 @@ export const createQuize = async (req, res) => {
 };
 
 // ------------------------------
-// GET ALL (optional filter by lesson_id)
-// GET /quizes?lesson_id=LP-0001
+// GET ALL QUIZZES (NO FILTER)
+// GET /quizes
 // ------------------------------
 export const getAllQuizes = async (req, res) => {
   try {
-    const { lesson_id } = req.query;
-
-    const filter = {};
-    if (lesson_id) filter.lesson_id = lesson_id;
-
-    const list = await Quize.find(filter).sort({ _id: 1 });
+    const list = await Quize.find().sort({ _id: 1 });
     return res.status(200).json({ data: list });
   } catch (err) {
     console.error("getAllQuizes error:", err);
@@ -127,11 +134,9 @@ export const getQuizeById = async (req, res) => {
 // ------------------------------
 // GET QUIZ BY LESSON ID
 // GET /quizes/lesson/:lessonId
-// Example: /quizes/lesson/LP-0001
 // ------------------------------
 export const getQuizeByLessonId = async (req, res) => {
   try {
-    // ✅ FIX: read correct param name from route
     const { lessonId } = req.params;
 
     const list = await Quize.find({ lesson_id: lessonId }).sort({ _id: 1 });
@@ -144,8 +149,9 @@ export const getQuizeByLessonId = async (req, res) => {
 
 // ------------------------------
 // UPDATE QUIZ (partial update)
-// supports optional new images upload (field: images)
-// if images exist, it REPLACES answers in order
+// multipart/form-data fields (optional):
+// - correctImage (single)  -> replaces correct_img_url
+// - answerImages (multiple)-> replaces answers[] in order
 // ------------------------------
 export const updateQuize = async (req, res) => {
   try {
@@ -157,6 +163,7 @@ export const updateQuize = async (req, res) => {
       name_tag,
       difficulty_level,
       correct_answer,
+      correct_img_url, // allow direct URL update
       answers,
     } = req.body;
 
@@ -167,7 +174,9 @@ export const updateQuize = async (req, res) => {
     if (lesson_id !== undefined) quiz.lesson_id = lesson_id;
     if (name_tag !== undefined) quiz.name_tag = name_tag;
     if (difficulty_level !== undefined) quiz.difficulty_level = difficulty_level;
-    if (correct_answer !== undefined) quiz.correct_answer = Number(correct_answer);
+    if (correct_answer !== undefined)
+      quiz.correct_answer = Number(correct_answer);
+    if (correct_img_url !== undefined) quiz.correct_img_url = correct_img_url;
 
     // Update answers from body (JSON or array)
     if (answers !== undefined) {
@@ -182,15 +191,25 @@ export const updateQuize = async (req, res) => {
       if (Array.isArray(parsedAnswers)) quiz.answers = parsedAnswers;
     }
 
-    // If new images uploaded: replace answers URLs in order
-    const files = req.files || [];
-    if (files.length > 0) {
+    // Files from multer.fields()
+    const filesMap = req.files || {};
+    const correctFile = filesMap.correctImage?.[0];
+    const answerFiles = filesMap.answerImages || [];
+
+    // Replace correct image if uploaded
+    if (correctFile) {
+      const up = await uploadImageToCloudinary(correctFile.buffer);
+      quiz.correct_img_url = up.secure_url;
+    }
+
+    // Replace answers if new images uploaded
+    if (answerFiles.length > 0) {
       const newAnswers = [];
-      for (let i = 0; i < files.length; i++) {
-        const uploadRes = await uploadImageToCloudinary(files[i].buffer);
+      for (let i = 0; i < answerFiles.length; i++) {
+        const up = await uploadImageToCloudinary(answerFiles[i].buffer);
         newAnswers.push({
           image_no: i + 1,
-          img_url: uploadRes.secure_url,
+          img_url: up.secure_url,
         });
       }
       quiz.answers = newAnswers;

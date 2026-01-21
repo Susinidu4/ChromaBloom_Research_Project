@@ -13,6 +13,7 @@ const QuizeSchema = new mongoose.Schema({
     lesson_id: {type: String, ref: "ProblemSolvingLesson"},
     name_tag: {type: String},
     difficulty_level: {type: String, enum: ['Beginner', 'Intermediate', 'Advanced']},
+    correct_img_url: {type: String},
     correct_answer: {type: Number},
     answers: [ImageSchema]
 

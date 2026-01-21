@@ -1,6 +1,6 @@
 // routes/quize.routes.js
 import express from "express";
-import upload from "../../middlewares/uploadImage.js"; // your multer memory upload
+import upload from "../../middlewares/uploadImage.js";
 import {
   createQuize,
   getAllQuizes,
@@ -12,23 +12,32 @@ import {
 
 const router = express.Router();
 
-// Create quiz
-// - JSON: no files
-// - multipart: use field name "images" (multiple)
-router.post("/", upload.array("images", 10), createQuize);
+/**
+ * multer fields:
+ * - correctImage: single file
+ * - answerImages: multiple files (answers)
+ */
+const quizUpload = upload.fields([
+  { name: "correctImage", maxCount: 1 },
+  { name: "answerImages", maxCount: 10 },
+]);
 
-// Get all (optional ?lesson_id=...)
+// Create quiz (JSON or multipart)
+router.post("/", quizUpload, createQuize);
+
+// Get all quizzes (no lesson filter)
 router.get("/", getAllQuizes);
+
+// ✅ IMPORTANT: keep this BEFORE "/:id"
+router.get("/lesson/:lessonId", getQuizeByLessonId);
 
 // Get one
 router.get("/:id", getQuizeById);
 
-// Update (optional new images)
-router.put("/:id", upload.array("images", 10), updateQuize);
+// Update quiz
+router.put("/:id", quizUpload, updateQuize);
 
-// Delete
+// Delete quiz
 router.delete("/:id", deleteQuize);
 
-// Get quize by lesson ID
-router.get("/lesson/:lessonId", getQuizeByLessonId);
 export default router;
