@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/problemSolving/problemSComplete.dart';
 import '../../others/header.dart';
@@ -105,7 +104,8 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
     });
 
     final list = await QuizeService.getQuizeByLessonId(_lessonId!);
-    final quizzes = list.map((e) => QuizItem.fromJson(e as Map<String, dynamic>)).toList();
+    final quizzes =
+        list.map((e) => QuizItem.fromJson(e as Map<String, dynamic>)).toList();
 
     final level = _levels[_stepIndex];
 
@@ -128,19 +128,21 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
   }
 
   double _progressValue() {
-    // 3 questions total
-    // stepIndex 0 => 1/3-ish shown as 0.33, stepIndex 1 => 0.66, stepIndex 2 => 1.0-ish
     final v = (_stepIndex + 1) / 3.0;
     return v.clamp(0.0, 1.0);
-    // (your original used 0.32; this makes it real progress)
   }
 
   String _safeUpper(String s) => s.trim().isEmpty ? "" : s.trim().toUpperCase();
 
+  // ✅ UPDATED: show correct_img_url in the middle image
   String? _correctImageUrl() {
     final q = _currentQuiz;
     if (q == null) return null;
 
+    final url = (q.correctImgUrl ?? "").trim();
+    if (url.isNotEmpty) return url;
+
+    // fallback (if correct_img_url is missing for some reason)
     final correctNo = q.correctAnswer;
     final match = q.answers.firstWhere(
       (a) => a.imageNo == correctNo,
@@ -182,7 +184,7 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
       MaterialPageRoute(
         builder: (_) => ProblemSolvingLessonCompletePage(
           correctness: correctness,
-          improvement: 0.62, // you can replace with real value later
+          improvement: 0.62, // replace later if needed
         ),
       ),
     );
@@ -317,7 +319,7 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
                           const SizedBox(height: 8),
 
-                          // question (optional)
+                          // question
                           Center(
                             child: Text(
                               quiz.question.trim(),
@@ -332,7 +334,7 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
                           const SizedBox(height: 12),
 
-                          // Middle image = correct answer image
+                          // ✅ Middle image = correct_img_url
                           Center(
                             child: _NetworkMainImage(
                               url: correctUrl,
@@ -349,7 +351,8 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
                               return _OptionTileNetwork(
                                 url: a.imgUrl,
                                 isSelected: _selectedImageNo == a.imageNo,
-                                onTap: () => setState(() => _selectedImageNo = a.imageNo),
+                                onTap: () =>
+                                    setState(() => _selectedImageNo = a.imageNo),
                               );
                             }).toList(),
                           ),
@@ -384,6 +387,10 @@ class QuizItem {
   final String lessonId;
   final String nameTag;
   final String difficultyLevel;
+
+  // ✅ NEW: correct_img_url from backend
+  final String? correctImgUrl;
+
   final int correctAnswer;
   final List<QuizAnswer> answers;
 
@@ -395,6 +402,7 @@ class QuizItem {
     required this.difficultyLevel,
     required this.correctAnswer,
     required this.answers,
+    this.correctImgUrl,
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -408,6 +416,7 @@ class QuizItem {
       lessonId: (json["lesson_id"] ?? "").toString(),
       nameTag: (json["name_tag"] ?? "").toString(),
       difficultyLevel: (json["difficulty_level"] ?? "").toString(),
+      correctImgUrl: (json["correct_img_url"] ?? "").toString(),
       correctAnswer: int.tryParse((json["correct_answer"] ?? 0).toString()) ?? 0,
       answers: ans,
     );
@@ -455,7 +464,7 @@ class _ThinProgressBar extends StatelessWidget {
   }
 }
 
-/* ===================== MAIN NETWORK IMAGE (CORRECT ANSWER) ===================== */
+/* ===================== MAIN NETWORK IMAGE (CORRECT IMG URL) ===================== */
 
 class _NetworkMainImage extends StatelessWidget {
   const _NetworkMainImage({required this.url, required this.height});
