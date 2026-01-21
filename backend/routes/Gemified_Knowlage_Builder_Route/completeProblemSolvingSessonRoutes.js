@@ -1,23 +1,27 @@
 import express from "express";
 import {
   createCompleteProblemSolvingSession,
+  updateCompleteProblemSolvingSession,
   deleteCompleteProblemSolvingSession,
-  getAllCompleteProblemSolvingSessions,
-  getCompleteProblemSolvingSessionsByUserId,
+  getCompleteProblemSolvingSessionById,
+  getByChildAndLesson,
 } from "../../controllers/Gemified_knowlage_Builder_Controller/completeProblemSolvingLessonController.js";
 
 const router = express.Router();
 
-// CREATE
+// ✅ Create
 router.post("/", createCompleteProblemSolvingSession);
 
-// VIEW ALL
-router.get("/", getAllCompleteProblemSolvingSessions);
+// ✅ Get by child + lesson
+router.get("/by-child-lesson/:childId/:lessonId", getByChildAndLesson);
 
-// VIEW BY USER ID
-router.get("/user/:user_id", getCompleteProblemSolvingSessionsByUserId);
+// ✅ Get by id
+router.get("/:id", getCompleteProblemSolvingSessionById);
 
-// DELETE BY ID (CLP-0001)
+// ✅ Update
+router.put("/:id", updateCompleteProblemSolvingSession);
+
+// ✅ Delete
 router.delete("/:id", deleteCompleteProblemSolvingSession);
 
 export default router;
