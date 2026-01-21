@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { problemSolvingLessonService } from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
+import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 
 export default function ProblemSolvingLessonList() {
   const [lessons, setLessons] = useState([]);
@@ -9,8 +9,8 @@ export default function ProblemSolvingLessonList() {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const res = await problemSolvingLessonService.getAll();
-      setLessons(res.data || []);
+      const res = await ProblemSolvingLessonService.getAll();
+      setLessons(res?.data || []);
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
@@ -23,9 +23,9 @@ export default function ProblemSolvingLessonList() {
   }, []);
 
   const onDelete = async (id) => {
-    if (!confirm(`Delete ${id}?`)) return;
+    if (!window.confirm(`Delete ${id}?`)) return;
     try {
-      await problemSolvingLessonService.remove(id);
+      await ProblemSolvingLessonService.remove(id);
       fetchAll();
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
@@ -50,10 +50,11 @@ export default function ProblemSolvingLessonList() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800 }}>{l.title}</div>
                 <div style={{ opacity: 0.8, fontSize: 13 }}>
-                  {l._id} • {l.difficultyLevel} • tips: {l.tips?.length || 0} • images: {l.images?.length || 0}
+                  {l._id} • {l.difficulty_level || "-"} • mini tutorials: {l.miniTutorials?.length || 0}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Link to={`/problem_solving_lessons/${l._id}`}>View</Link>
                 <Link to={`/problem_solving_lessons/${l._id}/edit`}>Edit</Link>
                 <button onClick={() => onDelete(l._id)} style={dangerBtn}>
@@ -68,5 +69,19 @@ export default function ProblemSolvingLessonList() {
   );
 }
 
-const row = { padding: 12, border: "1px solid #333", borderRadius: 12, display: "flex", gap: 12, alignItems: "center" };
-const dangerBtn = { border: "1px solid #444", borderRadius: 10, padding: "6px 10px", cursor: "pointer" };
+const row = {
+  padding: 12,
+  border: "1px solid #333",
+  borderRadius: 12,
+  display: "flex",
+  gap: 12,
+  alignItems: "center",
+};
+
+const dangerBtn = {
+  border: "1px solid #444",
+  borderRadius: 10,
+  padding: "6px 10px",
+  cursor: "pointer",
+  background: "transparent",
+};

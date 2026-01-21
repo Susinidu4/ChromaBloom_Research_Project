@@ -56,3 +56,19 @@ export const createDigitalWellbeingLog = async (req, res) => {
       .json({ message: "Server error", error: String(err) });
   }
 };
+
+
+
+//get digital wellbeing logs by caregiverId
+export const getDigitalWellbeingLogsByCaregiverId = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    const logs = await DigitalWellbeingLog.find({ caregiverId }).sort({
+      log_date: -1,
+    });
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error("getDigitalWellbeingLogsByCaregiverId:", err);
+    return res.status(500).json({ message: "Server error", error: String(err) });
+  }
+};
