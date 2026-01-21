@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:quickalert/quickalert.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
 
 import '../others/header.dart';
 import '../others/navBar.dart';
+
+import '../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
 
 class RoutineHomeScreen extends StatefulWidget {
   const RoutineHomeScreen({super.key});
@@ -12,53 +18,275 @@ class RoutineHomeScreen extends StatefulWidget {
 }
 
 class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
-  // ---------- Colors (picked to match your UI) ----------
+  // Theme colors
   static const Color pageBg = Color(0xFFF3E8E8);
-
   static const Color cardBorder = Color(0xFFD8C6B4);
-
-  //static const Color accentBrown = Color(0xFFB0896E);
   static const Color textBrown = Color(0xFFBD9A6B);
+  static const Color cardBg = Color(0xFFF7EAD7);
+  static const Color chartFill = Color(0xFFDFC7A7);
 
-  static const Color cardBg = Color(0xFFF8F2E8);
-  static const Color chartFill = Color(0xFFD8C6B4);
-  //static const Color chartLine = Color(0xFFB0896E);
+  // Show alert dialogs
+  void _showError(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.error,
+      title: "Error",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
 
-  // Dummy chart data (replace with your real API values)
-  final List<double> _overallProgress = [
-    2.2,
-    1.8,
-    2.5,
-    2.0,
-    1.1,
-    1.9,
-    1.2,
-    2.7,
-    2.6,
-    1.3,
-  ];
-  final int _completedSteps = 25;
-  final int _skippedSteps = 10;
+  void _showSuccess(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.success,
+      title: "Success",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
 
-  final List<double> _dailyProgress14 = [
-    35,
-    75,
-    45,
-    65,
-    5,
-    3,
-    2,
-    65,
-    6,
-    5,
-    50,
-    48,
-    60,
-    35,
-  ];
+  void _showInfo(String msg) {
+    QuickAlert.show(
+      context: context,
+      type: QuickAlertType.info,
+      title: "Info",
+      text: msg,
+      confirmBtnText: "OK",
+    );
+  }
 
+  // Hardcoded caregiverId
+  //final String caregiverId = "p-0001";
+
+  // 14 day labels for bar chart
+  List<String> _dailyDates14 = List.filled(14, "");
+
+  // Future for latest summary card
+  Future<Map<String, dynamic>>? _latestSummaryFuture;
+
+  // cycle label shown in the pill
+  String _selectedCycleLabel = "Select Cycle";
+
+  // Selected cycle's plan Mongo id
+  String? _selectedPlanId;
+
+  // last successful dashboard response
+  Map<String, dynamic>? _dashboardCache;
+  bool _loadingCycle = false;
+
+  // chart values
+  List<double> _overallProgress = [];
+  int _completedSteps = 0;
+  int _skippedSteps = 0;
+  List<double> _dailyProgress14 = List.filled(14, 0);
+
+  // Get logged caregiver id
+  String _getLoggedCaregiverId(BuildContext context) {
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    return caregiverId;
+  }
+
+  // Initialize state
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final caregiverId = _getLoggedCaregiverId(context);
+
+      if (caregiverId.isEmpty) {
+        _showError("Caregiver not logged in. Please login again.");
+        return;
+      }
+
+      setState(() {
+        _latestSummaryFuture = ChildRoutinePlanService.getLatestRoutineSummary(
+          caregiverId: caregiverId,
+        );
+        _loadingCycle = true;
+      });
+
+      _loadDashboard(caregiverId: caregiverId);
+    });
+  }
+
+  // Convert difficulty to number
+  double _diffToNumber(String diff) {
+    final d = diff.toLowerCase().trim();
+    if (d == "easy") return 1;
+    if (d == "medium") return 2;
+    if (d == "hard") return 3;
+    return 0;
+  }
+
+  // Load dashboard data from API
+  Future<Map<String, dynamic>> _loadDashboard({
+    required String caregiverId,
+    String? planId,
+  }) async {
+    try {
+      final res = await ChildRoutinePlanService.getRoutineDashboard(
+        caregiverId: caregiverId,
+        planId: planId,
+      );
+
+      if (!mounted) return res;
+
+      // Cache response so we can reuse later
+      _dashboardCache = res;
+
+      setState(() {
+        _applyDashboardToState(res);
+        _loadingCycle = false;
+      });
+
+      return res;
+    } catch (e) {
+      if (!mounted) rethrow;
+
+      setState(() {
+        _loadingCycle = false;
+      });
+
+      _showError("Failed to load dashboard. Check server & planId.");
+
+      rethrow;
+    }
+  }
+
+  // Capitalize first letter
+  String _cap(String s) {
+    final t = s.trim().toLowerCase();
+    if (t.isEmpty) return s;
+    return t[0].toUpperCase() + t.substring(1);
+  }
+
+  // Pick cycle from dashboard
+  Future<void> _pickCycleFromDashboard(
+    Map<String, dynamic> dashboardRes,
+  ) async {
+    final data = (dashboardRes["data"] ?? {}) as Map<String, dynamic>;
+    final cycles = (data["cycles"] ?? []) as List;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFE9DDCC),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) {
+        return ListView.separated(
+          padding: const EdgeInsets.all(14),
+          itemCount: cycles.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (ctx, i) {
+            final c = cycles[i] as Map<String, dynamic>;
+
+            final label = (c["label"] ?? "").toString();
+
+            // Get plan Mongo id (fallback to _id)
+            final planMongoId = (c["planMongoId"] ?? c["_id"] ?? "").toString();
+
+            return ListTile(
+              title: Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF8D6E4F),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () async {
+                Navigator.pop(ctx);
+
+                if (planMongoId.isEmpty) {
+                  _showError("Invalid plan id.");
+
+                  return;
+                }
+                // Set selected plan and show loading
+                setState(() {
+                  _loadingCycle = true;
+                  _selectedPlanId = planMongoId;
+                });
+                // Reload dashboard with chosen plan
+                await _loadDashboard(
+                  caregiverId: _getLoggedCaregiverId(context),
+                  planId: planMongoId,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Apply dashboard data into state
+  void _applyDashboardToState(Map<String, dynamic> res) {
+    final data = (res["data"] ?? {}) as Map<String, dynamic>;
+
+    // Selected cycle label + plan id
+    final selected = (data["selectedCycle"] ?? {}) as Map<String, dynamic>;
+    final cycleStart = (selected["cycleStart"] ?? "")
+        .toString()
+        .split("T")
+        .first;
+    final cycleEnd = (selected["cycleEnd"] ?? "").toString().split("T").first;
+
+    _selectedPlanId = (selected["planMongoId"] ?? "").toString();
+    _selectedCycleLabel = "$cycleStart - $cycleEnd";
+
+    // Overall Progress (difficulty -> 1/2/3)
+    final overall = (data["overallProgress"] ?? []) as List;
+    _overallProgress = overall.map<double>((e) {
+      final diff = (e["difficulty"] ?? "").toString();
+      return _diffToNumber(diff);
+    }).toList();
+
+    // Step analysis (pie chart)
+    final step = (data["stepAnalysis"] ?? {}) as Map<String, dynamic>;
+    _completedSteps = (step["completedStepsTotal"] as num?)?.toInt() ?? 0;
+    _skippedSteps = (step["skippedStepsTotal"] as num?)?.toInt() ?? 0;
+
+    // Daily progress (bar chart) => completionPercent 0..100
+    final daily = (data["dailyProgress"] ?? []) as List;
+
+    _dailyProgress14 = List.generate(14, (i) {
+      if (i >= daily.length) return 0.0;
+      return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
+    });
+
+    // percent values
+    _dailyProgress14 = List.generate(14, (i) {
+      if (i >= daily.length) return 0.0;
+      return ((daily[i]["completionPercent"] as num?) ?? 0).toDouble();
+    });
+
+    // dates (YYYY-MM-DD)
+    _dailyDates14 = List.generate(14, (i) {
+      if (i >= daily.length) return "";
+      return (daily[i]["date"] ?? "").toString();
+    });
+  }
+
+  // Build UI
   @override
   Widget build(BuildContext context) {
+    // Number of points visible at once in the line chart
+    final int visibleCount = 14;
+
+    // Horizontal spacing between chart points
+    final double pointSpacing = 40;
     return Scaffold(
       backgroundColor: pageBg,
       body: SafeArea(
@@ -67,6 +295,7 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header
               const MainHeader(
                 title: "Hello!",
                 subtitle: "Welcome back",
@@ -98,12 +327,68 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: _LatestSummaryCard(
-                  previous: "Easy",
-                  current: "Medium",
-                  message:
-                      "Wonderful progress! The child is ready for the next level with new Medium-difficulty activities.",
-                ),
+
+                // Show loading if summary future is null
+                child: (_latestSummaryFuture == null)
+                    ? const SizedBox(
+                        height: 170,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : FutureBuilder<Map<String, dynamic>>(
+                        future: _latestSummaryFuture!,
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 170,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          // If error occurred
+                          if (snap.hasError) {
+                            return _LatestSummaryCard(
+                              previous: "N/A",
+                              current: "N/A",
+                              message: "Failed to load summary.",
+                            );
+                          }
+
+                          // Extract response data
+                          final body = snap.data ?? {};
+                          final data =
+                              (body["data"] ?? {}) as Map<String, dynamic>;
+
+                          final prevRaw = data["previousDifficulty"];
+                          final currRaw = data["currentDifficulty"];
+                          final msgRaw = data["message"];
+
+                          // fallback for first-time user
+                          final previous =
+                              (prevRaw == null ||
+                                  prevRaw.toString().trim().isEmpty)
+                              ? "New"
+                              : _cap(prevRaw.toString());
+
+                          final current =
+                              (currRaw == null ||
+                                  currRaw.toString().trim().isEmpty)
+                              ? "N/A"
+                              : _cap(currRaw.toString());
+
+                          final message =
+                              (msgRaw == null ||
+                                  msgRaw.toString().trim().isEmpty)
+                              ? "No summary available."
+                              : msgRaw.toString();
+
+                          // Summary card UI
+                          return _LatestSummaryCard(
+                            previous: previous,
+                            current: current,
+                            message: message,
+                          );
+                        },
+                      ),
               ),
 
               const SizedBox(height: 18),
@@ -114,7 +399,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 child: QuoteSection(
                   quote:
                       "Smart routines that adapt, support, and grow with your child.",
-                  imagePath: "assets/InteractiveVisualTaskScheduler/routine_home_Quote.png",
+                  imagePath:
+                      "assets/InteractiveVisualTaskScheduler/routine_home_Quote.png",
                 ),
               ),
 
@@ -126,24 +412,70 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 child: _SectionTitle("Overall Progress"),
               ),
               const SizedBox(height: 10),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: _ChartCard(
-                  child: SizedBox(
-                    height: 170,
-                    child: _OverallLineChart(values: _overallProgress),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+                    child: SizedBox(
+                      height: 220,
+                      child: (_overallProgress.length <= visibleCount)
+                          ? _OverallLineChart(values: _overallProgress)
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: _overallProgress.length * pointSpacing,
+                                child: _OverallLineChart(
+                                  values: _overallProgress,
+                                ),
+                              ),
+                            ),
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 18),
 
-              // 14 Day Plan Summary (pie)
+              // 14 Day Plan Summary
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: _SectionTitle("14 Day Plan Summary"),
+                child: Row(
+                  children: [
+                    const _SectionTitle("14 Day Plan Summary"),
+                    const Spacer(),
+                    _DatePill(
+                      text: _loadingCycle ? "Loading..." : _selectedCycleLabel,
+                      onTap: () async {
+                        final caregiverId = _getLoggedCaregiverId(context);
+                        if (caregiverId.isEmpty) return;
+
+                        final cache = _dashboardCache;
+
+                        if (cache == null) {
+                          setState(() => _loadingCycle = true);
+
+                          final fresh = await _loadDashboard(
+                            caregiverId: caregiverId,
+                            planId: null,
+                          );
+
+                          if (!mounted) return;
+                          await _pickCycleFromDashboard(fresh);
+                          return;
+                        }
+
+                        await _pickCycleFromDashboard(cache);
+                      },
+                    ),
+                  ],
+                ),
               ),
+
               const SizedBox(height: 10),
+
+              // Step Analysis (Pie Chart)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: _ChartCard(
@@ -153,36 +485,35 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               "Step analysis",
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: textBrown,
                               ),
                             ),
-                            const Spacer(),
-                            _DatePill(
-                              text: "2/11/2025 - 15/11/2025",
-                              onTap: () {},
-                            ),
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 150,
-                              height: 150,
-                              child: _StepsPieChart(
-                                completed: _completedSteps,
-                                skipped: _skippedSteps,
+                        Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Pie Chart
+                              SizedBox(
+                                width: 150,
+                                height: 150,
+                                child: _StepsPieChart(
+                                  completed: _completedSteps,
+                                  skipped: _skippedSteps,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
+                              const SizedBox(width: 14),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+
+                                // Legend
                                 children: [
                                   _LegendRow(
                                     color: chartFill,
@@ -196,8 +527,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -217,25 +548,31 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               "Progress",
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: textBrown,
                               ),
                             ),
-                            const Spacer(),
-                            _DatePill(
-                              text: "2/11/2025 - 15/11/2025",
-                              onTap: () {},
-                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
+
+                        // Horizontal scrollable bar chart
                         SizedBox(
-                          height: 170,
-                          child: _ProgressBarChart(values: _dailyProgress14),
+                          height: 220,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: (_dailyProgress14.length * 42).toDouble(),
+                              child: _ProgressBarChart(
+                                values: _dailyProgress14,
+                                dates: _dailyDates14,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -246,6 +583,8 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
           ),
         ),
       ),
+
+      // Navigation Bar
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
   }
@@ -282,6 +621,7 @@ class _PillButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
+            // Arrow Icon
             const Icon(
               Icons.arrow_forward_rounded,
               size: 18,
@@ -345,17 +685,13 @@ class _LatestSummaryCard extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, card) {
-          // ✅ Right-side image column width (responsive)
+          // Calculates responsive width for the image area (keeps layout stable)
           final double imgColW = (card.maxWidth * 0.42).clamp(150.0, 220.0);
 
-          // ✅ Image height inside that column (responsive + elegant)
-          final double imgH = (imgColW * 0.85).clamp(130.0, 190.0);
-
           return Stack(
-            clipBehavior:
-                Clip.none, // ✅ allow image to overflow without resizing card
+            clipBehavior: Clip.none,
             children: [
-              // ✅ This Row decides the card height (based on TEXT only)
+              // Main row: left text + reserved right space
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -377,6 +713,7 @@ class _LatestSummaryCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 14),
+                        // Message body
                         Text(
                           message,
                           style: const TextStyle(
@@ -392,18 +729,18 @@ class _LatestSummaryCard extends StatelessWidget {
 
                   const SizedBox(width: 14),
 
-                  // ✅ Reserve right space so text doesn't go under image
+                  // Reserve space so text doesn’t go under the overlay image
                   SizedBox(width: imgColW),
                 ],
               ),
 
-              // ✅ Image overlay (can be BIGGER, but doesn't change card height)
+              // Overlay image positioned on the right (not affecting card height)
               Positioned(
                 right: 0,
-                top: -50, // adjust up/down
+                top: -50, // Move image up
                 child: SizedBox(
                   width: imgColW,
-                  height: 240, // ✅ increase image size here
+                  height: 240,
                   child: Image.asset(
                     "assets/InteractiveVisualTaskScheduler/routine_home_summary.png",
                     fit: BoxFit.contain,
@@ -417,6 +754,7 @@ class _LatestSummaryCard extends StatelessWidget {
     );
   }
 
+  // Helper row for “Label : Value”
   Widget _kvLine(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,24 +788,20 @@ class QuoteSection extends StatelessWidget {
   final String quote;
   final String imagePath;
 
-  const QuoteSection({
-    super.key,
-    required this.quote,
-    required this.imagePath,
-  });
+  const QuoteSection({super.key, required this.quote, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFF7EAD7), // warm left
-            const Color(0xFFF3E8E8).withOpacity(0.85), // merge with bg right
+            const Color(0xFFF7EAD7),
+            const Color(0xFFF3E8E8).withOpacity(0.85),
           ],
         ),
       ),
@@ -476,14 +810,11 @@ class QuoteSection extends StatelessWidget {
         children: [
           // LEFT IMAGE (big like UI)
           SizedBox(
-            height: 150,
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.contain,
-            ),
+            height: 200,
+            child: Image.asset(imagePath, fit: BoxFit.contain),
           ),
 
-          const SizedBox(width: 28),
+          const SizedBox(width: 8),
 
           // RIGHT QUOTE TEXT
           Expanded(
@@ -503,7 +834,7 @@ class QuoteSection extends StatelessWidget {
   }
 }
 
-
+// Date selection pill
 class _DatePill extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -518,8 +849,8 @@ class _DatePill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9DDCC),
-          border: Border.all(color: const Color(0xFFD8C6B4)),
+          color: const Color(0xFFF3E8E8),
+          border: Border.all(color: const Color(0xFFBD9A6B)),
           borderRadius: BorderRadius.circular(10),
           boxShadow: const [
             BoxShadow(
@@ -532,10 +863,11 @@ class _DatePill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Date/cycle label
             Text(
               text,
               style: const TextStyle(
-                color: Color(0xFF8D6E4F),
+                color: Color(0xFFBD9A6B),
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -553,6 +885,7 @@ class _DatePill extends StatelessWidget {
   }
 }
 
+// All chart Card containers
 class _ChartCard extends StatelessWidget {
   final Widget child;
   const _ChartCard({required this.child});
@@ -561,9 +894,9 @@ class _ChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F2E8),
+        color: const Color(0xFFE9DDCC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD8C6B4)),
+        border: Border.all(color: const Color(0xFFBD9A6B)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
@@ -577,51 +910,14 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-class _LegendRow extends StatelessWidget {
-  final Color color;
-  final Color? borderColor;
-  final String text;
-
-  const _LegendRow({required this.color, required this.text, this.borderColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(5),
-            border: borderColor != null
-                ? Border.all(color: borderColor!, width: 1.4)
-                : null,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(
-            color: Color(0xFF8D6E4F),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ==========================
-// Charts
-// ==========================
+// Overall Progress Line Chart
 class _OverallLineChart extends StatelessWidget {
   final List<double> values;
   const _OverallLineChart({required this.values});
 
   @override
   Widget build(BuildContext context) {
-    // y: 1=Easy, 2=Medium, 3=Hard (like your axis labels)
+    // Convert list values into chart points y: 1=Easy, 2=Medium, 3=Hard
     final spots = <FlSpot>[];
     for (int i = 0; i < values.length; i++) {
       spots.add(FlSpot(i.toDouble(), values[i]));
@@ -630,9 +926,31 @@ class _OverallLineChart extends StatelessWidget {
     return LineChart(
       LineChartData(
         minY: 0.5,
-        maxY: 3.2,
-        gridData: FlGridData(show: true, drawVerticalLine: true),
-        borderData: FlBorderData(show: true),
+        maxY: 4,
+
+        // Grid lines
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7),
+            strokeWidth: 1,
+            dashArray: [6, 4],
+          ),
+          getDrawingVerticalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7),
+            strokeWidth: 1,
+            dashArray: [6, 4],
+          ),
+        ),
+
+        // Chart border
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: const Color(0xFFDFC7A7), width: 1.8),
+        ),
+
+        // Axis titles/labels
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -640,9 +958,11 @@ class _OverallLineChart extends StatelessWidget {
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
+
+          // Bottom axis (x-axis)
           bottomTitles: AxisTitles(
             axisNameWidget: const Padding(
-              padding: EdgeInsets.only(top: 6),
+              padding: EdgeInsets.only(top: 4),
               child: Text(
                 "Plan no",
                 style: TextStyle(
@@ -661,9 +981,11 @@ class _OverallLineChart extends StatelessWidget {
               ),
             ),
           ),
+
+          // Left axis (y-axis)
           leftTitles: AxisTitles(
             axisNameWidget: const Padding(
-              padding: EdgeInsets.only(right: 6),
+              padding: EdgeInsets.only(right: 2),
               child: Text(
                 "Complexity",
                 style: TextStyle(
@@ -676,33 +998,33 @@ class _OverallLineChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               interval: 1,
-              reservedSize: 44,
+              reservedSize: 45,
               getTitlesWidget: (v, meta) {
-                String label = "";
-                if (v.round() == 1) label = "Easy";
-                if (v.round() == 2) label = "Medium";
-                if (v.round() == 3) label = "Hard";
-                return Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF8D6E4F),
-                    fontSize: 10,
-                  ),
-                );
+                const style = TextStyle(color: Color(0xFFBD9A6B), fontSize: 10);
+
+                bool isClose(double a, double b) => (a - b).abs() < 0.001;
+
+                if (isClose(v, 1)) return const Text("Easy", style: style);
+                if (isClose(v, 2)) return const Text("Medium", style: style);
+                if (isClose(v, 3)) return const Text("Hard", style: style);
+
+                return const SizedBox.shrink(); // hide everything else (including the bottom)
               },
             ),
           ),
         ),
+
+        // Line date
         lineBarsData: [
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            barWidth: 3,
+            barWidth: 2,
             color: const Color(0xFFB0896E),
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFFD8C6B4).withOpacity(0.45),
+              color: const Color(0xFFDFC7A7).withOpacity(0.64),
             ),
           ),
         ],
@@ -711,6 +1033,7 @@ class _OverallLineChart extends StatelessWidget {
   }
 }
 
+// Steps analysis Pie Chart
 class _StepsPieChart extends StatelessWidget {
   final int completed;
   final int skipped;
@@ -737,7 +1060,8 @@ class _StepsPieChart extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
-            color: const Color(0xFFD8C6B4),
+            color: const Color(0xFFDFC7A7),
+            borderSide: const BorderSide(color: Color(0xFFBD9A6B), width: 2),
           ),
           PieChartSectionData(
             value: skippedPct * 100,
@@ -748,8 +1072,8 @@ class _StepsPieChart extends StatelessWidget {
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
-            color: const Color(0xFFF8F2E8),
-            borderSide: const BorderSide(color: Color(0xFFD8C6B4), width: 2),
+            color: const Color(0xFFF7EAD7),
+            borderSide: const BorderSide(color: Color(0xFFBD9A6B), width: 2),
           ),
         ],
       ),
@@ -757,23 +1081,63 @@ class _StepsPieChart extends StatelessWidget {
   }
 }
 
+// pie chart legend row
+class _LegendRow extends StatelessWidget {
+  final Color color;
+  final Color? borderColor;
+  final String text;
+
+  const _LegendRow({required this.color, required this.text, this.borderColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(5),
+            border: borderColor != null
+                ? Border.all(color: borderColor!, width: 1.4)
+                : null,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFFBD9A6B),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Progress Bar Chart
 class _ProgressBarChart extends StatelessWidget {
   final List<double> values;
-  const _ProgressBarChart({required this.values});
+  final List<String> dates;
+
+  const _ProgressBarChart({required this.values, required this.dates});
 
   @override
   Widget build(BuildContext context) {
     final groups = <BarChartGroupData>[];
+
     for (int i = 0; i < values.length; i++) {
       groups.add(
         BarChartGroupData(
-          x: i + 1,
+          x: i,
           barRods: [
             BarChartRodData(
               toY: values[i],
-              width: 10,
-              borderRadius: BorderRadius.circular(3),
-              color: const Color(0xFFB0896E),
+              width: 16,
+              borderRadius: BorderRadius.circular(2),
+              color: const Color(0xFFBD9A6B),
             ),
           ],
         ),
@@ -782,9 +1146,45 @@ class _ProgressBarChart extends StatelessWidget {
 
     return BarChart(
       BarChartData(
-        maxY: 90,
-        gridData: FlGridData(show: true, horizontalInterval: 20),
-        borderData: FlBorderData(show: true),
+        alignment: BarChartAlignment.spaceBetween,
+        maxY: 100,
+
+        barTouchData: BarTouchData(
+          enabled: true,
+          handleBuiltInTouches: true,
+          touchTooltipData: BarTouchTooltipData(
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipMargin: 8,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final value = rod.toY.round();
+              return BarTooltipItem(
+                "$value%",
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: 20,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: const Color(0xFFDFC7A7),
+            strokeWidth: 1,
+            dashArray: [6, 4],
+          ),
+        ),
+
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: const Color(0xFFDFC7A7), width: 1.8),
+        ),
+
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -792,6 +1192,7 @@ class _ProgressBarChart extends StatelessWidget {
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
+
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -803,24 +1204,40 @@ class _ProgressBarChart extends StatelessWidget {
               ),
             ),
           ),
+
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               interval: 1,
+              reservedSize: 34,
               getTitlesWidget: (v, meta) {
-                final n = v.toInt();
-                if (n < 1 || n > values.length) return const SizedBox.shrink();
-                return Text(
-                  n.toString(),
-                  style: const TextStyle(
-                    color: Color(0xFF8D6E4F),
-                    fontSize: 10,
+                final i = v.toInt();
+                if (i < 0 || i >= dates.length) return const SizedBox.shrink();
+
+                final d = dates[i];
+                if (d.isEmpty) return const SizedBox.shrink();
+
+                final parts = d.split("-");
+                final label = (parts.length == 3)
+                    ? "${parts[2]}/${parts[1]}"
+                    : d;
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color(0xFF8D6E4F),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 );
               },
             ),
           ),
         ),
+
         barGroups: groups,
       ),
     );

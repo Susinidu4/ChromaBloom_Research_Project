@@ -45,7 +45,7 @@ class UserActivityService {
 
     if (mediaImage != null) {
       final mimeType = lookupMimeType(mediaImage.path) ?? "image/jpeg";
-      final parts = mimeType.split("/"); // ["image","png"] etc.
+      final parts = mimeType.split("/");
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -106,7 +106,7 @@ class UserActivityService {
 
   // DELETE USER ACTIVITY
   static Future<Map<String, dynamic>> deleteUserActivity({
-    required String mongoId, // ✅ must be _id
+    required String mongoId,
   }) async {
     final uri = Uri.parse(
       "$_base/chromabloom/userActivities/deleteUserActivity/$mongoId",
@@ -138,7 +138,7 @@ class UserActivityService {
     required int estimatedDurationMinutes,
     required String difficultyLevel,
     required List<Map<String, dynamic>> steps,
-    String? mediaImageBase64, // optional
+    String? mediaImageBase64,
   }) async {
     final uri = Uri.parse(
       "$_base/chromabloom/userActivities/updateUserActivity/$activityId",

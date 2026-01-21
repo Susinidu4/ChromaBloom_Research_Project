@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:provider/provider.dart';
+import 'package:quickalert/quickalert.dart';
 
+import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
 import '../../../services/user_services/child_api.dart';
 
@@ -10,10 +11,9 @@ import '../../others/navBar.dart';
 
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
-import 'create_userActivity.dart';
-
-import 'detailed_UserActivity.dart';
 import '../../Interactive_visual_task_scheduler/systemActivity/detailed_systemActivity.dart';
+import 'create_userActivity.dart';
+import 'detailed_UserActivity.dart';
 
 class DisplayUserActivityScreen extends StatefulWidget {
   const DisplayUserActivityScreen({super.key});
@@ -24,84 +24,39 @@ class DisplayUserActivityScreen extends StatefulWidget {
 }
 
 class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
+  // Colors for theme
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color cardBg = Color(0xFFE9DDCC);
-
-  String searchQuery = "";
 
   // TEMP hardcoded logged-in caregiver id, childID, ageGroup
   // static const String hardcodedCaregiverId = "p-0001";
   // static const String hardcodedChildId = "c-0001";
   // static const String hardcodedAgeGroup = "5";
 
+  void _alert(QuickAlertType type, String title, String text) {
+    if (!mounted) return;
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: "OK",
+      confirmBtnColor: const Color(0xFFBD9A6B),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  // These values are loaded from SessionProvider + Child API (NOT hardcoded)
   String? caregiverId;
   String? childId;
   String? ageGroup;
 
-  int calculateAgeFromDob(String dob) {
-    final birthDate = DateTime.parse(dob);
-    final today = DateTime.now();
-    int age = today.year - birthDate.year;
+  String searchQuery = "";
 
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
-
-  Future<void> _loadCaregiverAndChild() async {
-    setState(() {
-      loadingIdentity = true;
-      identityError = null;
-    });
-
-    try {
-      // ✅ 1) caregiverId from session
-      final session = context.read<SessionProvider>();
-      final cid = (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
-          .toString();
-
-      if (cid.isEmpty) {
-        throw Exception(
-          "Session error: caregiverId not found. Please login again.",
-        );
-      }
-
-      // ✅ 2) fetch children
-      final children = await ChildApi.getChildrenByCaregiver(cid);
-      if (children.isEmpty) {
-        throw Exception("No child found. Please add a child profile first.");
-      }
-
-      // ✅ If multiple children exist, for now pick first
-      final child = children.first;
-
-      final cId = (child['_id'] ?? child['id'] ?? '').toString();
-      if (cId.isEmpty) {
-        throw Exception("Child ID missing from API response.");
-      }
-
-      final dob = (child['dateOfBirth'] ?? '').toString();
-      if (dob.isEmpty) {
-        throw Exception("Child dateOfBirth missing from API response.");
-      }
-
-      final age = calculateAgeFromDob(dob);
-
-      setState(() {
-        caregiverId = cid;
-        childId = cId;
-        ageGroup = age.toString();
-      });
-    } catch (e) {
-      setState(() => identityError = e.toString());
-    } finally {
-      if (!mounted) return;
-      setState(() => loadingIdentity = false);
-    }
-  }
+  int suggestedDayTotalSteps = 0;
+  int suggestedDayCompletedSteps = 0;
 
   bool loadingIdentity = false;
   String? identityError;
@@ -119,10 +74,81 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   bool loadingSuggested = false;
   String? suggestedError;
 
+  // Suggested plan
   List<Map<String, dynamic>> suggestedTasks = [];
-
+  // Caregiver's own tasks
   List<Map<String, dynamic>> yourTasks = [];
 
+  // Load caregiverId, childId, ageGroup from session and Child API
+  Future<void> _loadCaregiverAndChild() async {
+    setState(() {
+      loadingIdentity = true;
+      identityError = null;
+    });
+
+    try {
+      // 1) caregiverId from session
+      final session = context.read<SessionProvider>();
+      final cid = (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+          .toString();
+
+      if (cid.isEmpty) {
+        throw Exception(
+          "Session error: caregiverId not found. Please login again.",
+        );
+      }
+
+      // 2) fetch children
+      final children = await ChildApi.getChildrenByCaregiver(cid);
+      if (children.isEmpty) {
+        throw Exception("No child found. Please add a child profile first.");
+      }
+
+      // If multiple children exist, for now pick first
+      final child = children.first;
+
+      final cId = (child['_id'] ?? child['id'] ?? '').toString();
+      if (cId.isEmpty) {
+        throw Exception("Child ID missing from API response.");
+      }
+
+      final dob = (child['dateOfBirth'] ?? '').toString();
+      if (dob.isEmpty) {
+        throw Exception("Child dateOfBirth missing from API response.");
+      }
+
+      // Calculate age group from dob
+      final age = calculateAgeFromDob(dob);
+
+      // set identity
+      setState(() {
+        caregiverId = cid;
+        childId = cId;
+        ageGroup = age.toString();
+      });
+    } catch (e) {
+      identityError = e.toString();
+      _alert(QuickAlertType.error, "Error", identityError!);
+    } finally {
+      if (!mounted) return;
+      setState(() => loadingIdentity = false);
+    }
+  }
+
+  // Calculate age from dob
+  int calculateAgeFromDob(String dob) {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+    int age = today.year - birthDate.year;
+
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  // Check if selected date is within suggested cycle
   bool _isWithinSuggestedCycle(DateTime day) {
     if (suggestedStart == null || suggestedEnd == null) return false;
 
@@ -141,6 +167,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     return !d.isBefore(s) && !d.isAfter(e);
   }
 
+  // Handle date selection
   void _onDateSelected(DateTime d) {
     setState(() => selectedDate = d);
 
@@ -151,7 +178,8 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         // outside cycle → show empty
         setState(() {
           // keep the plan loaded, but don't show tasks for this date
-          // you can either clear list OR show message using UI condition
+          suggestedDayTotalSteps = 0;
+          suggestedDayCompletedSteps = 0;
         });
       }
     } else {
@@ -172,6 +200,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     return chosen.isBefore(today);
   }
 
+  // Load suggested plan on init
   @override
   void initState() {
     super.initState();
@@ -183,51 +212,117 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     });
   }
 
+  // Refresh progress for day
   Future<void> _refreshSuggestedProgressForDay() async {
     if (suggestedPlanMongoId == null || suggestedPlanMongoId!.isEmpty) return;
     if (suggestedTasks.isEmpty) return;
 
     try {
-      final futures = suggestedTasks.map((t) async {
-        final activityId = (t["_id"] ?? "").toString();
-        if (activityId.isEmpty) return t;
+      // Run all activity progress fetches in parallel
+      final results = await Future.wait(
+        suggestedTasks.map((t) async {
+          final activityId = (t["_id"] ?? "").toString();
 
-        final run = await ChildRoutinePlanService.getRoutineRunProgress(
-          caregiverId: caregiverId!,
-          childId: childId!,
-          planMongoId: suggestedPlanMongoId!,
-          activityMongoId: activityId,
-          runDate: selectedDate,
-        );
+          // total steps should come from the activity object
+          final stepsList = (t["steps"] as List?) ?? [];
+          final total = stepsList.length;
 
-        if (run == null) {
-          // no progress saved for this day
-          return {...t, "percent": 0, "status": "Pending"};
-        }
+          // If activity ID is missing, treat as not started
+          if (activityId.isEmpty) {
+            return {
+              "task": t,
+              "total": total,
+              "completed": 0,
+              "percent": 0,
+              "status": "Pending",
+            };
+          }
 
-        final total = (run["total_steps"] ?? 0) as int;
-        final completed = (run["completed_steps"] ?? 0) as int;
-        final percent = total == 0 ? 0 : ((completed / total) * 100).round();
+          // Fetch progress for this activity on the selected day
+          final run = await ChildRoutinePlanService.getRoutineRunProgress(
+            caregiverId: caregiverId!,
+            childId: childId!,
+            planMongoId: suggestedPlanMongoId!,
+            activityMongoId: activityId,
+            runDate: selectedDate,
+          );
 
-        final status = percent == 0
-            ? "Pending"
-            : (percent == 100 ? "Completed" : "In Progress");
+          // If no run exists yet, no steps are completed
+          if (run == null) {
+            return {
+              "task": t,
+              "total": total,
+              "completed": 0,
+              "percent": 0,
+              "status": "Pending",
+            };
+          }
 
-        return {...t, "percent": percent, "status": status};
+          // completed steps should come from steps_progress
+          final progress = (run["steps_progress"] as List?) ?? [];
+          final completed = progress.where((s) => (s["status"] == true)).length;
+
+          final percent = total == 0 ? 0 : ((completed / total) * 100).round();
+          final status = percent == 0
+              ? "Pending"
+              : (percent == 100 ? "Completed" : "In Progress");
+
+          return {
+            "task": t,
+            "total": total,
+            "completed": completed,
+            "percent": percent,
+            "status": status,
+          };
+        }),
+      );
+
+      final sumTotal = results.fold<int>(0, (a, r) => a + (r["total"] as int));
+      final sumCompleted = results.fold<int>(
+        0,
+        (a, r) => a + (r["completed"] as int),
+      );
+
+      // Update UI task list with calculated percent + status
+      final updatedTasks = results.map((r) {
+        final t = Map<String, dynamic>.from(r["task"] as Map);
+        t["percent"] = r["percent"];
+        t["status"] = r["status"];
+        return t;
       }).toList();
 
-      final updated = await Future.wait(futures);
       if (!mounted) return;
-      setState(() => suggestedTasks = updated);
-    } catch (_) {
-      // ignore for UI
-    }
+      setState(() {
+        suggestedTasks = updatedTasks;
+        suggestedDayTotalSteps = sumTotal;
+        suggestedDayCompletedSteps = sumCompleted;
+      });
+    } catch (_) {}
   }
 
+  // Calculate daily progress percent for caregiver's own tasks
+  int _dailyProgressPercentForYourTasks(List<dynamic> taskList) {
+    int sumTotal = 0;
+    int sumCompleted = 0;
+
+    // Sum total and completed steps
+    for (final t in taskList) {
+      final task = Map<String, dynamic>.from(t as Map);
+      final steps = (task["steps"] as List?) ?? [];
+      // Ignore tasks with no steps
+      sumTotal += steps.length;
+      sumCompleted += steps.where((s) => s["status"] == true).length;
+    }
+
+    return sumTotal == 0 ? 0 : ((sumCompleted / sumTotal) * 100).round();
+  }
+
+  // Fetch suggested percent for activity
   Future<int> _fetchSuggestedPercentForActivity(
     String planId,
     String activityId,
   ) async {
+    // fetch activity run progress
     final run = await ChildRoutinePlanService.getRoutineRunProgress(
       caregiverId: caregiverId!,
       childId: childId!,
@@ -238,34 +333,43 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
     if (run == null) return 0;
 
+    // Sum total and completed steps
     final steps = (run["steps_progress"] as List?) ?? [];
     if (steps.isEmpty) return 0;
-
+    // Ignore tasks with no steps
     final done = steps.where((s) => (s["status"] == true)).length;
     return ((done / steps.length) * 100).round();
   }
 
+  // Fetch suggested plan
   Future<void> _fetchSuggestedPlan() async {
     setState(() {
       loadingSuggested = true;
       suggestedError = null;
+
+      suggestedDayTotalSteps = 0;
+      suggestedDayCompletedSteps = 0;
     });
 
     if (caregiverId == null || childId == null || ageGroup == null) return;
 
     try {
+      // Create or fetch starter plan from backend
       final res = await ChildRoutinePlanService.getOrCreateStarterPlan(
         caregiverId: caregiverId!,
         childId: childId!,
         ageGroup: ageGroup!,
       );
 
+      // Extract plan and activities
       final plan = (res["data"] as Map?) ?? {};
       final acts = (plan["activities"] as List?) ?? [];
 
+      // Extract plan start and end dates
       final startStr = (plan["cycle_start_date"] ?? "").toString();
       final endStr = (plan["cycle_end_date"] ?? "").toString();
 
+      // Convert to local timezone
       suggestedStart = startStr.isEmpty
           ? null
           : DateTime.parse(startStr).toLocal();
@@ -273,23 +377,20 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
       suggestedPlanMongoId = (plan["_id"] ?? "").toString();
 
-      // activities[] -> activityId populated object
+      // activities[] -> activityId populated object (Convert activities into UI task objects)
       final list = acts.map<Map<String, dynamic>>((a) {
         final activityObj = (a["activityId"] as Map?) ?? {};
 
         return {
           "_id": activityObj["_id"],
           "title": (activityObj["title"] ?? "").toString(),
-
-          // ✅ make UI keys exist
           "desc": (activityObj["description"] ?? "").toString(),
           "img":
               ((activityObj["media_links"] is List &&
                   (activityObj["media_links"] as List).isNotEmpty)
               ? (activityObj["media_links"][0]).toString()
-              : "assets/systemActivityDemo.png"),
+              : "assets/InteractiveVisualTaskScheduler/systemActivityDemo.png"),
 
-          // keep extra fields if you want
           "description": (activityObj["description"] ?? "").toString(),
           "steps": (activityObj["steps"] as List?) ?? [],
           "media_links": (activityObj["media_links"] as List?) ?? [],
@@ -304,19 +405,9 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         };
       }).toList();
 
+      // Save suggested tasks
       setState(() => suggestedTasks = list);
       await _refreshSuggestedProgressForDay();
-      final planId = suggestedPlanMongoId ?? "";
-      for (final t in list) {
-        final actId = (t["_id"] ?? "").toString();
-        if (planId.isNotEmpty && actId.isNotEmpty) {
-          t["percent"] = await _fetchSuggestedPercentForActivity(planId, actId);
-          t["status"] = (t["percent"] == 100)
-              ? "Completed"
-              : (t["percent"] == 0 ? "Pending" : "In Progress");
-        }
-      }
-      setState(() => suggestedTasks = list);
     } catch (e) {
       setState(() => suggestedError = e.toString());
     } finally {
@@ -324,6 +415,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     }
   }
 
+  // Fetch caregiver's own tasks by date
   Future<void> _fetchYourTasks() async {
     setState(() {
       loading = true;
@@ -357,7 +449,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
               b["scheduled_date"],
         );
 
-        return db.compareTo(da); // ✅ latest first
+        return db.compareTo(da); // latest first
       });
 
       setState(() => yourTasks = data);
@@ -368,15 +460,17 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     }
   }
 
+  // Toggle handler between Suggested and Your Tasks
   void _onToggleChanged(bool suggestedSelected) {
     setState(() => isSuggested = suggestedSelected);
     if (suggestedSelected) {
-      _fetchSuggestedPlan(); // ✅ when switching to Suggested
+      _fetchSuggestedPlan(); // load suggested plan when switching to Suggested
     } else {
-      _fetchYourTasks();
+      _fetchYourTasks(); // load user tasks when switching to Your Tasks
     }
   }
 
+  // Calculate progress percent for activity
   int _calcProgressPercent(Map<String, dynamic> activity) {
     final steps = (activity["steps"] as List?) ?? [];
     if (steps.isEmpty) return 0;
@@ -385,27 +479,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
     return ((done / steps.length) * 100).round();
   }
 
-  int _dailyProgressPercentForList(
-    List<dynamic> taskList, {
-    required bool suggested,
-  }) {
-    if (taskList.isEmpty) return 0;
-
-    int total = 0;
-
-    for (final t in taskList) {
-      final task = Map<String, dynamic>.from(t as Map);
-
-      final p = suggested
-          ? ((task["percent"] as num?)?.toInt() ?? 0) // suggestedTasks percent
-          : _calcProgressPercent(task); // yourTasks from steps.status
-
-      total += p;
-    }
-
-    return (total / taskList.length).round(); // average
-  }
-
+  // Build UI
   @override
   Widget build(BuildContext context) {
     if (loadingIdentity) {
@@ -443,24 +517,30 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       return title.contains(searchQuery.toLowerCase());
     }).toList();
 
-    final dailyProgress = _dailyProgressPercentForList(
-      filteredTasks,
-      suggested: isSuggested,
-    );
+    final dailyProgress = isSuggested
+        ? (suggestedDayTotalSteps == 0
+              ? 0
+              : ((suggestedDayCompletedSteps / suggestedDayTotalSteps) * 100)
+                    .round())
+        : _dailyProgressPercentForYourTasks(filteredTasks);
 
     final showYour = !isSuggested;
     final bool isDailyLimitReached = yourTasks.length >= 10;
     final canAdd = !isDailyLimitReached && !isPastSelectedDate(selectedDate);
+
+    // Build UI
     return Scaffold(
       backgroundColor: pageBg,
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
               notificationCount: 0,
             ),
+            // Body
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -476,13 +556,15 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
                     const SizedBox(height: 14),
 
+                    // Calendar
                     ExpandableCalendar(
                       selectedDate: selectedDate,
-                      onDateSelected: _onDateSelected, // ✅ use handler
+                      onDateSelected: _onDateSelected,
                     ),
 
                     const SizedBox(height: 14),
 
+                    // Segment toggle
                     SegmentToggle(
                       leftText: "Suggested",
                       rightText: "Your tasks",
@@ -493,16 +575,18 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
                     const SizedBox(height: 14),
 
+                    // Progress card
                     _ProgressCard(
                       percent: dailyProgress,
-                      kidImagePath: "assets/kid_trophy.png",
+                      kidImagePath:
+                          "assets/InteractiveVisualTaskScheduler/kid_trophy.png",
                       isSuggested: isSuggested,
                       ringSize: 125,
                     ),
 
                     const SizedBox(height: 14),
 
-                    // ✅ Content area
+                    // Task list
                     if (showYour) ...[
                       if (loading)
                         const Padding(
@@ -534,6 +618,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           ),
                         )
                       else
+                        // Caregiver's own tasks
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -562,8 +647,10 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                                             ? "Completed"
                                             : "In Progress"));
 
-                            final img = (t["img"] ?? "assets/activityDemo.png")
-                                .toString();
+                            final img =
+                                (t["img"] ??
+                                        "assets/InteractiveVisualTaskScheduler/activityDemo.png")
+                                    .toString();
 
                             return _TaskCard(
                               title: title,
@@ -587,6 +674,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                           },
                         ),
                     ] else ...[
+                      // Suggested tasks
                       if (loadingSuggested)
                         const Padding(
                           padding: EdgeInsets.all(16),
@@ -625,8 +713,10 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                               const SizedBox(height: 12),
                           itemBuilder: (context, i) {
                             final t = filteredTasks[i];
-                            final img = (t["img"] ?? "assets/activityDemo.png")
-                                .toString();
+                            final img =
+                                (t["img"] ??
+                                        "assets/InteractiveVisualTaskScheduler/activityDemo.png")
+                                    .toString();
 
                             return _TaskCard(
                               title: t["title"].toString(),
@@ -638,26 +728,29 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                               onTap: () {
                                 final planId = suggestedPlanMongoId ?? "";
                                 if (planId.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Missing planId"),
-                                    ),
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: "Missing plan",
+                                    text:
+                                        "Plan ID not found. Please refresh or try again.",
                                   );
+
                                   return;
                                 }
 
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => DetailedSystemActivityScreen(
-                                      activity: {
-                                        ...t,
-                                        "selectedDate":
-                                            selectedDate, // optional if you still want it
-                                      },
-                                      planMongoId: planId,
-                                      selectedDate: selectedDate,
-                                    ),
+                                    builder: (_) =>
+                                        DetailedSystemActivityScreen(
+                                          activity: {
+                                            ...t,
+                                            "selectedDate": selectedDate,
+                                          },
+                                          planMongoId: planId,
+                                          selectedDate: selectedDate,
+                                        ),
                                   ),
                                 );
                               },
@@ -668,6 +761,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
 
                     const SizedBox(height: 14),
 
+                    // Add task button
                     if (showYour) ...[
                       _CreateTaskButton(
                         enabled: canAdd,
@@ -685,6 +779,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                         },
                       ),
 
+                      // Info messages for daily limit reached by user
                       if (isDailyLimitReached) ...[
                         const SizedBox(height: 6),
                         const Text(
@@ -697,6 +792,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
                         ),
                       ],
 
+                      // Info messages for past dates selected by user
                       if (isPastSelectedDate(selectedDate)) ...[
                         const SizedBox(height: 6),
                         const Text(
@@ -718,12 +814,73 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
           ],
         ),
       ),
+      // Navigation Bar
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
   }
 }
 
-/* ===================== CALENDAR ===================== */
+// ------------------------- SEARCH BAR WITH BACK BUTTON ------------------------ //
+class _SearchBarWithBack extends StatelessWidget {
+  const _SearchBarWithBack({required this.onBack, required this.onChanged});
+
+  final VoidCallback onBack;
+  final ValueChanged<String> onChanged;
+
+  // Build the search bar with back button widget
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Back button (small round)
+        InkWell(
+          onTap: onBack,
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9).withOpacity(0.8),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.chevron_left_rounded,
+              color: Colors.black54,
+              size: 26,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Search bar (same style)
+        Expanded(
+          child: Container(
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9).withOpacity(0.8),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: onChanged,
+                    decoration: const InputDecoration(border: InputBorder.none),
+                  ),
+                ),
+                const Icon(Icons.search, color: Colors.black54),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ------------------------- EXPANDABLE CALENDAR ------------------------- //
 class ExpandableCalendar extends StatefulWidget {
   const ExpandableCalendar({
     super.key,
@@ -739,6 +896,7 @@ class ExpandableCalendar extends StatefulWidget {
 }
 
 class _ExpandableCalendarState extends State<ExpandableCalendar> {
+  // UI theme colors for the calendar card
   static const Color cardBg = Color(0xFFDFC7A7);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x22000000);
@@ -746,12 +904,14 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
   bool expanded = false;
   late DateTime focusedDay;
 
+  // Initialize focusedDay with selectedDate
   @override
   void initState() {
     super.initState();
     focusedDay = widget.selectedDate;
   }
 
+  // Build the ExpandableCalendar widget
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -814,6 +974,7 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
             ),
           ),
           const SizedBox(height: 6),
+          // Expand/collapse button
           GestureDetector(
             onTap: () => setState(() => expanded = !expanded),
             child: Container(
@@ -836,74 +997,7 @@ class _ExpandableCalendarState extends State<ExpandableCalendar> {
   }
 }
 
-/* ===================== SEARCH ===================== */
-class _SearchBarWithBack extends StatelessWidget {
-  const _SearchBarWithBack({
-    required this.onBack,
-    required this.onChanged,
-  });
-
-  final VoidCallback onBack;
-  final ValueChanged<String> onChanged;
-
-  //static const Color shadow = Color(0x22000000);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Back button (small round)
-        InkWell(
-          onTap: onBack,
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD9D9D9).withOpacity(0.8),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chevron_left_rounded,
-              color: Colors.black54,
-              size: 26,
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        // Search bar (same style)
-        Expanded(
-          child: Container(
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD9D9D9).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: onChanged,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.search, color: Colors.black54),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-/* ===================== TOGGLE ===================== */
+// ------------------------- SEGMENT TOGGLE ------------------------- //
 class SegmentToggle extends StatelessWidget {
   final String leftText, rightText;
   final bool isLeftSelected;
@@ -918,9 +1012,11 @@ class SegmentToggle extends StatelessWidget {
     required this.onRightTap,
   });
 
+  // background and stroke colors
   static const Color bg = Color(0xFFE8DDCD);
   static const Color stroke = Color(0xFFBD9A6B);
 
+  // Build the SegmentToggle widget
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -938,6 +1034,7 @@ class SegmentToggle extends StatelessWidget {
     );
   }
 
+  // Build individual segment item
   Widget _item(String t, bool active, VoidCallback onTap) {
     return Expanded(
       child: InkWell(
@@ -959,7 +1056,7 @@ class SegmentToggle extends StatelessWidget {
   }
 }
 
-/* ===================== PROGRESS CARD ===================== */
+// ------------------------- PROGRESS CARD ------------------------- //
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
     required this.percent,
@@ -973,15 +1070,17 @@ class _ProgressCard extends StatelessWidget {
   final bool isSuggested;
   final double ringSize;
 
+  // background and stroke colors
   static const Color cardBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x22000000);
 
+  // Build the _ProgressCard widget
   @override
   Widget build(BuildContext context) {
-    // ✅ Ring widget (same as yours)
+    // Progress ring
     final ring = Transform.scale(
-      scale: 2.7, // Scale factor (1.25 = 125% of original size)
+      scale: 2.7, // Enlarges the ring visually without changing layout size
       child: SizedBox(
         width: 160,
         height: 160,
@@ -998,7 +1097,7 @@ class _ProgressCard extends StatelessWidget {
               "$percent%",
               style: const TextStyle(
                 color: stroke,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -1007,7 +1106,7 @@ class _ProgressCard extends StatelessWidget {
       ),
     );
 
-    // ✅ IMPORTANT: Make ring area flexible to avoid overflow
+    // Text and ring column
     final textAndRing = Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -1015,6 +1114,7 @@ class _ProgressCard extends StatelessWidget {
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.end,
         children: [
+          // Card title
           Text(
             "Your Today’s\nProgress",
             textAlign: isSuggested ? TextAlign.left : TextAlign.right,
@@ -1028,7 +1128,7 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // ✅ Flexible stops "Bottom overflowed"
+          // Flexible stops "Bottom overflowed"
           Flexible(
             child: Align(
               alignment: isSuggested
@@ -1041,6 +1141,7 @@ class _ProgressCard extends StatelessWidget {
       ),
     );
 
+    // Child image
     final kidImage = Expanded(
       child: Align(
         alignment: isSuggested ? Alignment.centerRight : Alignment.centerLeft,
@@ -1048,6 +1149,7 @@ class _ProgressCard extends StatelessWidget {
       ),
     );
 
+    // Build the progress card container
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1059,7 +1161,7 @@ class _ProgressCard extends StatelessWidget {
         ],
       ),
       child: SizedBox(
-        height: 180, // keep your design same
+        height: 180,
         child: Row(
           children: isSuggested
               ? [textAndRing, const SizedBox(width: 12), kidImage]
@@ -1070,41 +1172,7 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-/* ===================== CREATE BUTTON ===================== */
-class _CreateTaskButton extends StatelessWidget {
-  const _CreateTaskButton({required this.onTap, this.enabled = true});
-
-  final VoidCallback onTap;
-  final bool enabled;
-
-  static const Color stroke = Color(0xFFBD9A6B);
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 46,
-      child: ElevatedButton(
-        onPressed: enabled ? onTap : null, // ✅ disables button
-        style: ElevatedButton.styleFrom(
-          backgroundColor: enabled
-              ? stroke
-              : stroke.withOpacity(0.4), // greyed look
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: const Text(
-          "+ Add New Task",
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
-  }
-}
-
-/* ===================== TASK CARD ===================== */
+// ------------------------- TASK CARD ------------------------- //
 class _TaskCard extends StatelessWidget {
   const _TaskCard({
     required this.title,
@@ -1125,8 +1193,10 @@ class _TaskCard extends StatelessWidget {
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color shadow = Color(0x22000000);
 
+  // Build the _TaskCard widget
   @override
   Widget build(BuildContext context) {
+    // Choose image widget based on source type
     final imageWidget = isNetwork
         ? Image.network(imagePath, height: 110, width: 90, fit: BoxFit.contain)
         : Image.asset(imagePath, height: 110, width: 90, fit: BoxFit.contain);
@@ -1170,14 +1240,17 @@ class _TaskCard extends StatelessWidget {
             ),
 
             const SizedBox(width: 12),
+            // Activity image
             imageWidget,
             const SizedBox(width: 12),
 
+            // Task details
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
                   Text(
                     title,
                     style: const TextStyle(
@@ -1187,6 +1260,7 @@ class _TaskCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  // Description
                   Text(
                     desc,
                     style: TextStyle(
@@ -1201,6 +1275,7 @@ class _TaskCard extends StatelessWidget {
               ),
             ),
 
+            // Progress percentage and status
             Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Column(
@@ -1234,6 +1309,7 @@ class _TaskCard extends StatelessWidget {
   }
 }
 
+// ------------------------- DOT ------------------------- //
 class _Dot extends StatelessWidget {
   const _Dot();
 
@@ -1245,6 +1321,39 @@ class _Dot extends StatelessWidget {
       decoration: const BoxDecoration(
         color: Color(0xFFBD9A6B),
         shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+// ------------------------- CREATE TASK BUTTON ------------------------- //
+class _CreateTaskButton extends StatelessWidget {
+  const _CreateTaskButton({required this.onTap, this.enabled = true});
+
+  final VoidCallback onTap; // Callback when button is pressed
+  final bool enabled; // Controls enabled/disabled state
+
+  static const Color stroke = Color(0xFFBD9A6B);
+
+  // Build the _CreateTaskButton widget
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 46,
+      child: ElevatedButton(
+        onPressed: enabled ? onTap : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: enabled ? stroke : stroke.withOpacity(0.4),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Text(
+          "+ Add New Task",
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }
