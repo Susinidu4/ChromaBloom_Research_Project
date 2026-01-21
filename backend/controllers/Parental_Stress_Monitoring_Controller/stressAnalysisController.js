@@ -2,11 +2,14 @@ import DigitalWellbeingLog from "../../models/Parental_Stress_Monitoring_Model/d
 import JournalEntry from "../../models/Parental_Stress_Monitoring_Model/journalEntryModel.js";
 import StressScoreModel from "../../models/Parental_Stress_Monitoring_Model/stressScoreModel.js";
 import RecommendationModel from "../../models/Parental_Stress_Monitoring_Model/recommendationModel.js";
-import axios from "axios";
 
+// ------------------------- Caregiver -------------------------//
+
+// Python ML service URL
 const PY_BASE = process.env.PYTHON_SERVICE_URL; // http://localhost:8000
 const ML_URL = `${PY_BASE}/stress/predict`;
 
+// Convert date to UTC 00:00 (start of day)
 function toUtcMidnight(dateObj = new Date()) {
   return new Date(
     Date.UTC(
@@ -16,11 +19,11 @@ function toUtcMidnight(dateObj = new Date()) {
       0,
       0,
       0,
-      0
-    )
+      0,
+    ),
   );
 }
-
+// Get UTC day start and end range
 function utcDayRange(dateObj = new Date()) {
   const start = new Date(
     Date.UTC(
@@ -30,8 +33,8 @@ function utcDayRange(dateObj = new Date()) {
       0,
       0,
       0,
-      0
-    )
+      0,
+    ),
   );
   const end = new Date(
     Date.UTC(
@@ -41,23 +44,23 @@ function utcDayRange(dateObj = new Date()) {
       0,
       0,
       0,
-      0
-    )
+      0,
+    ),
   );
   return { start, end };
 }
-
+// Check if stress level title is High or Critical
 function isHighOrCriticalTitle(levelTitle) {
   return levelTitle === "High" || levelTitle === "Critical";
 }
-
+// Compute stress score and pick recommendation for a caregiver
 export const computeStressAndRecommendation = async (req, res) => {
   try {
     const { caregiverId } = req.params;
     if (!caregiverId)
       return res.status(400).json({ error: "caregiverId required" });
 
-    // 1) latest digital wellbeing
+    // Get latest digital wellbeing
     const wellbeing = await DigitalWellbeingLog.findOne({ caregiverId })
       .sort({ log_date: -1 })
       .lean();
@@ -68,7 +71,7 @@ export const computeStressAndRecommendation = async (req, res) => {
         .json({ error: "No DigitalWellbeingLog found for this caregiver" });
     }
 
-    // 2) latest journal entry for TODAY only
+    // Get today latest journal entry
     const { start: todayStart, end: todayEnd } = utcDayRange(new Date());
 
     const journal = await JournalEntry.findOne({
@@ -84,7 +87,7 @@ export const computeStressAndRecommendation = async (req, res) => {
       });
     }
 
-    // 3) ML payload (your 10 features)
+    // Build ML input payload (features)
     const payload = {
       total_screen_time_min: wellbeing.total_screen_time_min ?? 0,
       night_usage_min: wellbeing.night_usage_min ?? 0,
@@ -98,13 +101,14 @@ export const computeStressAndRecommendation = async (req, res) => {
       journal_sentiment: journal.journal_sentiment ?? 0,
     };
 
-    // 4) Call ML
+    // Call ML
     const mlResp = await fetch(ML_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
+    // Handle ML API failure
     if (!mlResp.ok) {
       const errText = await mlResp.text();
       return res
@@ -114,16 +118,17 @@ export const computeStressAndRecommendation = async (req, res) => {
 
     const ml = await mlResp.json();
 
-    // ✅ your requested outputs
+    // Read ML outputs
     const stress_score = Number(ml.stress_score); // 0..3
     const stress_level = ml.stress_level; // "Low" | "Medium" | "High" | "Critical"
     const stress_probability = Number(ml.stress_probability ?? 0);
 
+    // Validate ML outputs
     if (![0, 1, 2, 3].includes(stress_score) || !stress_level) {
       return res.status(500).json({ error: "Invalid ML response", ml });
     }
 
-    // 5) consecutive high/critical days
+    // Count recent consecutive High/Critical days
     const today = toUtcMidnight(new Date());
 
     const recentScores = await StressScoreModel.find({ caregiverId })
@@ -140,12 +145,11 @@ export const computeStressAndRecommendation = async (req, res) => {
     if (isHighOrCriticalTitle(stress_level)) consecutive_high_days += 1;
     else consecutive_high_days = 0;
 
-    // 6) escalation rule
     const escalation_triggered =
       stress_level === "Critical" ||
       (stress_level === "High" && consecutive_high_days >= 3);
 
-    // 7) save / upsert today’s score
+    // save / upsert today’s stress score
     const computed_at = new Date();
 
     const savedScore = await StressScoreModel.findOneAndUpdate(
@@ -154,22 +158,22 @@ export const computeStressAndRecommendation = async (req, res) => {
         caregiverId,
         score_date: today,
         computed_at,
-        stress_score, // ✅ store numeric too
-        stress_level, // ✅ "Low/Medium/High/Critical"
+        stress_score,
+        stress_level,
         stress_probability,
         consecutive_high_days,
         escalation_triggered,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
-    // 8) recommendation pick (IMPORTANT: match DB casing)
-    // Your JSON recommendations use "Level": "Low/Medium/High/Critical" :contentReference[oaicite:2]{index=2}
+    // Pick recommendation
     const recPool = await RecommendationModel.find({
-      level: stress_level, // ✅ Title Case
+      level: stress_level,
       is_active: true,
     }).lean();
 
+    // Random pick from pool, otherwise fallback
     let chosen = null;
     if (recPool.length > 0) {
       chosen = recPool[Math.floor(Math.random() * recPool.length)];
@@ -200,3 +204,54 @@ export const computeStressAndRecommendation = async (req, res) => {
       .json({ error: "Server error", details: String(err.message || err) });
   }
 };
+
+
+// get stress scores history by caregiverId
+export const getStressScoresByCaregiver = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    if (!caregiverId)
+      return res.status(400).json({ error: "caregiverId required" });
+
+    const scores = await StressScoreModel.find({ caregiverId }).lean();
+    return res.status(200).json({ scores });
+  } catch (err) {
+    console.error("getStressScoresByCaregiver:", err);
+    return res.status(500).json({ message: "Server error", error: String(err) });
+  }
+};
+
+// Get Latest stress score history for a caregiver
+export const getStressScoreHistory = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+
+    // limit query param (default 10, max 50 for safety)
+    const limit = Math.min(parseInt(req.query.limit || "10", 10), 50);
+
+    if (!caregiverId) {
+      return res.status(400).json({ message: "caregiverId is required" });
+    }
+
+    // Fetch stress scores sorted by date (latest first)
+    const docs = await StressScoreModel.find({ caregiverId })
+      .sort({ score_date: -1, computed_at: -1 })
+      .limit(limit)
+      .select(
+        "score_date computed_at stress_level stress_probability consecutive_high_days escalation_triggered created_at",
+      )
+      .lean();
+
+    return res.status(200).json({
+      caregiverId,
+      count: docs.length,
+      items: docs,
+    });
+  } catch (err) {
+    console.error("getStressScoreHistory error:", err);
+    return res
+      .status(500)
+      .json({ message: "Failed to load stress score history" });
+  }
+};
+

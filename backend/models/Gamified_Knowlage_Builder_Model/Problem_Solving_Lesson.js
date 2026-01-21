@@ -1,30 +1,18 @@
 import mongoose from 'mongoose';
 
-const TipsSchema = new mongoose.Schema({
+const MiniTutorialSchema = new mongoose.Schema({
     tip_number: {type: Number, required: true},
     tip_content: {type: String, required: true},
 });
 
-const ImageSchema = new mongoose.Schema({
-    image_number: {type: Number, required: true},
-    image_url: {type: String, required: true},
-});
 
 const ProblemSolvingLessonSchema = new mongoose.Schema({
     _id: {type: String},
     title: {type: String, required: true},
-    content: {type: String},
-    difficultyLevel: {type: String, enum: ['Easy', 'Medium', 'Hard'], required: true},
-    tips: [TipsSchema],
-    correct_answer: {type: String, required: true},
-    images: [ImageSchema],
-    catergory: {type: String , enum: [
-        'match the similar objects',
-        'spot the difference',
-        'sorting by category',
-        'what happen next',
-        'find the missing piece'
-    ]},
+    description: {type: String, required: true},
+    difficulty_level: {type: String, enum: ['Beginner', 'Intermediate', 'Advanced'], required: true},
+    miniTutorialsName: {type: String},
+    miniTutorials: [MiniTutorialSchema],
 }, {timestamps: true});
     
 //pass unique id to _id field like LP-0001

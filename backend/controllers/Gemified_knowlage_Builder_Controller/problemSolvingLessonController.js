@@ -1,72 +1,49 @@
 // controllers/problemSolvingLesson.controller.js
-import ProblemSolvingLesson from "../../models/Gamified_Knowlage_Builder_Model/Problem_Solving_Lesson.js"; // adjust path if needed
-import cloudinary from "../../config/cloudinary.js";
+import ProblemSolvingLesson from "../../models/Gamified_Knowlage_Builder_Model/Problem_Solving_Lesson.js";
 
-// Helper: upload a single image buffer to Cloudinary
-const uploadImageToCloudinary = (fileBuffer) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: "image",
-        folder: "chromabloom/problem_solving_lessons",
-      },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    stream.end(fileBuffer);
-  });
-};
-
-// @desc    Create a problem solving lesson (with optional image upload)
+// @desc    Create a problem solving lesson
 // @route   POST /chromabloom/problem-solving-lessons
 export const createProblemSolvingLesson = async (req, res, next) => {
   try {
-    const { title, content, difficultyLevel, correct_answer, tips , catergory } = req.body;
+    const { title, description, difficulty_level, miniTutorialsName, miniTutorials } = req.body;
 
-    if (!title || !difficultyLevel || !correct_answer) {
+    if (!title || !description) {
       return res.status(400).json({
         success: false,
-        message: "title, difficultyLevel, and correct_answer are required",
+        message: "title and description are required",
       });
     }
 
-    // Parse tips (if sent as JSON string in multipart/form-data)
-    let parsedTips = [];
-    if (tips) {
+    // miniTutorials can come as array OR JSON string
+    let parsedMiniTutorials = [];
+    if (miniTutorials) {
       try {
-        parsedTips = typeof tips === "string" ? JSON.parse(tips) : tips;
+        parsedMiniTutorials =
+          typeof miniTutorials === "string"
+            ? JSON.parse(miniTutorials)
+            : miniTutorials;
+
+        // optional: validate each item
+        if (!Array.isArray(parsedMiniTutorials)) {
+          return res.status(400).json({
+            success: false,
+            message: "miniTutorials must be an array",
+          });
+        }
       } catch (e) {
         return res.status(400).json({
           success: false,
-          message: "Invalid tips format. Send as JSON array.",
+          message: "Invalid miniTutorials format. Send as JSON array.",
         });
       }
     }
 
-    // Handle images upload (if any)
-    let images = [];
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) =>
-        uploadImageToCloudinary(file.buffer)
-      );
-      const uploadResults = await Promise.all(uploadPromises);
-
-      images = uploadResults.map((result, index) => ({
-        image_number: index + 1,
-        image_url: result.secure_url,
-      }));
-    }
-
     const lesson = await ProblemSolvingLesson.create({
       title,
-      content,
-      difficultyLevel,
-      correct_answer,
-      tips: parsedTips,
-      images,
-      catergory
+      description,
+      difficulty_level,
+      miniTutorialsName,
+      miniTutorials: parsedMiniTutorials,
     });
 
     return res.status(201).json({ success: true, data: lesson });
@@ -86,7 +63,7 @@ export const getAllProblemSolvingLessons = async (req, res, next) => {
   }
 };
 
-// @desc    Get a single lesson by ID
+// @desc    Get a single lesson by ID (LP-0001)
 // @route   GET /chromabloom/problem-solving-lessons/:id
 export const getProblemSolvingLessonById = async (req, res, next) => {
   try {
@@ -104,11 +81,11 @@ export const getProblemSolvingLessonById = async (req, res, next) => {
   }
 };
 
-// @desc    Update a problem solving lesson (optionally replace images)
+// @desc    Update a problem solving lesson
 // @route   PUT /chromabloom/problem-solving-lessons/:id
 export const updateProblemSolvingLesson = async (req, res, next) => {
   try {
-    const { title, content, difficultyLevel, correct_answer, tips, catergory } = req.body;
+    const { title, description, difficulty_level, miniTutorialsName, miniTutorials } = req.body;
 
     const lesson = await ProblemSolvingLesson.findById(req.params.id);
     if (!lesson) {
@@ -117,40 +94,35 @@ export const updateProblemSolvingLesson = async (req, res, next) => {
         .json({ success: false, message: "Lesson not found" });
     }
 
-    if (title) lesson.title = title;
-    if (content) lesson.content = content;
-    if (difficultyLevel) lesson.difficultyLevel = difficultyLevel;
-    if (correct_answer) lesson.correct_answer = correct_answer;
-    if (catergory) lesson.catergory = catergory;
+    if (title !== undefined) lesson.title = title;
+    if (description !== undefined) lesson.description = description;
+    if (difficulty_level !== undefined) lesson.difficulty_level = difficulty_level;
+    if (miniTutorialsName !== undefined) lesson.miniTutorialsName = miniTutorialsName;
 
-    if (tips) {
+    if (miniTutorials !== undefined) {
       try {
-        const parsedTips = typeof tips === "string" ? JSON.parse(tips) : tips;
-        lesson.tips = parsedTips;
+        const parsedMiniTutorials =
+          typeof miniTutorials === "string"
+            ? JSON.parse(miniTutorials)
+            : miniTutorials;
+
+        if (!Array.isArray(parsedMiniTutorials)) {
+          return res.status(400).json({
+            success: false,
+            message: "miniTutorials must be an array",
+          });
+        }
+
+        lesson.miniTutorials = parsedMiniTutorials;
       } catch (e) {
         return res.status(400).json({
           success: false,
-          message: "Invalid tips format. Send as JSON array.",
+          message: "Invalid miniTutorials format. Send as JSON array.",
         });
       }
     }
 
-    // If new images uploaded, replace existing images
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) =>
-        uploadImageToCloudinary(file.buffer)
-      );
-      const uploadResults = await Promise.all(uploadPromises);
-
-      lesson.images = uploadResults.map((result, index) => ({
-        image_number: index + 1,
-        image_url: result.secure_url,
-      }));
-      // (Optional) you can store public_id and delete old images if needed.
-    }
-
     await lesson.save();
-
     return res.status(200).json({ success: true, data: lesson });
   } catch (err) {
     next(err);
@@ -170,9 +142,6 @@ export const deleteProblemSolvingLesson = async (req, res, next) => {
     }
 
     await lesson.deleteOne();
-
-    // (Optional) if you later store cloudinary public_id, you can delete images from Cloudinary here.
-
     return res
       .status(200)
       .json({ success: true, message: "Lesson deleted successfully" });
