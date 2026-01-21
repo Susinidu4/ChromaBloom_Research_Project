@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+import '../../../services/Gemified/problem_solving_lesson_service.dart';
+import './lessonDetails.dart';
 
-class ProblemSolvingUnit1Page extends StatelessWidget {
-  ProblemSolvingUnit1Page({super.key}); // non-const while iterating
+class ProblemSolvingUnit1Page extends StatefulWidget {
+  const ProblemSolvingUnit1Page({super.key});
 
+  @override
+  State<ProblemSolvingUnit1Page> createState() => _ProblemSolvingUnit1PageState();
+}
+
+class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
   static const Color pageBg = Color(0xFFF3E8E8);
 
-  // Card palette (same style as your sample)
+  // Card palette
   static const Color cardBg = Color(0xFFFFFFFF);
   static const Color leftShade = Color(0xFFDFC7A7);
   static const Color titleColor = Color(0xFFA07E6A);
@@ -19,33 +26,45 @@ class ProblemSolvingUnit1Page extends StatelessWidget {
   static const Color actionBtnBorder = Color(0xFFD8C6B4);
   static const Color actionIcon = Color(0xFFB0896E);
 
-  final lessons = <_LessonItem>[
-    const _LessonItem(
-      title: "Match the Similar Objects",
-      desc: "Help your child match two objects that belong together.",
-      progress: 0.55,
-    ),
-    const _LessonItem(
-      title: "Spot the Difference",
-      desc: "Find the small differences between two pictures to boost attention.",
-      progress: 0.30,
-    ),
-    const _LessonItem(
-      title: "Sorting by Category",
-      desc: "Sort objects into groups like food, animals, or clothes.",
-      progress: 0.15,
-    ),
-    const _LessonItem(
-      title: "What Happens Next?",
-      desc: "Arrange picture cards to understand daily routines.",
-      progress: 0.05,
-    ),
-    const _LessonItem(
-      title: "Find the Missing Piece",
-      desc: "Choose the missing shape or picture that completes the puzzle.",
-      progress: 0.00,
-    ),
-  ];
+  bool loading = true;
+  String? error;
+  List<_LessonItem> lessons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLessons();
+  }
+
+  Future<void> _loadLessons() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+
+    try {
+      final data = await ProblemSolvingLessonService.getAllLessons();
+
+      final mapped = data.map((e) {
+        final m = (e as Map<String, dynamic>);
+        return _LessonItem(
+          id: (m["_id"] ?? "").toString(),
+          title: (m["title"] ?? "").toString(),
+          desc: (m["description"] ?? "").toString(),
+        );
+      }).toList();
+
+      setState(() {
+        lessons = mapped;
+        loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +79,12 @@ class ProblemSolvingUnit1Page extends StatelessWidget {
               notificationCount: 5,
             ),
 
-            // ===== Top row: icon + title + plus =====
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
                 children: [
                   Image.asset(
-                    "assets/problem-solving.png", 
+                    "assets/problem-solving.png",
                     width: 22,
                     height: 22,
                     fit: BoxFit.contain,
@@ -90,32 +108,16 @@ class ProblemSolvingUnit1Page extends StatelessWidget {
                   ),
                   _CircleActionButton(
                     icon: Icons.add,
-                    onTap: () {
-                      Navigator.pushNamed(context, '/skillSelection');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/skillSelection'),
                   ),
                 ],
               ),
             ),
 
-            // ===== List =====
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-                itemCount: lessons.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final item = lessons[index];
-                  return _LessonCard(
-                    title: item.title,
-                    desc: item.desc,
-                    progress: item.progress,
-                    onTap: () {
-                      // TODO: open lesson page
-                      // Navigator.pushNamed(context, '/problemLesson', arguments: item);
-                    },
-                  );
-                },
+              child: RefreshIndicator(
+                onRefresh: _loadLessons,
+                child: _buildBody(),
               ),
             ),
           ],
@@ -124,35 +126,134 @@ class ProblemSolvingUnit1Page extends StatelessWidget {
       bottomNavigationBar: const MainNavBar(currentIndex: 2),
     );
   }
-}
 
-/* ===================== DATA ===================== */
+  Widget _buildBody() {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  "Failed to load lessons",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: titleColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error!,
+                  style: const TextStyle(fontSize: 10.5, color: descColor),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _loadLessons,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: actionBtnBg,
+                      foregroundColor: actionIcon,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        side: const BorderSide(color: actionBtnBorder, width: 1),
+                      ),
+                    ),
+                    child: const Text("Retry"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (lessons.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+        children: const [
+          Center(
+            child: Text(
+              "No lessons available",
+              style: TextStyle(
+                color: titleColor,
+                fontWeight: FontWeight.w800,
+                fontSize: 12.5,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+      itemCount: lessons.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final item = lessons[index];
+        return _LessonCard(
+          title: item.title,
+          desc: item.desc,
+          progress: 0.0,
+          onTap: () {
+            // ✅ Navigate and pass ID
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProblemSolvingMiniTutorialPage(lessonId: item.id),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
 
 class _LessonItem {
+  final String id;
   final String title;
   final String desc;
-  final double progress;
+
   const _LessonItem({
+    required this.id,
     required this.title,
     required this.desc,
-    required this.progress,
   });
 }
 
-/* ===================== TOP RIGHT + BUTTON ===================== */
-
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _CircleActionButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
 
-  static const Color bg = ProblemSolvingUnit1Page.actionBtnBg;
-  static const Color border = ProblemSolvingUnit1Page.actionBtnBorder;
-  static const Color iconColor = ProblemSolvingUnit1Page.actionIcon;
+  static const Color bg = _ProblemSolvingUnit1PageState.actionBtnBg;
+  static const Color border = _ProblemSolvingUnit1PageState.actionBtnBorder;
+  static const Color iconColor = _ProblemSolvingUnit1PageState.actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -183,8 +284,6 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-/* ===================== LESSON CARD (DOTS INSIDE LEFT STRIP) ===================== */
-
 class _LessonCard extends StatelessWidget {
   const _LessonCard({
     required this.title,
@@ -198,10 +297,10 @@ class _LessonCard extends StatelessWidget {
   final VoidCallback onTap;
   final double progress;
 
-  static const Color cardBg = ProblemSolvingUnit1Page.cardBg;
-  static const Color leftShade = ProblemSolvingUnit1Page.leftShade;
-  static const Color titleColor = ProblemSolvingUnit1Page.titleColor;
-  static const Color descColor = ProblemSolvingUnit1Page.descColor;
+  static const Color cardBg = _ProblemSolvingUnit1PageState.cardBg;
+  static const Color leftShade = _ProblemSolvingUnit1PageState.leftShade;
+  static const Color titleColor = _ProblemSolvingUnit1PageState.titleColor;
+  static const Color descColor = _ProblemSolvingUnit1PageState.descColor;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +326,6 @@ class _LessonCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // LEFT STRIP WITH DOTS INSIDE
               Container(
                 width: 18,
                 decoration: const BoxDecoration(
@@ -248,8 +346,6 @@ class _LessonCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // TEXT
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -284,8 +380,6 @@ class _LessonCard extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // RIGHT PROGRESS BAR
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: _ProgressPill(progress: p),
@@ -297,8 +391,6 @@ class _LessonCard extends StatelessWidget {
     );
   }
 }
-
-/* ===================== DOT ===================== */
 
 class _Dot extends StatelessWidget {
   const _Dot();
@@ -315,8 +407,6 @@ class _Dot extends StatelessWidget {
     );
   }
 }
-
-/* ===================== PROGRESS BAR ===================== */
 
 class _ProgressPill extends StatelessWidget {
   const _ProgressPill({required this.progress});
