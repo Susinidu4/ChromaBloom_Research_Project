@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -15,13 +19,32 @@ class CreateJournalEntryScreen extends StatefulWidget {
 
 class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
+  void showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) {
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  
   final DateTime _today = DateTime.now();
 
   // service instance
   final JournalEntryService _journalService = JournalEntryService();
 
   // Replace this with your real logged-in caregiver id later
-  final String _caregiverId = "p-0001";
+  // final String _caregiverId = "p-0001";
 
   // Mood list (with emoji like your image)
   final List<Map<String, String>> _moods = const [
@@ -52,20 +75,39 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
   Future<void> _onSave() async {
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
     if (_saving) return;
 
+    if (caregiverId.isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Login Required",
+        text: "User not logged in",
+      );
+      return;
+    }
+
     if (_selectedMood == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please select your mood")));
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Mood Missing",
+        text: "Please select your mood",
+      );
       return;
     }
 
     final text = _noteCtrl.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please write something")));
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Journal Empty",
+        text: "Please write something",
+      );
       return;
     }
 
@@ -77,7 +119,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
     try {
       await _journalService.createJournalEntry(
-        caregiverId: _caregiverId,
+        caregiverId: caregiverId,
         mood: moodEnum,
         moodEmoji: emoji,
         text: text,
@@ -85,9 +127,19 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Journal saved successfully")),
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: "Saved",
+        text: "Journal saved successfully",
+        confirmBtnText: 'OK',
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        titleColor: const Color(0xFFBD9A6B),
+        textColor: const Color(0xFFBD9A6B),
+        confirmBtnColor: const Color(0xFFBD9A6B),
       );
+
+      if (!mounted) return;
 
       Navigator.of(
         context,
@@ -95,9 +147,11 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
       ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Save failed: $e")));
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Save Failed",
+        text: e.toString(),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

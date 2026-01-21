@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -13,9 +18,29 @@ class JournalsScreen extends StatefulWidget {
 
 class _JournalsScreenState extends State<JournalsScreen> {
   final JournalEntryService _service = JournalEntryService();
+  bool _errorShown = false;
+  bool _notLoggedIn = false;
 
   // ✅ hardcode for now (until login)
-  final String _caregiverId = "p-0001";
+  //final String _caregiverId = "p-0001";
+
+  Future<void> showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) async {
+    await QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color(0xFFFFFFFF),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
 
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -53,7 +78,29 @@ class _JournalsScreenState extends State<JournalsScreen> {
 
   // ===== load journals (last 14 days) =====
   Future<List<Map<String, dynamic>>> _load() async {
-    final list = await _service.getJournalsByCaregiver(_caregiverId);
+    final session = context.read<SessionProvider>();
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    if (caregiverId.isEmpty) {
+  if (!_notLoggedIn) {
+    _notLoggedIn = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Login Required",
+        text: "Please login to view journals.",
+      );
+    });
+  }
+  return [];
+}
+_notLoggedIn = false;
+
+
+    final list = await _service.getJournalsByCaregiver(caregiverId);
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -81,6 +128,8 @@ class _JournalsScreenState extends State<JournalsScreen> {
   Future<void> _refresh() async {
     setState(() {
       _future = _load(); // <-- assign Future only (no await)
+      _errorShown = false;
+      _notLoggedIn = false;
     });
   }
 
@@ -114,193 +163,202 @@ class _JournalsScreenState extends State<JournalsScreen> {
       await _service.deleteJournal(entryId);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Deleted successfully")));
+      await showThemedAlert(
+        type: QuickAlertType.success,
+        title: "Deleted",
+        text: "Deleted successfully",
+      );
 
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Delete failed: $e")));
+      await showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Delete Failed",
+        text: e.toString(),
+      );
     }
   }
 
-Future<void> _showJournalDetails({
-  required String dateText,
-  required String moodLabel,
-  required String emoji,
-  required String fullText,
-}) async {
-  await showDialog<void>(
-    context: context,
-    barrierColor: const Color(0xAA000000), // grey overlay
-    builder: (dialogCtx) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE9DDCC), // outer soft bg
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x55000000),
-                blurRadius: 18,
-                offset: Offset(0, 10),
-              ),
-            ],
+  Future<void> _showJournalDetails({
+    required String dateText,
+    required String moodLabel,
+    required String emoji,
+    required String fullText,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xAA000000), // grey overlay
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 24,
           ),
-          child: ConstrainedBox(
-            // ✅ dialog grows/shrinks with content, but won't exceed screen
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
-            ),
-            child: IntrinsicHeight(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9DDCC), // inner beige card
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFBD9A6B), width: 2),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9DDCC), // outer soft bg
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x55000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
                 ),
-                child: Stack(
-                  children: [
-                    // ===== Date pill (top-left) =====
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9DDCC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: const Color(0xFFBD9A6B),
-                            width: 2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              dateText,
-                              style: const TextStyle(
-                                color: Color(0xFFBD9A6B),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            const Icon(
-                              Icons.calendar_month_rounded,
-                              color: Color(0xFFBD9A6B),
-                              size: 22,
-                            ),
-                          ],
-                        ),
-                      ),
+              ],
+            ),
+            child: ConstrainedBox(
+              // ✅ dialog grows/shrinks with content, but won't exceed screen
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
+              ),
+              child: IntrinsicHeight(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9DDCC), // inner beige card
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: const Color(0xFFBD9A6B),
+                      width: 2,
                     ),
-
-                    // ===== Close circle (top-right) =====
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: InkWell(
-                        onTap: () => Navigator.pop(dialogCtx),
-                        borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Stack(
+                    children: [
+                      // ===== Date pill (top-left) =====
+                      Align(
+                        alignment: Alignment.topLeft,
                         child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF3E8E8),
-                            shape: BoxShape.circle,
-                            boxShadow: [
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9DDCC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFBD9A6B),
+                              width: 2,
+                            ),
+                            boxShadow: const [
                               BoxShadow(
-                                color: Color(0x55000000),
-                                blurRadius: 16,
-                                offset: Offset(0, 10),
+                                color: Color(0x33000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.close_rounded,
-                              size: 34,
-                              color: Color(0xFFBD9A6B),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // ===== Main content =====
-                    Padding(
-                      padding: const EdgeInsets.only(top: 70),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // emoji + mood
-                          Row(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                emoji,
-                                style: const TextStyle(fontSize: 32),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                moodLabel,
-                                style: const TextStyle(
-                                  color: Color(0xFFBD9A6B),
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // ✅ text scrolls only if very long
-                          Flexible(
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: Text(
-                                fullText,
+                                dateText,
                                 style: const TextStyle(
                                   color: Color(0xFFBD9A6B),
                                   fontSize: 18,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
                                 ),
+                              ),
+                              const SizedBox(width: 14),
+                              const Icon(
+                                Icons.calendar_month_rounded,
+                                color: Color(0xFFBD9A6B),
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ===== Close circle (top-right) =====
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(dialogCtx),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            width: 45,
+                            height: 45,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF3E8E8),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0x55000000),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 34,
+                                color: Color(0xFFBD9A6B),
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+
+                      // ===== Main content =====
+                      Padding(
+                        padding: const EdgeInsets.only(top: 70),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // emoji + mood
+                            Row(
+                              children: [
+                                Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 32),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  moodLabel,
+                                  style: const TextStyle(
+                                    color: Color(0xFFBD9A6B),
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // ✅ text scrolls only if very long
+                            Flexible(
+                              child: SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: Text(
+                                  fullText,
+                                  style: const TextStyle(
+                                    color: Color(0xFFBD9A6B),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-
+        );
+      },
+    );
+  }
 
   // ===== edit (same day only) =====
   Future<void> _editEntry(Map<String, dynamic> entry) async {
@@ -312,9 +370,12 @@ Future<void> _showJournalDetails({
 
     // ✅ allow edit only within the added day (same day)
     if (created == null || !_isSameDay(created, now)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Edit is allowed only on the same day.")),
+      await showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Not Allowed",
+        text: "Edit is allowed only on the same day.",
       );
+
       return;
     }
 
@@ -451,16 +512,20 @@ Future<void> _showJournalDetails({
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Updated successfully")));
+      await showThemedAlert(
+        type: QuickAlertType.success,
+        title: "Updated",
+        text: "Updated successfully",
+      );
 
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Update failed: $e")));
+      await showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Update Failed",
+        text: e.toString(),
+      );
     }
   }
 
@@ -560,21 +625,45 @@ Future<void> _showJournalDetails({
                               );
                             }
                             if (snap.hasError) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(18),
-                                  child: Text(
-                                    "Failed to load journals:\n${snap.error}",
-                                    style: const TextStyle(
-                                      color: _JColors.goldText,
-                                    ),
-                                    textAlign: TextAlign.center,
+                              if (!_errorShown) {
+                                _errorShown = false;
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (!mounted) return;
+                                  showThemedAlert(
+                                    type: QuickAlertType.error,
+                                    title: "Load Failed",
+                                    text: snap.error.toString(),
+                                  );
+                                });
+                              }
+
+                              return const Center(
+                                child: Text(
+                                  "Unable to load journals.",
+                                  style: TextStyle(
+                                    color: _JColors.goldText,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               );
                             }
 
                             final items = snap.data ?? [];
+
+                            if (_notLoggedIn) {
+                              return const Center(
+                                child: Text(
+                                  "Please login to view journals.",
+                                  style: TextStyle(
+                                    color: _JColors.goldText,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            }
+
                             if (items.isEmpty) {
                               return const Center(
                                 child: Text(
