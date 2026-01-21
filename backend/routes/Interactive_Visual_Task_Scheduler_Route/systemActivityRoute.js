@@ -1,8 +1,10 @@
 import express from 'express';
-import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
+import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan, getLatestRoutineSummary, getRoutineDashboard } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
 import upload from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
+
+// ------------------------- Admin routes -------------------------//
 
 // Create a new system activity
 // POST /chromabloom/systemActivities/createSystemActivity
@@ -12,6 +14,15 @@ router.post("/createSystemActivity", upload.single("image"), createSystemActivit
 // GET /chromabloom/systemActivities/getAllSystemActivities
 router.get("/getAllSystemActivities", getAllSystemActivities);
 
+// ------------------------- Caregiver routes ------------------------- //
+
+// Get the latest routine summary for a child
+// GET /chromabloom/systemActivities/getLatestRoutineSummary/:caregiverId
+router.get("/getLatestRoutineSummary/:caregiverId", getLatestRoutineSummary);
+
+// Get routine dashboard for a caregiver (line chart / bar chart / pie chart)
+// GET /chromabloom/systemActivities/dashboard/:caregiverId
+router.get("/dashboard/:caregiverId", getRoutineDashboard);
 
 
 //------------------------- special routes -------------------------//
