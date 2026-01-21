@@ -1,3 +1,4 @@
+// src/pages/Gamified_Knowledge_Builder/Quize/QuizeList.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
@@ -15,19 +16,34 @@ export default function QuizeList() {
   const loadLessons = async () => {
     try {
       const res = await ProblemSolvingLessonService.getAll();
-      const list = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-      setLessons([...list].sort((a, b) => String(a._id).localeCompare(String(b._id))));
+
+      const list =
+        Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : res?.data?.data || res?.data || [];
+
+      setLessons(
+        [...list].sort((a, b) => String(a._id).localeCompare(String(b._id)))
+      );
     } catch {
       setLessons([]);
     }
   };
 
-  const loadQuizes = async (lesson_id = "") => {
+  // ✅ UPDATED: service getAll() has NO lesson filter now
+  // if lessonFilter is selected -> call getByLessonId()
+  const loadQuizes = async (lessonId = "") => {
     setLoading(true);
     setMsg({ type: "", text: "" });
+
     try {
-      const res = await QuizeService.getAll(lesson_id || undefined);
-      const list = res?.data || [];
+      const res = lessonId
+        ? await QuizeService.getByLessonId(lessonId)
+        : await QuizeService.getAll();
+
+      const list = Array.isArray(res?.data) ? res.data : [];
       setQuizes(list);
     } catch (e) {
       setMsg({
@@ -41,7 +57,7 @@ export default function QuizeList() {
 
   useEffect(() => {
     loadLessons();
-    loadQuizes();
+    loadQuizes("");
   }, []);
 
   const onDelete = async (id) => {
@@ -94,7 +110,9 @@ export default function QuizeList() {
         {/* Filters */}
         <div className="flex flex-col md:flex-row md:items-end gap-3 mb-4">
           <div className="flex flex-col gap-1 w-full md:w-[420px]">
-            <label className="text-[13px] font-semibold opacity-85">Filter by Lesson</label>
+            <label className="text-[13px] font-semibold opacity-85">
+              Filter by Lesson
+            </label>
             <select
               className="px-3 py-2.5 rounded-xl border border-black/15 outline-none text-[14px] bg-white"
               value={lessonFilter}

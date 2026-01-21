@@ -1,3 +1,4 @@
+// src/pages/Gamified_Knowledge_Builder/Quize/QuizeView.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
@@ -26,6 +27,17 @@ export default function QuizeView() {
     };
     load();
   }, [id]);
+
+  const getCorrectImageUrl = () => {
+    // ✅ NEW: use correct_img_url if exists
+    if (quiz?.correct_img_url) return quiz.correct_img_url;
+
+    // fallback: from answers using correct_answer index
+    const idx = Number(quiz?.correct_answer || 1) - 1;
+    return quiz?.answers?.[idx]?.img_url || "";
+  };
+
+  const correctUrl = getCorrectImageUrl();
 
   return (
     <div className="min-h-screen bg-[#F5ECEC] p-6 flex justify-center items-start">
@@ -92,6 +104,25 @@ export default function QuizeView() {
               </div>
             </div>
 
+            {/* ✅ NEW: Correct image panel */}
+            <div className="p-4 rounded-2xl bg-[rgba(233,221,204,0.45)] border border-black/5 mb-4">
+              <h3 className="m-0 text-[16px] font-bold">Correct Image</h3>
+
+              <div className="mt-3">
+                {correctUrl ? (
+                  <img
+                    src={correctUrl}
+                    alt="Correct"
+                    className="w-full h-[320px] object-cover rounded-2xl border border-black/10 bg-white"
+                  />
+                ) : (
+                  <div className="w-full h-[220px] rounded-2xl border border-dashed border-black/20 flex items-center justify-center opacity-75 bg-white">
+                    No correct image
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Answers */}
             <div className="p-4 rounded-2xl bg-[rgba(233,221,204,0.45)] border border-black/5">
               <h3 className="m-0 text-[16px] font-bold">Answers</h3>
@@ -112,7 +143,7 @@ export default function QuizeView() {
                         <b className="text-[14px]">Answer #{idx + 1}</b>
                         {isCorrect ? (
                           <span className="text-[12px] font-black px-3 py-1 rounded-full bg-green-600/10 border border-green-700/20">
-                            Correct
+                            Correct Option
                           </span>
                         ) : null}
                       </div>

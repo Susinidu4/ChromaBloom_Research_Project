@@ -1,3 +1,4 @@
+// src/pages/Gamified_Knowledge_Builder/Quize/QuizeCreate.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
@@ -9,15 +10,20 @@ export default function QuizeCreate() {
     name_tag: "",
     difficulty_level: "Beginner",
     correct_answer: 1,
+    // answers only keep image_no (img_url will be filled by backend after upload)
     answers: [
-      { image_no: 1, img_url: "" },
-      { image_no: 2, img_url: "" },
-      { image_no: 3, img_url: "" },
-      { image_no: 4, img_url: "" },
+      { image_no: 1 },
+      { image_no: 2 },
+      { image_no: 3 },
+      { image_no: 4 },
     ],
   });
 
-  const [files, setFiles] = useState([null, null, null, null]);
+  // ✅ NEW: correct image file (single)
+  const [correctFile, setCorrectFile] = useState(null);
+
+  // ✅ NEW: answer images files (multiple)
+  const [answerFiles, setAnswerFiles] = useState([null, null, null, null]);
 
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
@@ -39,36 +45,26 @@ export default function QuizeCreate() {
       try {
         const res = await ProblemSolvingLessonService.getAll();
 
-        // your service returns: { success, data: [] } or { data: [] }
-        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.data?.data) ? res.data.data : res?.data;
-
-        // safer normalize:
-        const lessonsArr = Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data || res?.data?.data || [];
-        // but depending on your backend, we will do:
-        const finalList = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-          ? res.data
-          : Array.isArray(res?.data?.data)
-          ? res.data.data
-          : res?.data?.data || res?.data?.data || res?.data?.data || [];
-
-        // ✅ best: try common shapes
+        // Try common shapes safely
         const normalized =
-          Array.isArray(res?.data?.data) ? res.data.data :
-          Array.isArray(res?.data) ? res.data :
-          Array.isArray(res?.data?.data) ? res.data.data :
-          Array.isArray(res?.data?.data?.data) ? res.data.data.data :
-          Array.isArray(res?.data?.data) ? res.data.data :
-          Array.isArray(res?.data?.data) ? res.data.data :
-          Array.isArray(res?.data?.data) ? res.data.data :
-          [];
+          Array.isArray(res?.data?.data)
+            ? res.data.data
+            : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.data?.data?.data)
+            ? res.data.data.data
+            : [];
 
-        // Use whichever works (fallback)
-        const usable = normalized.length ? normalized : (Array.isArray(res?.data?.data) ? res.data.data : (res?.data?.data || res?.data || []));
+        const usable =
+          normalized.length
+            ? normalized
+            : Array.isArray(res?.data?.data)
+            ? res.data.data
+            : res?.data?.data || res?.data || [];
 
-        // sort by id (LP-0001 ...)
-        const sorted = [...usable].sort((a, b) => String(a._id).localeCompare(String(b._id)));
+        const sorted = [...usable].sort((a, b) =>
+          String(a._id).localeCompare(String(b._id))
+        );
 
         setLessons(sorted);
 
@@ -101,10 +97,10 @@ export default function QuizeCreate() {
   const addAnswerSlot = () => {
     setForm((p) => {
       const nextNo = (p.answers?.length || 0) + 1;
-      const nextAnswers = [...(p.answers || []), { image_no: nextNo, img_url: "" }];
+      const nextAnswers = [...(p.answers || []), { image_no: nextNo }];
       return { ...p, answers: nextAnswers };
     });
-    setFiles((prev) => [...prev, null]);
+    setAnswerFiles((prev) => [...prev, null]);
     ensureCorrectAnswerInRange(answerCount + 1);
   };
 
@@ -121,7 +117,7 @@ export default function QuizeCreate() {
       return { ...p, answers: renumbered };
     });
 
-    setFiles((p) => {
+    setAnswerFiles((p) => {
       const next = [...p];
       next.splice(index, 1);
       return next;
@@ -130,8 +126,8 @@ export default function QuizeCreate() {
     setTimeout(() => ensureCorrectAnswerInRange(answerCount - 1), 0);
   };
 
-  const onPickFile = (index, file) => {
-    setFiles((p) => {
+  const onPickAnswerFile = (index, file) => {
+    setAnswerFiles((p) => {
       const next = [...p];
       next[index] = file || null;
       return next;
@@ -140,10 +136,7 @@ export default function QuizeCreate() {
 
   const validate = () => {
     if (!form.question.trim()) return "Question is required";
-
-    // ✅ dropdown value required
     if (!form.lesson_id?.trim()) return "Lesson ID is required (select a lesson)";
-
     if (!form.difficulty_level) return "Difficulty level is required";
 
     const n = form.answers?.length || 0;
@@ -154,7 +147,11 @@ export default function QuizeCreate() {
       return `Correct answer must be between 1 and ${n}`;
     }
 
-    const missing = files.findIndex((f) => !f);
+    // ✅ require correct image
+    if (!correctFile) return "Please upload the Correct Answer image";
+
+    // ✅ require all answer images
+    const missing = answerFiles.findIndex((f) => !f);
     if (missing !== -1) return `Please upload an image for Answer #${missing + 1}`;
 
     return null;
@@ -167,19 +164,24 @@ export default function QuizeCreate() {
     const err = validate();
     if (err) return setMsg({ type: "error", text: err });
 
-    const answersPayload = (form.answers || []).map((a, i) => ({
+    // ✅ answers payload just carries image_no (backend will upload/assign URLs)
+    const answersPayload = (form.answers || []).map((_, i) => ({
       image_no: i + 1,
-      img_url: a.img_url || "",
     }));
 
+    // ✅ MUST match service buildFormData keys:
+    // correctImage (single), answerImages (multiple)
     const payload = {
       question: form.question.trim(),
-      lesson_id: form.lesson_id.trim(), // ✅ selected from dropdown
+      lesson_id: form.lesson_id.trim(),
       name_tag: form.name_tag.trim(),
       difficulty_level: form.difficulty_level,
       correct_answer: Number(form.correct_answer),
       answers: answersPayload,
-      images: files.filter(Boolean),
+
+      // NEW fields that service expects:
+      correctImage: correctFile,
+      answerImages: answerFiles.filter(Boolean),
     };
 
     try {
@@ -191,6 +193,7 @@ export default function QuizeCreate() {
         text: `Quiz created: ${res?.data?._id || "QZ-xxxx"}`,
       });
 
+      // Reset (keep selected lesson)
       setForm((p) => ({
         ...p,
         question: "",
@@ -198,14 +201,15 @@ export default function QuizeCreate() {
         difficulty_level: "Beginner",
         correct_answer: 1,
         answers: [
-          { image_no: 1, img_url: "" },
-          { image_no: 2, img_url: "" },
-          { image_no: 3, img_url: "" },
-          { image_no: 4, img_url: "" },
+          { image_no: 1 },
+          { image_no: 2 },
+          { image_no: 3 },
+          { image_no: 4 },
         ],
-        // keep selected lesson_id
       }));
-      setFiles([null, null, null, null]);
+
+      setCorrectFile(null);
+      setAnswerFiles([null, null, null, null]);
     } catch (error) {
       const apiMsg =
         error?.response?.data?.message || error?.message || "Failed to create quiz";
@@ -311,9 +315,34 @@ export default function QuizeCreate() {
             </div>
           </div>
 
+          {/* ✅ NEW: Correct image upload */}
+          <div style={styles.section}>
+            <h3 style={styles.h3}>Correct Answer Image *</h3>
+
+            <div style={styles.answerRow2}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setCorrectFile(e.target.files?.[0] || null)}
+                style={styles.file}
+              />
+              {correctFile ? (
+                <div style={styles.fileHint}>
+                  Selected: <b>{correctFile.name}</b>
+                </div>
+              ) : (
+                <div style={styles.fileHint}>No correct image selected</div>
+              )}
+            </div>
+
+            <p style={styles.helper}>
+              This image is uploaded using field name <b>correctImage</b> (single file).
+            </p>
+          </div>
+
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
-              <h3 style={styles.h3}>Answers (Images)</h3>
+              <h3 style={styles.h3}>Answers (Images) *</h3>
               <button type="button" style={styles.btn} onClick={addAnswerSlot}>
                 + Add Answer
               </button>
@@ -327,13 +356,13 @@ export default function QuizeCreate() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => onPickFile(idx, e.target.files?.[0] || null)}
+                    onChange={(e) => onPickAnswerFile(idx, e.target.files?.[0] || null)}
                     style={styles.file}
                   />
 
-                  {files[idx] ? (
+                  {answerFiles[idx] ? (
                     <div style={styles.fileHint}>
-                      Selected: <b>{files[idx].name}</b>
+                      Selected: <b>{answerFiles[idx].name}</b>
                     </div>
                   ) : (
                     <div style={styles.fileHint}>No image selected</div>
@@ -352,7 +381,7 @@ export default function QuizeCreate() {
             ))}
 
             <p style={styles.helper}>
-              Images are uploaded using field name <b>images</b> and mapped in order to answers.
+              Images are uploaded using field name <b>answerImages</b> and mapped in order to answers.
             </p>
           </div>
 
@@ -369,7 +398,6 @@ export default function QuizeCreate() {
 
 /** styles: keep your existing styles and add these 2 helpers */
 const styles = {
-  // (keep all your existing styles here)
   page: {
     minHeight: "100vh",
     padding: 24,
@@ -401,7 +429,7 @@ const styles = {
     fontSize: 14,
   },
 
-  // ✅ inline status styles
+  // inline status styles
   loadingInline: {
     padding: "10px 12px",
     borderRadius: 12,
@@ -429,6 +457,8 @@ const styles = {
     alignItems: "center",
     marginBottom: 10,
   },
+
+  // existing rows
   answerRow: {
     display: "grid",
     gridTemplateColumns: "60px 1fr 120px",
@@ -436,6 +466,16 @@ const styles = {
     alignItems: "center",
     marginBottom: 10,
   },
+
+  // ✅ NEW row for correct image (simple 2 columns)
+  answerRow2: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
   answerNo: {
     height: 40,
     borderRadius: 12,
