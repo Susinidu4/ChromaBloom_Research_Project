@@ -1,6 +1,8 @@
 import UserActivity from "../../models/Interactive_Visual_Task_Scheduler_Model/UserActivityModel.js";
 import cloudinary from "../../config/cloudinary.js";
 
+// ------------------------- Caregiver ------------------------- //
+
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
@@ -113,52 +115,6 @@ export const createUserActivity = async (req, res) => {
       message: "User activity created successfully",
       data: activity,
     });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-};
-
-// GET all activities in the system
-export const getAllActivities = async (req, res) => {
-  try {
-    const activities = await UserActivity.find().sort({ scheduled_date: 1 });
-
-    return res.status(200).json({
-      message: "All activities fetched successfully",
-      data: activities,
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal server error",
-      error: error.message,
-    });
-  }
-};
-
-// GET all activities created by one caregiver
-export const getAllUserActivities = async (req, res) => {
-  try {
-    const { caregiverId } = req.params;
-
-    if (!caregiverId) {
-      return res.status(400).json({
-        error: "caregiverId is required",
-      });
-    }
-
-    const activities = await UserActivity.find({
-      created_by: caregiverId,
-    }).sort({ scheduled_date: 1 }); // Sorting by upcoming schedule
-
-    return res.status(200).json({
-      message: "All caregiver activities fetched successfully",
-      data: activities,
-    });
-
   } catch (error) {
     return res.status(500).json({
       message: "Internal server error",
@@ -373,4 +329,50 @@ export const updateUserActivityProgress = async (req, res) => {
 };
 
 
+// ------------------------- NOT USE ------------------------- //
 
+// GET all activities in the system
+export const getAllActivities = async (req, res) => {
+  try {
+    const activities = await UserActivity.find().sort({ scheduled_date: 1 });
+
+    return res.status(200).json({
+      message: "All activities fetched successfully",
+      data: activities,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// GET all activities created by one caregiver
+export const getAllUserActivities = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+
+    if (!caregiverId) {
+      return res.status(400).json({
+        error: "caregiverId is required",
+      });
+    }
+
+    const activities = await UserActivity.find({
+      created_by: caregiverId,
+    }).sort({ scheduled_date: 1 }); // Sorting by upcoming schedule
+
+    return res.status(200).json({
+      message: "All caregiver activities fetched successfully",
+      data: activities,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
