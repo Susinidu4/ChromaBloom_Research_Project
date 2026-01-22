@@ -1,53 +1,84 @@
 import JournalEntry from "../../models/Parental_Stress_Monitoring_Model/journalEntryModel.js";
 
+// ------------------------ Caregiver ------------------------- //
 
-// Simple rule-based sentiment scorer (-1 to +1)
+// Simple rule-based sentiment score calculation (-1 to +1)
 const calculateSentiment = (text = "") => {
+  // Convert text to lowercase
   const t = text.toLowerCase();
 
   const negativeWords = [
-    "tired", "exhausted", "stressed", "overwhelmed", "angry", "sad",
-    "worried", "anxious", "frustrated", "hopeless", "burnout"
+    "tired",
+    "exhausted",
+    "stressed",
+    "overwhelmed",
+    "angry",
+    "sad",
+    "worried",
+    "anxious",
+    "frustrated",
+    "hopeless",
+    "burnout",
   ];
 
   const positiveWords = [
-    "happy", "calm", "relieved", "good", "better", "peaceful",
-    "grateful", "thankful", "proud", "hopeful"
+    "happy",
+    "calm",
+    "relieved",
+    "good",
+    "better",
+    "peaceful",
+    "grateful",
+    "thankful",
+    "proud",
+    "hopeful",
   ];
 
   let score = 0;
 
+  // Decrease score for negative words
   for (const w of negativeWords) {
     if (t.includes(w)) score -= 0.2;
   }
+  // Increase score for positive words
   for (const w of positiveWords) {
     if (t.includes(w)) score += 0.2;
   }
 
-  // clamp to [-1, 1] and round for neat storage
+  // Keep score between -1 and 1
   score = Math.max(-1, Math.min(1, score));
   return Math.round(score * 1000) / 1000;
 };
-// Create a new journal entry
+// Create a new journal entry for a caregiver
 export const createJournalEntry = async (req, res) => {
   try {
     const { caregiver_ID, mood, moodEmoji, text } = req.body;
 
     // validate required fields
     if (!caregiver_ID || !mood || !moodEmoji || !text) {
-      return res.status(400).json({ error: "caregiver_ID, mood, moodEmoji and text are required" });
+      return res
+        .status(400)
+        .json({ error: "caregiver_ID, mood, moodEmoji and text are required" });
     }
 
-    // optional: ensure mood is valid (matches schema enum)
-    const allowedMoods = ["happy", "calm", "neutral", "tired", "sad", "angry", "stressed"];
+    // Check if mood value is allowed
+    const allowedMoods = [
+      "happy",
+      "calm",
+      "neutral",
+      "tired",
+      "sad",
+      "angry",
+      "stressed",
+    ];
     if (!allowedMoods.includes(mood)) {
       return res.status(400).json({ error: "Invalid mood value" });
     }
 
-    
-    // compute sentiment from journal text
+    // Calculate sentiment score from journal text
     const journal_sentiment = calculateSentiment(text);
 
+    // Create journal entry document
     const newEntry = new JournalEntry({
       caregiver_ID,
       mood,
@@ -56,6 +87,7 @@ export const createJournalEntry = async (req, res) => {
       journal_sentiment,
     });
 
+    // Save journal entry to database
     const savedEntry = await newEntry.save();
 
     return res.status(201).json({
@@ -70,6 +102,7 @@ export const createJournalEntry = async (req, res) => {
   }
 };
 
+
 // Get journal entries by caregiver ID
 export const getJournalEntriesByCaregiver = async (req, res) => {
   try {
@@ -78,6 +111,8 @@ export const getJournalEntriesByCaregiver = async (req, res) => {
     if (!caregiver_ID) {
       return res.status(400).json({ error: "Caregiver ID is required" });
     }
+
+    // Fetch journal entries and sort by latest first
     const entries = await JournalEntry.find({ caregiver_ID }).sort({
       created_at: -1,
     });
@@ -145,8 +180,11 @@ export const updateJournalEntry = async (req, res) => {
       return res.status(400).json({ error: "Invalid mood value" });
     }
 
-    // ✅ if text is updated, recompute sentiment
-    if (typeof updateData.text === "string" && updateData.text.trim().length > 0) {
+    // if text is updated, recompute sentiment
+    if (
+      typeof updateData.text === "string" &&
+      updateData.text.trim().length > 0
+    ) {
       updateData.journal_sentiment = calculateSentiment(updateData.text);
     }
 
@@ -155,9 +193,9 @@ export const updateJournalEntry = async (req, res) => {
       entry_ID,
       updateData,
       {
-        new: true,          // return updated version
-        runValidators: true // apply schema validation
-      }
+        new: true, // return updated version
+        runValidators: true, // apply schema validation
+      },
     );
 
     if (!updatedEntry) {
@@ -168,7 +206,6 @@ export const updateJournalEntry = async (req, res) => {
       message: "Journal entry updated successfully",
       data: updatedEntry,
     });
-
   } catch (error) {
     return res.status(500).json({
       message: "Internal server error",

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -16,19 +21,45 @@ class StressAnalysisPage extends StatefulWidget {
 
 class _StressAnalysisPageState extends State<StressAnalysisPage> {
   // Replace with your logged-in caregiver id
-  final String caregiverId = "p-0001";
+  //final String caregiverId = "p-0001";
+
+String? caregiverId;
 
   late Future<StressComputeResponse> _future;
 
+  late Future<StressHistoryResponse> _historyFuture;
+
   @override
-  void initState() {
-    super.initState();
-    _future = StressAnalysisService.compute(caregiverId: caregiverId);
-  }
+void initState() {
+  super.initState();
+
+  // Delay until context is available
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final session = context.read<SessionProvider>();
+    final id =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
+
+    if (id.isEmpty) return;
+
+    setState(() {
+      caregiverId = id;
+      _future = StressAnalysisService.compute(caregiverId: caregiverId!);
+      _historyFuture = StressAnalysisService.getHistory(
+        caregiverId: caregiverId!,
+        limit: 10,
+      );
+    });
+  });
+}
+
 
   void _reload() {
     setState(() {
-      _future = StressAnalysisService.compute(caregiverId: caregiverId);
+      _future = StressAnalysisService.compute(caregiverId: caregiverId!);
+      _historyFuture = StressAnalysisService.getHistory(
+        caregiverId: caregiverId!,
+        limit: 10,
+      );
     });
   }
 
@@ -109,7 +140,10 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                         final stress = data.stress;
                         final rec = data.recommendation;
 
-                        final date = stress.scoreDate ?? stress.computedAt ?? DateTime.now();
+                        final date =
+                            stress.scoreDate ??
+                            stress.computedAt ??
+                            DateTime.now();
 
                         return Column(
                           children: [
@@ -141,7 +175,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                     const SizedBox(height: 20),
 
                     // Keep your chart section if you already have it
-                    const _HistoryChartCard(),
+                    _HistoryChartCard(historyFuture: _historyFuture),
                   ],
                 ),
               ),
@@ -285,10 +319,24 @@ class _LatestStressCard extends StatelessWidget {
   static const Color gold = Color(0xFFBD9A6B);
   static const Color boxFill = Color(0xFFC7AE85);
 
-  bool _isFilled(String label) => label.toLowerCase() == stressLevel.toLowerCase();
+  bool _isFilled(String label) =>
+      label.toLowerCase() == stressLevel.toLowerCase();
 
   String _monthName(int month) {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return months[month - 1];
   }
 
@@ -372,13 +420,33 @@ class _LatestStressCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _LevelBox(filled: _isFilled("Low"), fillColor: boxFill)),
+                        Expanded(
+                          child: _LevelBox(
+                            filled: _isFilled("Low"),
+                            fillColor: boxFill,
+                          ),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _LevelBox(filled: _isFilled("Medium"), fillColor: boxFill)),
+                        Expanded(
+                          child: _LevelBox(
+                            filled: _isFilled("Medium"),
+                            fillColor: boxFill,
+                          ),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _LevelBox(filled: _isFilled("High"), fillColor: boxFill)),
+                        Expanded(
+                          child: _LevelBox(
+                            filled: _isFilled("High"),
+                            fillColor: boxFill,
+                          ),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _LevelBox(filled: _isFilled("Critical"), fillColor: boxFill)),
+                        Expanded(
+                          child: _LevelBox(
+                            filled: _isFilled("Critical"),
+                            fillColor: boxFill,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -399,7 +467,10 @@ class _LatestStressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _MetaRow(label: "Stress score", value: "$stressScore / 3"),
-          _MetaRow(label: "Probability", value: "${(stressProbability * 100).toStringAsFixed(1)}%"),
+          _MetaRow(
+            label: "Probability",
+            value: "${(stressProbability * 100).toStringAsFixed(1)}%",
+          ),
           // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
           // _MetaRow(label: "Escalation", value: escalationTriggered ? "Triggered" : "Not triggered"),
         ],
@@ -452,10 +523,7 @@ class _LvlLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return const SizedBox(
       width: 55,
-      child: Text(
-        "",
-        textAlign: TextAlign.center,
-      ),
+      child: Text("", textAlign: TextAlign.center),
     ).copyWithText(t);
   }
 }
@@ -545,7 +613,8 @@ class _RecommendationCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            rec?.description ?? "Try adding a matching recommendation for this level in DB.",
+            rec?.description ??
+                "Try adding a matching recommendation for this level in DB.",
             style: const TextStyle(
               fontFamily: "Poppins",
               fontSize: 12,
@@ -571,7 +640,30 @@ class _RecommendationCard extends StatelessWidget {
 }
 
 class _HistoryChartCard extends StatelessWidget {
-  const _HistoryChartCard();
+  final Future<StressHistoryResponse> historyFuture;
+  const _HistoryChartCard({required this.historyFuture});
+
+  static const Color gold = Color(0xFFBD9A6B);
+
+  int _levelToY(String level) {
+    switch (level.toLowerCase()) {
+      case "low":
+        return 0;
+      case "medium":
+        return 1;
+      case "high":
+        return 2;
+      case "critical":
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
+  String _yToLabel(double v) {
+    final i = v.round().clamp(0, 3);
+    return const ["Low", "Medium", "High", "Critical"][i];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -588,12 +680,156 @@ class _HistoryChartCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const SizedBox(
-        height: 230,
-        child: Center(
-          child: Text(
-            "History chart placeholder",
-            style: TextStyle(fontFamily: "Poppins"),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: SizedBox(
+          height: 220,
+          child: FutureBuilder<StressHistoryResponse>(
+            future: historyFuture,
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.hasError) {
+                return Center(
+                  child: Text(
+                    "Failed to load history\n${snap.error}",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: "Poppins", fontSize: 12),
+                  ),
+                );
+              }
+
+              final items = snap.data?.items ?? [];
+              if (items.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "No history data yet",
+                    style: TextStyle(fontFamily: "Poppins"),
+                  ),
+                );
+              }
+
+              // API returns newest first -> reverse so left is oldest, right is newest
+              final ordered = items.reversed.toList();
+
+              final spots = <FlSpot>[];
+              for (int i = 0; i < ordered.length; i++) {
+                spots.add(
+                  FlSpot(
+                    i.toDouble(),
+                    _levelToY(ordered[i].stressLevel).toDouble(),
+                  ),
+                );
+              }
+
+              return LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: 3,
+                  gridData: FlGridData(
+                    show: false,
+                    horizontalInterval: 1,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: const Color(0xFFD8C6B4),
+                        strokeWidth: 1,
+                      );
+                    },
+                  ),
+
+                  borderData: FlBorderData(
+                    show: true,
+                    border: const Border(
+                      left: BorderSide(
+                        color: Color(0xFFBD9A6B),
+                        width: 1.5,
+                      ), // Y axis
+                      bottom: BorderSide(
+                        color: Color(0xFFBD9A6B),
+                        width: 1.5,
+                      ), // X axis
+                    ),
+                  ),
+
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: false,
+                      barWidth: 2,
+                      color: const Color(0xFFBD9A6B),
+                      dotData: FlDotData(show: true),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+
+                  titlesData: FlTitlesData(
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 60,
+                        getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Text(
+                              _yToLabel(value),
+                              style: const TextStyle(
+                                fontFamily: "Poppins",
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFBD9A6B),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= ordered.length)
+                            return const SizedBox.shrink();
+
+                          // reduce clutter
+                          if (ordered.length > 6 && i % 2 == 1)
+                            return const SizedBox.shrink();
+
+                          final d =
+                              ordered[i].scoreDate ?? ordered[i].computedAt;
+                          final label = d == null
+                              ? "${i + 1}"
+                              : "${d.day}/${d.month}";
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontFamily: "Poppins",
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF8B6B44),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
