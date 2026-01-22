@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+
+import '../../../state/session_provider.dart'; // adjust path
+import '../../../services/user_services/child_api.dart';
+
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
+import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+
 import './lessonDetails.dart';
 
 class ProblemSolvingUnit1Page extends StatefulWidget {
@@ -28,21 +36,27 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
 
   bool loading = true;
   String? error;
+
   List<_LessonItem> lessons = [];
+
+  // ✅ store progress by lessonId (0..1)
+  final Map<String, double> _progressByLesson = {};
 
   @override
   void initState() {
     super.initState();
-    _loadLessons();
+    _loadLessonsAndProgress();
   }
 
-  Future<void> _loadLessons() async {
+  Future<void> _loadLessonsAndProgress() async {
     setState(() {
       loading = true;
       error = null;
+      _progressByLesson.clear();
     });
 
     try {
+      // 1) load lessons
       final data = await ProblemSolvingLessonService.getAllLessons();
 
       final mapped = data.map((e) {
@@ -56,6 +70,62 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
 
       setState(() {
         lessons = mapped;
+      });
+
+      // 2) get caregiverId from SessionProvider
+      final session = context.read<SessionProvider>();
+      final caregiverId =
+          (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
+
+      if (caregiverId.isEmpty) {
+        // still show lessons, but no progress
+        setState(() {
+          loading = false;
+        });
+        return;
+      }
+
+      // 3) get first child
+      final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        setState(() {
+          loading = false;
+        });
+        return;
+      }
+
+      final childId =
+          ((children.first as Map<String, dynamic>)['_id'] ?? '').toString();
+      if (childId.isEmpty) {
+        setState(() {
+          loading = false;
+        });
+        return;
+      }
+
+      // 4) load progress for each lesson (sequential to keep it simple)
+      for (final l in mapped) {
+        double p = 0.0;
+        try {
+          final res = await CompleteProblemSolvingSessionService.getByChildAndLesson(
+            childId: childId,
+            lessonId: l.id,
+          );
+          p = CompleteProblemSolvingSessionService.extractCorrectnessScore(res);
+        } catch (_) {
+          p = 0.0; // no completion found
+        }
+
+        // clamp 0..1
+        p = p.clamp(0.0, 1.0);
+
+        if (!mounted) return;
+        setState(() {
+          _progressByLesson[l.id] = p;
+        });
+      }
+
+      setState(() {
         loading = false;
       });
     } catch (e) {
@@ -78,7 +148,6 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
@@ -113,10 +182,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
                 ],
               ),
             ),
-
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _loadLessons,
+                onRefresh: _loadLessonsAndProgress,
                 child: _buildBody(),
               ),
             ),
@@ -170,7 +238,7 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
                 const SizedBox(height: 12),
                 Center(
                   child: ElevatedButton(
-                    onPressed: _loadLessons,
+                    onPressed: _loadLessonsAndProgress,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: actionBtnBg,
                       foregroundColor: actionIcon,
@@ -214,12 +282,13 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = lessons[index];
+        final progress = (_progressByLesson[item.id] ?? 0.0).clamp(0.0, 1.0);
+
         return _LessonCard(
           title: item.title,
           desc: item.desc,
-          progress: 0.0,
+          progress: progress, // ✅ correctness_score shown here
           onTap: () {
-            // ✅ Navigate and pass ID
             Navigator.push(
               context,
               MaterialPageRoute(
