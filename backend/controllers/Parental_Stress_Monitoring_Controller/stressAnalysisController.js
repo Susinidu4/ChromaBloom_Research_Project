@@ -205,6 +205,22 @@ export const computeStressAndRecommendation = async (req, res) => {
   }
 };
 
+
+// get stress scores history by caregiverId
+export const getStressScoresByCaregiver = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    if (!caregiverId)
+      return res.status(400).json({ error: "caregiverId required" });
+
+    const scores = await StressScoreModel.find({ caregiverId }).lean();
+    return res.status(200).json({ scores });
+  } catch (err) {
+    console.error("getStressScoresByCaregiver:", err);
+    return res.status(500).json({ message: "Server error", error: String(err) });
+  }
+};
+
 // Get Latest stress score history for a caregiver
 export const getStressScoreHistory = async (req, res) => {
   try {
@@ -238,3 +254,4 @@ export const getStressScoreHistory = async (req, res) => {
       .json({ message: "Failed to load stress score history" });
   }
 };
+
