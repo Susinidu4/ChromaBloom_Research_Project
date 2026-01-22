@@ -1,6 +1,7 @@
 import ConsentModel from "../../models/Parental_Stress_Monitoring_Model/consentModel.js";
 
-// GET /api/consent/:caregiverId
+// ------------------------- Caregiver -------------------------- //
+// Get consent records by caregiverId
 export const getConsentByCaregiver = async (req, res) => {
   try {
     const { caregiverId } = req.params;
@@ -14,8 +15,7 @@ export const getConsentByCaregiver = async (req, res) => {
   }
 };
 
-// POST /api/consent
-// body: { caregiverId, decision: "allow" | "cancel" }
+// Save (create/update) the caregiver's digital wellbeing consent decision
 export const saveConsentDecision = async (req, res) => {
   try {
     const { caregiverId, decision } = req.body;
@@ -23,6 +23,10 @@ export const saveConsentDecision = async (req, res) => {
     if (!caregiverId || !decision) {
       return res.status(400).json({ message: "caregiverId and decision required" });
     }
+
+    // Decision validation: only allow two accepted values
+    //    - "allow"  => caregiver grants consent
+    //    - "cancel" => caregiver declines/revokes consent
     if (!["allow", "cancel"].includes(decision)) {
       return res.status(400).json({ message: "decision must be allow or cancel" });
     }
@@ -30,6 +34,7 @@ export const saveConsentDecision = async (req, res) => {
     const now = new Date();
     const allow = decision === "allow";
 
+    // Prepare consent update data
     const update = {
       caregiverId,
       digital_wellbeing_consent: allow,
@@ -38,6 +43,7 @@ export const saveConsentDecision = async (req, res) => {
       revoked_at: allow ? null : now,
     };
 
+    // Create or update consent record
     const consent = await ConsentModel.findOneAndUpdate(
       { caregiverId },
       { $set: update },
