@@ -55,10 +55,10 @@ export const Therapists_dashboard = () => {
       <div className="max-w-6xl mx-auto px-6 md:px-12 pb-12">
 
         {/* Profile Header Section */}
-        <div className="relative flex flex-col md:flex-row gap-8 mb-12">
+        <div className="relative flex flex-col items-start gap-6 mb-12">
 
           {/* Avatar - Negative Margin to overlap */}
-          <div className="flex-shrink-0 -mt-20 z-10 mx-auto md:mx-0">
+          <div className="flex-shrink-0 -mt-20 z-10">
             <div className="w-48 h-48 rounded-full border-4 border-[#FBF3F0] overflow-hidden bg-gray-200 shadow-lg">
               <img
                 src="https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg"
@@ -68,11 +68,11 @@ export const Therapists_dashboard = () => {
             </div>
           </div>
 
-          {/* Info Section */}
-          <div className="flex-1 mt-6 md:mt-4 flex flex-col md:flex-row justify-between gap-8 text-[#1E3A5F]">
+          {/* Info Section - Below avatar, left aligned */}
+          <div className="w-full flex flex-col md:flex-row justify-between items-start gap-8 text-[#1E3A5F]">
 
-            {/* Left Column: Personal Info */}
-            <div className="flex flex-col gap-1 text-center md:text-left">
+            {/* Left Column: Personal Info (Left Aligned) */}
+            <div className="flex flex-col gap-1 text-left">
               <h1 className="text-3xl md:text-4xl font-extrabold text-[#1E3A5F]">
                 {therapist.full_name || "Dr. Therapist Name"}
               </h1>
@@ -87,7 +87,7 @@ export const Therapists_dashboard = () => {
                 </p>
                 <p>
                   <span className="font-semibold text-[#1E3A5F]">Experience : </span>
-                  9 years {/* Static for now as no field in DB, or calculate if needed */}
+                  9 years
                 </p>
                 <p>
                   <span className="font-semibold text-[#1E3A5F]">Age : </span>
@@ -96,12 +96,12 @@ export const Therapists_dashboard = () => {
               </div>
             </div>
 
-            {/* Right Column: Contact Details (With divider) */}
-            <div className="flex gap-6 items-start">
+            {/* Right Column: Contact Details */}
+            <div className="flex gap-6 items-start mr-[400px] mt-[30px]">
               {/* Vertical Divider */}
-              <div className="hidden md:block w-px h-32 bg-[#1E3A5F]/20"></div>
+              <div className="hidden md:block w-px h-36 bg-[#1E3A5F]/20"></div>
 
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-2 text-left">
                 <h3 className="text-lg font-bold text-[#1E3A5F] border-b border-[#1E3A5F]/20 inline-block pb-1 mb-2">
                   Contact Details
                 </h3>
@@ -118,7 +118,7 @@ export const Therapists_dashboard = () => {
                 </div>
               </div>
 
-              {/* Edit Icon Button (Visual only) */}
+              {/* Edit Icon Button */}
               <button className="hidden md:block p-2 text-gray-400 hover:text-gray-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
