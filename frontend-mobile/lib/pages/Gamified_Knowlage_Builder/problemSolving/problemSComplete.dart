@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class ProblemSolvingLessonCompletePage extends StatelessWidget {
+import '../../../state/session_provider.dart'; // adjust path
+import '../../../services/user_services/child_api.dart';
+import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+
+class ProblemSolvingLessonCompletePage extends StatefulWidget {
   const ProblemSolvingLessonCompletePage({
     super.key,
+    required this.lessonId,
     required this.correctness,
     required this.improvement,
   });
@@ -23,16 +30,119 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
 
   static const Color labelColor = Color(0xFF111111);
 
+  final String lessonId; // ✅ REQUIRED for saving
   final double correctness; // 0.0 - 1.0
-  final double improvement; // 0.0 - 1.0 (you can replace later)
+  final double improvement; // 0.0 - 1.0
+
+  @override
+  State<ProblemSolvingLessonCompletePage> createState() =>
+      _ProblemSolvingLessonCompletePageState();
+}
+
+class _ProblemSolvingLessonCompletePageState
+    extends State<ProblemSolvingLessonCompletePage> {
+  bool _saving = false;
+  bool _savedOnce = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // run after build context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoSaveCompletion());
+  }
+
+  Future<void> _autoSaveCompletion() async {
+    if (_savedOnce || _saving) return;
+
+    setState(() {
+      _saving = true;
+      _savedOnce = true;
+    });
+
+    try {
+      final session = context.read<SessionProvider>();
+
+      if (!session.isLoggedIn || session.caregiver == null) {
+        throw Exception("No caregiver session found. Please login again.");
+      }
+
+      final caregiverId =
+          (session.caregiver!['_id'] ?? session.caregiver!['id'] ?? '').toString();
+      if (caregiverId.isEmpty) {
+        throw Exception("Caregiver ID not found in session");
+      }
+
+      // ✅ get child list by caregiver
+      final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        throw Exception("No child found for this caregiver");
+      }
+
+      // ✅ choose first child (you can replace with “selected child” later)
+      final first = children.first;
+      final childId = (first['_id'] ?? first['id'] ?? '').toString();
+      if (childId.isEmpty) throw Exception("Child ID not found");
+
+      final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
+
+      // ✅ UPSERT: if exists -> update, else -> create
+      try {
+        final existing = await CompleteProblemSolvingSessionService
+            .getByChildAndLesson(childId: childId, lessonId: widget.lessonId);
+
+        // try to extract id
+        final existingId = (existing['data']?['_id'] ??
+                existing['_id'] ??
+                existing['data']?['id'] ??
+                existing['id'] ??
+                '')
+            .toString();
+
+        if (existingId.isNotEmpty) {
+          await CompleteProblemSolvingSessionService.update(
+            id: existingId,
+            correctnessScore: correctnessClamped,
+          );
+        } else {
+          // if backend returns a different shape, fallback create
+          await CompleteProblemSolvingSessionService.create(
+            childId: childId,
+            lessonId: widget.lessonId,
+            correctnessScore: correctnessClamped,
+          );
+        }
+      } catch (_) {
+        // most likely 404 not found -> create
+        await CompleteProblemSolvingSessionService.create(
+          childId: childId,
+          lessonId: widget.lessonId,
+          correctnessScore: correctnessClamped,
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Lesson completion saved")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Save failed: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final correctnessClamped = correctness.clamp(0.0, 1.0);
-    final improvementClamped = improvement.clamp(0.0, 1.0);
+    final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
+    final improvementClamped = widget.improvement.clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: ProblemSolvingLessonCompletePage.pageBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -57,16 +167,17 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.psychology_alt_rounded,
                             size: 24,
-                            color: topRowBlue,
+                            color: ProblemSolvingLessonCompletePage.topRowBlue,
                           ),
                         ),
                         const SizedBox(width: 10),
                         const Expanded(
+                          // display child id
                           child: Text(
                             "Problem Solving UNIT 1",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: topRowBlue,
+                              color: ProblemSolvingLessonCompletePage.topRowBlue,
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                             ),
@@ -79,14 +190,30 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      "Lesson Complete",
-                      style: TextStyle(
-                        color: labelColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+
+                    Row(
+                      children: [
+                        const Text(
+                          "Lesson Complete",
+                          style: TextStyle(
+                            color: ProblemSolvingLessonCompletePage.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_saving)
+                          const Text(
+                            "Saving...",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black54,
+                            ),
+                          ),
+                      ],
                     ),
+
                     const SizedBox(height: 18),
 
                     Center(
@@ -102,7 +229,7 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                             color: Colors.black.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Text(
+                          child:  Text(
                             "Illustration Missing",
                             style: TextStyle(color: Colors.black54),
                           ),
@@ -115,7 +242,7 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                     const Text(
                       "Improvement",
                       style: TextStyle(
-                        color: labelColor,
+                        color: ProblemSolvingLessonCompletePage.labelColor,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -128,7 +255,7 @@ class ProblemSolvingLessonCompletePage extends StatelessWidget {
                     Text(
                       "Correctness  (${(correctnessClamped * 100).round()}%)",
                       style: const TextStyle(
-                        color: labelColor,
+                        color: ProblemSolvingLessonCompletePage.labelColor,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                       ),
