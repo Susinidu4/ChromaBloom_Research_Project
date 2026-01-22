@@ -6,6 +6,12 @@ import 'package:frontend/pages/others/first_time_options.dart';
 import 'package:provider/provider.dart';
 import 'state/session_provider.dart';
 
+import 'pages/Others/onboardScreen1.dart';
+import 'pages/Others/onboardScreen2.dart';
+import 'pages/others/onboardScreen3.dart';
+import 'pages/others/getStartedScreen.dart';
+
+import 'pages/Interactive_visual_task_scheduler/taskSchedulerHome.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/create_userActivity.dart';
 import 'pages/Interactive_visual_task_scheduler/userActivity/display_userActivity.dart';
 
@@ -34,6 +40,12 @@ import 'pages/Gamified_Knowlage_Builder/Drawing/display_DrawingLesson.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/lessons.dart';
+import 'pages/Gamified_Knowlage_Builder/problemSolving/lessonDetails.dart';
+import 'pages/Gamified_Knowlage_Builder/problemSolving/quize1.dart';
+import 'pages/Gamified_Knowlage_Builder/problemSolving/problemSComplete.dart';
+
+
+
 
 void main() {
    runApp(
@@ -59,11 +71,17 @@ class MyApp extends StatelessWidget {
         '/welcome_screen': (context) => const WelcomePage(),
         '/first_time': (context) => const FirstTimeOptionsPage(),
 
+        '/onboard1': (context) => const OnboardScreen1(),
+        '/onboard2': (context) => const OnboardScreen2(),
+        '/onboard3': (context) => const OnboardScreen3(),
+        '/get_started': (context) => const GetStartedScreen(),
+
         '/': (context) => const HomePage(),
         '/profile_page': (context) => const ProfilePage(),
         '/profile_settings': (context) => const ProfileSettingsPage(),
         '/child_details': (context) => const ChildDetailsPage(),
         
+        '/taskSchedulerHome': (context) => const RoutineHomeScreen(),
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
 
@@ -83,11 +101,15 @@ class MyApp extends StatelessWidget {
         '/drawingUnit1': (context) => DrawingUnit1Page(),
         '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
         '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload
+        '/drawingperdcit' : (context) => const DrawingPredictApiPage(),
         '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
+        '/problemSolvingLessonDetail': (context) => const ProblemSolvingMiniTutorialPage(lessonId: '',),
+        '/problemSolvingQuiz1': (context) => const ProblemSolvingMatchPage(),
+        '/problemSolvingLessonComplete': (context) => const ProblemSolvingLessonCompletePage(correctness: 0.0, improvement: 0.0, lessonId: '',),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
 
-        '/drawingperdcit' : (context) => const DrawingPredictApiPage(),
+        
 
 
 

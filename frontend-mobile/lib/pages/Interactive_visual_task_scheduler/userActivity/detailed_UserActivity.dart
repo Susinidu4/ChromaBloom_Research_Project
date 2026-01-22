@@ -5,6 +5,7 @@ import 'package:quickalert/quickalert.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
 import '../../../services/Interactive_visual_task_scheduler_services/tts_service.dart';
 import 'edit_userActivity.dart';
@@ -20,10 +21,11 @@ class DetailedUserActivityScreen extends StatefulWidget {
 
 class _DetailedUserActivityScreenState
     extends State<DetailedUserActivityScreen> {
-  // ===== Theme colors =====
+  // Theme colors
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color stroke = Color(0xFFBD9A6B);
 
+  // Show themed alert
   void showThemedAlert({
     required QuickAlertType type,
     required String title,
@@ -42,6 +44,28 @@ class _DetailedUserActivityScreenState
     );
   }
 
+  // Progress percentage of the activity
+  int progressPercent = 0;
+  // Status text shown in UI
+  String statusText = "In Progress";
+  // List of steps for the activity
+  late List<Map<String, dynamic>> steps;
+  // Tracks checkbox state for each step
+  late List<bool> stepDone;
+  // Completed duration entered by user (minutes)
+  int completedMinutes = 0;
+  // Controller for completed duration input field
+  final TextEditingController completedCtrl = TextEditingController();
+  // Get activity title
+  String _title() => (widget.activity["title"] ?? "").toString();
+  // Get activity description
+  String _desc() => (widget.activity["description"] ?? "").toString();
+
+  // TTS
+  Future<void> _speakTitle() async => TtsService.speak(_title());
+  Future<void> _speakDescription() async => TtsService.speak(_desc());
+
+  // Confirm delete dialog
   Future<bool> showDeleteConfirm() async {
     bool confirmed = false;
 
@@ -55,7 +79,7 @@ class _DetailedUserActivityScreenState
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       titleColor: const Color(0xFFBD9A6B),
       textColor: const Color(0xFFBD9A6B),
-      confirmBtnColor: const Color(0xFFBD9A6B), 
+      confirmBtnColor: const Color(0xFFBD9A6B),
       cancelBtnTextStyle: const TextStyle(
         color: Color(0xFFBD9A6B),
         fontWeight: FontWeight.w700,
@@ -73,20 +97,22 @@ class _DetailedUserActivityScreenState
     return confirmed;
   }
 
-  int progressPercent = 0;
-  String statusText = "In Progress";
+  // Get image URL from activity media links
+  String? _imageUrl() {
+    final links = widget.activity["media_links"];
+    if (links is List && links.isNotEmpty) {
+      final first = links.first?.toString();
+      if (first != null && first.startsWith("http")) return first;
+    }
+    return null;
+  }
 
-  late List<Map<String, dynamic>> steps;
-  late List<bool> stepDone;
-
-  int completedMinutes = 0;
-
-  final TextEditingController completedCtrl = TextEditingController();
-
+  // Initialize state
   @override
   void initState() {
     super.initState();
 
+    // Initialize Text-to-Speech service
     TtsService.init();
 
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
@@ -95,10 +121,10 @@ class _DetailedUserActivityScreenState
         (a, b) => (a["step_number"] ?? 0).compareTo(b["step_number"] ?? 0),
       );
 
-    // ✅ load saved step status from DB
+    // Load saved step status from DB
     stepDone = steps.map((s) => (s["status"] == true)).toList();
 
-    // ✅ load saved completed minutes from DB
+    // Load saved completed minutes from DB
     final cd = widget.activity["completed_duration_minutes"];
     if (cd is int) {
       completedMinutes = cd;
@@ -112,7 +138,7 @@ class _DetailedUserActivityScreenState
 
     completedCtrl.text = completedMinutes.toString();
 
-    // ✅ compute initial progress using DB values
+    // Calculate initial progress percentage
     final done = stepDone.where((x) => x).length;
     progressPercent = steps.isEmpty ? 0 : ((done / steps.length) * 100).round();
     statusText = (progressPercent == 100) ? "Completed" : "In Progress";
@@ -126,26 +152,7 @@ class _DetailedUserActivityScreenState
     super.dispose();
   }
 
-  String _title() => (widget.activity["title"] ?? "").toString();
-  String _desc() => (widget.activity["description"] ?? "").toString();
-
-  int _estimatedMinutes() {
-    final v = widget.activity["estimated_duration_minutes"];
-    if (v is int) return v;
-    if (v is double) return v.toInt();
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
-  }
-
-  String? _imageUrl() {
-    final links = widget.activity["media_links"];
-    if (links is List && links.isNotEmpty) {
-      final first = links.first?.toString();
-      if (first != null && first.startsWith("http")) return first;
-    }
-    return null;
-  }
-
+  // Toggle step completion checkbox
   void _toggleStep(int i, bool? v) {
     setState(() => stepDone[i] = v ?? false);
 
@@ -157,21 +164,19 @@ class _DetailedUserActivityScreenState
     });
   }
 
+  // Increase completed duration (max 60)
   void _incCompleted() => setState(() {
     completedMinutes = (completedMinutes + 1).clamp(0, 60);
     completedCtrl.text = completedMinutes.toString();
   });
 
+  // Decrease completed duration (min 0)
   void _decCompleted() => setState(() {
     completedMinutes = (completedMinutes - 1).clamp(0, 60);
     completedCtrl.text = completedMinutes.toString();
   });
 
-  // ✅ TTS
-  Future<void> _speakTitle() async => TtsService.speak(_title());
-  Future<void> _speakDescription() async => TtsService.speak(_desc());
-
-  // ✅ Speak a single step (STEP BY STEP)
+  // Speak a single step (STEP BY STEP)
   Future<void> _speakStep(int index) async {
     if (index < 0 || index >= steps.length) return;
     final n = (steps[index]["step_number"] ?? (index + 1)).toString();
@@ -180,7 +185,7 @@ class _DetailedUserActivityScreenState
     await TtsService.speak("Step $n. $instruction");
   }
 
-  // ✅ Optional: speak ALL steps (you already had this)
+  // Optional: speak ALL steps (you already had this)
   Future<void> _speakAllSteps() async {
     if (steps.isEmpty) return;
     final buffer = StringBuffer();
@@ -194,8 +199,19 @@ class _DetailedUserActivityScreenState
     await TtsService.speak(buffer.toString());
   }
 
+  // Get estimated duration from activity
+  int _estimatedMinutes() {
+    final v = widget.activity["estimated_duration_minutes"];
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  // Build UI
   @override
   Widget build(BuildContext context) {
+    // Get image URL to display in the detail card
     final imgUrl = _imageUrl();
 
     return Scaffold(
@@ -203,11 +219,13 @@ class _DetailedUserActivityScreenState
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
+            // Body
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -216,6 +234,7 @@ class _DetailedUserActivityScreenState
                 ),
                 child: Column(
                   children: [
+                    // Back button
                     Align(
                       alignment: Alignment.centerLeft,
                       child: _CircleIconButton(
@@ -225,16 +244,20 @@ class _DetailedUserActivityScreenState
                     ),
                     const SizedBox(height: 14),
 
+                    // Detail Card
                     _DetailCard(
                       title: _title(),
                       statusText: statusText,
                       progressPercent: progressPercent,
                       estimatedMinutes: _estimatedMinutes(),
                       description: _desc(),
+                      // Steps
                       steps: steps,
                       stepDone: stepDone,
                       onStepChanged: _toggleStep,
+                      // Image
                       imgUrl: imgUrl,
+                      // Completed duration
                       completedMinutes: completedMinutes,
                       completedCtrl: completedCtrl,
                       onIncCompleted: _incCompleted,
@@ -243,13 +266,14 @@ class _DetailedUserActivityScreenState
                         setState(() => completedMinutes = v);
                       },
 
-                      // ✅ TTS callbacks
+                      // TTS callbacks
                       onSpeakTitle: _speakTitle,
                       onSpeakDescription: _speakDescription,
                       onSpeakAllSteps: _speakAllSteps,
-                      onSpeakSingleStep: _speakStep, // ✅ NEW
+                      onSpeakSingleStep: _speakStep,
                       onStopTts: () => TtsService.stop(),
 
+                      // Delete action (delete activity)
                       onDelete: () async {
                         final mongoId = (widget.activity["_id"] ?? "")
                             .toString();
@@ -263,7 +287,6 @@ class _DetailedUserActivityScreenState
                           return;
                         }
 
-                        // ✅ QuickAlert confirmation
                         final ok = await showDeleteConfirm();
                         if (!ok) return;
 
@@ -282,7 +305,7 @@ class _DetailedUserActivityScreenState
                                 res["message"] ??
                                 'Activity deleted successfully.',
                           );
-
+                          // Go back and tell previous page "changed"
                           Navigator.pop(context, true);
                         } catch (e) {
                           if (!mounted) return;
@@ -296,8 +319,10 @@ class _DetailedUserActivityScreenState
                         }
                       },
 
+                      // Save action (update progress)
                       onSave: () async {
-                        // VALIDATION: at least 1 step and no empty instruction
+                        // VALIDATIONS
+                        // at least 1 step and no empty instruction
                         if (steps.isEmpty) {
                           showThemedAlert(
                             type: QuickAlertType.error,
@@ -308,6 +333,7 @@ class _DetailedUserActivityScreenState
                           return;
                         }
 
+                        // check for empty instructions
                         final hasEmpty = steps.any(
                           (s) => (s["instruction"] ?? "")
                               .toString()
@@ -325,7 +351,7 @@ class _DetailedUserActivityScreenState
                           return;
                         }
 
-                        // VALIDATION: duration required 1..60
+                        // Completed minutes must be 1..60
                         if (completedMinutes <= 0) {
                           showThemedAlert(
                             type: QuickAlertType.error,
@@ -346,7 +372,7 @@ class _DetailedUserActivityScreenState
                           return;
                         }
 
-                        // VALIDATION: user must tick at least 1 checkbox if they enter completed time
+                        // At least one step must be checked
                         final anyChecked = stepDone.any((x) => x == true);
 
                         if (completedMinutes > 0 && !anyChecked) {
@@ -359,6 +385,7 @@ class _DetailedUserActivityScreenState
                           return;
                         }
 
+                        // MongoDB ID required for update
                         final mongoId = (widget.activity["_id"] ?? "")
                             .toString();
                         if (mongoId.isEmpty) {
@@ -397,6 +424,7 @@ class _DetailedUserActivityScreenState
                         }
                       },
 
+                      // Edit action (go to edit screen)
                       onEdit: () async {
                         final updated = await Navigator.push(
                           context,
@@ -421,10 +449,12 @@ class _DetailedUserActivityScreenState
           ],
         ),
       ),
+      // Navigation Bar
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
   }
 
+  // Prepare steps payload for saving
   List<Map<String, dynamic>> _stepsPayload() {
     return List.generate(steps.length, (i) {
       final s = steps[i];
@@ -437,9 +467,7 @@ class _DetailedUserActivityScreenState
   }
 }
 
-// =======================================================
 // DETAIL CARD
-// =======================================================
 class _DetailCard extends StatelessWidget {
   const _DetailCard({
     required this.title,
@@ -460,7 +488,7 @@ class _DetailCard extends StatelessWidget {
     required this.onSave,
     required this.onEdit,
 
-    // ✅ TTS
+    // TTS
     required this.onSpeakTitle,
     required this.onSpeakDescription,
     required this.onSpeakAllSteps,
@@ -470,6 +498,7 @@ class _DetailCard extends StatelessWidget {
     required this.onCompletedChanged,
   });
 
+  // Controllers
   final TextEditingController completedCtrl;
 
   final String title;
@@ -492,13 +521,14 @@ class _DetailCard extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onEdit;
 
-  // ✅ TTS
+  // TTS
   final VoidCallback onSpeakTitle;
   final VoidCallback onSpeakDescription;
   final VoidCallback onSpeakAllSteps;
-  final Future<void> Function(int index) onSpeakSingleStep; // ✅ NEW
+  final Future<void> Function(int index) onSpeakSingleStep;
   final VoidCallback onStopTts;
 
+  // Theme colors
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x33000000);
@@ -520,7 +550,7 @@ class _DetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // top row: edit (stop TTS optional)
+          // edit (stop TTS optional)
           Row(
             children: [
               // InkWell(
@@ -548,6 +578,7 @@ class _DetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
+          // Status + progress bar
           Row(
             children: [
               Expanded(
@@ -572,6 +603,7 @@ class _DetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
+          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
@@ -584,7 +616,7 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // title + speaker
+          // title + speak button
           Row(
             children: [
               Expanded(
@@ -610,6 +642,7 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
+          // Estimated duration
           Row(
             children: [
               const Icon(Icons.timer_outlined, color: stroke, size: 18),
@@ -627,13 +660,14 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
+          // Activity image
           Center(
             child: SizedBox(
               height: 220,
               child: imgUrl != null
                   ? Image.network(imgUrl!, fit: BoxFit.contain)
                   : Image.asset(
-                      "assets/create_user_activity.png",
+                      "assets/InteractiveVisualTaskScheduler/create_user_activity.png",
                       fit: BoxFit.contain,
                     ),
             ),
@@ -695,7 +729,7 @@ class _DetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // ✅ steps list with per-step speaker icon + checkbox
+          // Steps list with checkbox + speaker
           ...List.generate(steps.length, (i) {
             final s = steps[i];
             final n = (s["step_number"] ?? (i + 1)).toString();
@@ -719,7 +753,6 @@ class _DetailCard extends StatelessWidget {
 
                   const SizedBox(width: 8),
 
-                  // ✅ step speaker
                   InkWell(
                     onTap: () => onSpeakSingleStep(i),
                     borderRadius: BorderRadius.circular(10),
@@ -744,7 +777,7 @@ class _DetailCard extends StatelessWidget {
                       fillColor: MaterialStateProperty.resolveWith<Color>((
                         states,
                       ) {
-                        return Colors.white; // ✅ white background
+                        return Colors.white;
                       }),
                       side: BorderSide(
                         color: stroke.withOpacity(0.9),
@@ -761,6 +794,7 @@ class _DetailCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
+          // Completed duration input
           Row(
             children: [
               Text(
@@ -773,6 +807,7 @@ class _DetailCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
+              // Input + increment/decrement buttons
               Container(
                 width: 52,
                 height: 36,
@@ -787,7 +822,7 @@ class _DetailCard extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
 
-                  // ✅ only numbers, max 2 digits
+                  // only numbers, max 2 digits
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(2),
@@ -799,6 +834,7 @@ class _DetailCard extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                   ),
 
+                  // Update value while typing
                   onChanged: (v) {
                     final n = int.tryParse(v) ?? 0;
                     final clamped = n.clamp(0, 60);
@@ -811,7 +847,7 @@ class _DetailCard extends StatelessWidget {
                       ),
                     );
                   },
-
+                  // Update value on editing complete
                   onEditingComplete: () {
                     final n = int.tryParse(completedCtrl.text) ?? 0;
                     final clamped = n.clamp(0, 60);
@@ -824,6 +860,7 @@ class _DetailCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
 
+              // Increment/decrement buttons
               Container(
                 width: 28,
                 height: 36,
@@ -834,6 +871,7 @@ class _DetailCard extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    // Increment
                     Expanded(
                       child: InkWell(
                         onTap: onIncCompleted,
@@ -844,6 +882,7 @@ class _DetailCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Decrement
                     Expanded(
                       child: InkWell(
                         onTap: onDecCompleted,
@@ -874,6 +913,7 @@ class _DetailCard extends StatelessWidget {
 
           Row(
             children: [
+              // Delete button
               Expanded(
                 child: _ActionButton(
                   text: "Delete",
@@ -882,6 +922,7 @@ class _DetailCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
+              // Save button
               Expanded(
                 child: _ActionButton(
                   text: "Save",
@@ -897,6 +938,36 @@ class _DetailCard extends StatelessWidget {
   }
 }
 
+// Circle icon button (Back button)
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  static const Color shadow = Color(0x33000000);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        width: 44,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: shadow, blurRadius: 12, offset: Offset(0, 8)),
+          ],
+        ),
+        child: Icon(icon, color: const Color(0xFFBD9A6B)),
+      ),
+    );
+  }
+}
+
+// Delete/Save button
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.text,
@@ -923,34 +994,6 @@ class _ActionButton extends StatelessWidget {
           ),
         ),
         child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  static const Color shadow = Color(0x33000000);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: shadow, blurRadius: 12, offset: Offset(0, 8)),
-          ],
-        ),
-        child: Icon(icon, color: const Color(0xFFBD9A6B)),
       ),
     );
   }

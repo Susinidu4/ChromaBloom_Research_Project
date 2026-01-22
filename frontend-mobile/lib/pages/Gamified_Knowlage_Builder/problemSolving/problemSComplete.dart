@@ -1,0 +1,344 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../others/header.dart';
+import '../../others/navBar.dart';
+
+import '../../../state/session_provider.dart'; // adjust path
+import '../../../services/user_services/child_api.dart';
+import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+
+class ProblemSolvingLessonCompletePage extends StatefulWidget {
+  const ProblemSolvingLessonCompletePage({
+    super.key,
+    required this.lessonId,
+    required this.correctness,
+    required this.improvement,
+  });
+
+  static const Color pageBg = Color(0xFFF5ECEC);
+
+  // Top row colors
+  static const Color topRowBlue = Color(0xFF3D6B86);
+  static const Color circleBg = Color(0xFFF8F2E8);
+  static const Color circleBorder = Color(0xFFD8C6B4);
+  static const Color circleIcon = Color(0xFFB0896E);
+
+  // Progress colors
+  static const Color track = Color(0xFFD8D1C7);
+  static const Color fill = Color(0xFFB89A76);
+
+  static const Color labelColor = Color(0xFF111111);
+
+  final String lessonId; // ✅ REQUIRED for saving
+  final double correctness; // 0.0 - 1.0
+  final double improvement; // 0.0 - 1.0
+
+  @override
+  State<ProblemSolvingLessonCompletePage> createState() =>
+      _ProblemSolvingLessonCompletePageState();
+}
+
+class _ProblemSolvingLessonCompletePageState
+    extends State<ProblemSolvingLessonCompletePage> {
+  bool _saving = false;
+  bool _savedOnce = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // run after build context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoSaveCompletion());
+  }
+
+  Future<void> _autoSaveCompletion() async {
+    if (_savedOnce || _saving) return;
+
+    setState(() {
+      _saving = true;
+      _savedOnce = true;
+    });
+
+    try {
+      final session = context.read<SessionProvider>();
+
+      if (!session.isLoggedIn || session.caregiver == null) {
+        throw Exception("No caregiver session found. Please login again.");
+      }
+
+      final caregiverId =
+          (session.caregiver!['_id'] ?? session.caregiver!['id'] ?? '').toString();
+      if (caregiverId.isEmpty) {
+        throw Exception("Caregiver ID not found in session");
+      }
+
+      // ✅ get child list by caregiver
+      final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        throw Exception("No child found for this caregiver");
+      }
+
+      // ✅ choose first child (you can replace with “selected child” later)
+      final first = children.first;
+      final childId = (first['_id'] ?? first['id'] ?? '').toString();
+      if (childId.isEmpty) throw Exception("Child ID not found");
+
+      final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
+
+      // ✅ UPSERT: if exists -> update, else -> create
+      try {
+        final existing = await CompleteProblemSolvingSessionService
+            .getByChildAndLesson(childId: childId, lessonId: widget.lessonId);
+
+        // try to extract id
+        final existingId = (existing['data']?['_id'] ??
+                existing['_id'] ??
+                existing['data']?['id'] ??
+                existing['id'] ??
+                '')
+            .toString();
+
+        if (existingId.isNotEmpty) {
+          await CompleteProblemSolvingSessionService.update(
+            id: existingId,
+            correctnessScore: correctnessClamped,
+          );
+        } else {
+          // if backend returns a different shape, fallback create
+          await CompleteProblemSolvingSessionService.create(
+            childId: childId,
+            lessonId: widget.lessonId,
+            correctnessScore: correctnessClamped,
+          );
+        }
+      } catch (_) {
+        // most likely 404 not found -> create
+        await CompleteProblemSolvingSessionService.create(
+          childId: childId,
+          lessonId: widget.lessonId,
+          correctnessScore: correctnessClamped,
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Lesson completion saved")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Save failed: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
+    final improvementClamped = widget.improvement.clamp(0.0, 1.0);
+
+    return Scaffold(
+      backgroundColor: ProblemSolvingLessonCompletePage.pageBg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const MainHeader(
+              title: "Hello !",
+              subtitle: "Welcome Back.",
+              notificationCount: 5,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Image.asset(
+                          "assets/problem-solving.png",
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.psychology_alt_rounded,
+                            size: 24,
+                            color: ProblemSolvingLessonCompletePage.topRowBlue,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          // display child id
+                          child: Text(
+                            "Problem Solving UNIT 1",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: ProblemSolvingLessonCompletePage.topRowBlue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        _CircleActionButton(
+                          icon: Icons.close_rounded,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: [
+                        const Text(
+                          "Lesson Complete",
+                          style: TextStyle(
+                            color: ProblemSolvingLessonCompletePage.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_saving)
+                          const Text(
+                            "Saving...",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black54,
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Center(
+                      child: Image.asset(
+                        "assets/win2.png",
+                        height: 235,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 235,
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child:  Text(
+                            "Illustration Missing",
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text(
+                      "Improvement",
+                      style: TextStyle(
+                        color: ProblemSolvingLessonCompletePage.labelColor,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _ThickProgressBar(value: improvementClamped),
+
+                    const SizedBox(height: 14),
+
+                    Text(
+                      "Correctness  (${(correctnessClamped * 100).round()}%)",
+                      style: const TextStyle(
+                        color: ProblemSolvingLessonCompletePage.labelColor,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _ThickProgressBar(value: correctnessClamped),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+    );
+  }
+}
+
+class _CircleActionButton extends StatelessWidget {
+  const _CircleActionButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: ProblemSolvingLessonCompletePage.circleBg,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: ProblemSolvingLessonCompletePage.circleBorder,
+              width: 1,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x20000000),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: ProblemSolvingLessonCompletePage.circleIcon,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThickProgressBar extends StatelessWidget {
+  const _ThickProgressBar({required this.value});
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = value.clamp(0.0, 1.0);
+
+    return SizedBox(
+      width: double.infinity,
+      height: 14,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: Stack(
+          children: [
+            Container(color: ProblemSolvingLessonCompletePage.track),
+            FractionallySizedBox(
+              widthFactor: v,
+              child: Container(color: ProblemSolvingLessonCompletePage.fill),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
