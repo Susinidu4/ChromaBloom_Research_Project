@@ -36,23 +36,22 @@ export const Therapists_dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#FBF3F0] font-sans">
-      {/* Cover Image */}
-      <div
-        className="h-64 w-full bg-cover bg-center relative"
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2301&auto=format&fit=crop')", // Placeholder office/desk image
-        }}
-      >
-        <div className="absolute inset-0 bg-blue-900/30"></div> {/* Overlay to match the blueish tint */}
-        <button
-          onClick={handleLogout}
-          className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full hover:bg-white/30 transition text-sm font-medium"
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 pb-12 pt-6">
+        {/* Cover Image */}
+        <div
+          className="h-64 w-full bg-cover bg-center relative rounded-xl shadow-sm overflow-hidden"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2301&auto=format&fit=crop')", // Placeholder office/desk image
+          }}
         >
-          Logout
-        </button>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 md:px-12 pb-12">
+          <div className="absolute inset-0 bg-blue-900/30"></div> {/* Overlay to match the blueish tint */}
+          <button
+            onClick={handleLogout}
+            className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-full hover:bg-white/30 transition text-sm font-medium"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Profile Header Section */}
         <div className="relative flex flex-col items-start gap-6 mb-12">
