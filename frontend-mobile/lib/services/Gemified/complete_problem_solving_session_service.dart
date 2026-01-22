@@ -5,7 +5,23 @@ import '../api_config.dart'; // adjust path if needed
 
 class CompleteProblemSolvingSessionService {
   static final String _base = ApiConfig.baseUrl;
-  static const String _path = "/chromabloom/completeProblemSolvingSessions";
+  static const String _path = "/chromabloom/complete-problem-solving-sessions";
+
+  static Map<String, dynamic> _decode(String body) {
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    return {"data": decoded};
+  }
+
+  static Exception _err(http.Response res) {
+    Map<String, dynamic> data;
+    try {
+      data = _decode(res.body);
+    } catch (_) {
+      data = {};
+    }
+    return Exception(data["message"] ?? "Request failed (${res.statusCode})");
+  }
 
   // -----------------------------
   // ✅ CREATE
@@ -31,10 +47,9 @@ class CompleteProblemSolvingSessionService {
         .timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception("Create session failed (${res.statusCode}): ${res.body}");
+      throw _err(res);
     }
-
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    return _decode(res.body);
   }
 
   // -----------------------------
@@ -47,10 +62,9 @@ class CompleteProblemSolvingSessionService {
     final res = await http.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception("Get by id failed (${res.statusCode}): ${res.body}");
+      throw _err(res);
     }
-
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    return _decode(res.body);
   }
 
   // -----------------------------
@@ -66,17 +80,15 @@ class CompleteProblemSolvingSessionService {
     final res = await http.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception(
-          "Get by child+lesson failed (${res.statusCode}): ${res.body}");
+      // keep the error (often 404 if not found)
+      throw _err(res);
     }
-
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    return _decode(res.body);
   }
 
   // -----------------------------
   // ✅ UPDATE
   // PUT: /chromabloom/completeProblemSolvingSessions/:id
-  // Send only fields you want to update
   // -----------------------------
   static Future<Map<String, dynamic>> update({
     required String id,
@@ -100,10 +112,9 @@ class CompleteProblemSolvingSessionService {
         .timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception("Update failed (${res.statusCode}): ${res.body}");
+      throw _err(res);
     }
-
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    return _decode(res.body);
   }
 
   // -----------------------------
@@ -116,9 +127,8 @@ class CompleteProblemSolvingSessionService {
     final res = await http.delete(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception("Delete failed (${res.statusCode}): ${res.body}");
+      throw _err(res);
     }
-
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    return _decode(res.body);
   }
 }

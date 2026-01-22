@@ -183,8 +183,10 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ProblemSolvingLessonCompletePage(
+          lessonId: _lessonId!, 
           correctness: correctness,
           improvement: 0.62, // replace later if needed
+          
         ),
       ),
     );
