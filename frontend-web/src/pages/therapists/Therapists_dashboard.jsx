@@ -54,7 +54,7 @@ export const Therapists_dashboard = () => {
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InfoCard label="Therapist ID" value={therapist._id || therapist.therapist_id || "—"} />
-          <InfoCard label="Full Name" value={therapist.full_name ||  "—"} />
+          <InfoCard label="Full Name" value={therapist.full_name || "—"} />
           <InfoCard label="Email" value={therapist.email || "—"} />
           <InfoCard label="Phone" value={therapist.phone || therapist.mobile || "—"} />
           <InfoCard label="Specialization" value={therapist.specialization || "—"} />
