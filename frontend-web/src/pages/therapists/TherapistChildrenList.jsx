@@ -111,7 +111,7 @@ export const TherapistChildrenList = () => {
                     <td className="p-4 text-[#C19A6B]">{c.downSyndromeType || "Trisomy 21"}</td>
                     <td className="p-4 text-[#8c7462]">Genetic test</td>
                     <td className="p-4">
-                      {c.caregiver?.fullName || c.caregiver?.name || "—"}
+                      {c.caregiver?.full_name || c.caregiver?.name || "—"}
                     </td>
                     <td className="p-4 text-right">
                       <button className="bg-[#C19A6B] hover:bg-[#a67c52] text-white text-xs px-4 py-2 rounded shadow-sm transition-colors whitespace-nowrap">
