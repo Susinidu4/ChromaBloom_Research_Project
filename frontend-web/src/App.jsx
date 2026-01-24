@@ -2,8 +2,10 @@ import { useState } from "react";
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import { Home } from "./pages/other/home";
+import AdminLayout from "./pages/admin/AdminLayout";
+
 import { TherapistsLogin } from "./pages/therapists/therapists_login";
-import { Admin_Dashboard } from "./pages/admin/Admin_Dashboard";
+import Admin_Dashboard from "./pages/admin/Admin_Dashboard";
 import { Therapists_register } from "./pages/therapists/Therapists_register";
 import { Therapists_dashboard } from "./pages/therapists/Therapists_dashboard";
 import CreateAdmin from "./pages/admin/CreateAdmin";
@@ -27,6 +29,8 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/adminLayout" element={<AdminLayout />} />
+
         <Route path="/admin_login" element={<AdminLogin />} />
         <Route path="/create_admin" element={<CreateAdmin />} />
         <Route path="/therapists_login" element={<TherapistsLogin />} />
