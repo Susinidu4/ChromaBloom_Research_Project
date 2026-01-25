@@ -57,7 +57,7 @@ export const Therapists_dashboard = () => {
         <div className="relative flex flex-col items-start gap-6 mb-12">
 
           {/* Avatar - Negative Margin to overlap */}
-          <div className="flex-shrink-0 -mt-20 z-10">
+          <div className="flex-shrink-0 ml-10 -mt-20 z-10">
             <div className="w-48 h-48 rounded-full border-4 border-[#FBF3F0] overflow-hidden bg-gray-200 shadow-lg">
               <img
                 src="https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg"
