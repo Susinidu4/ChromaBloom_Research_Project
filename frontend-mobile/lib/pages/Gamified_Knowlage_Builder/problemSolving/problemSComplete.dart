@@ -138,7 +138,7 @@ class _ProblemSolvingLessonCompletePageState
       }
 
       final caregiverId =
-          (session.caregiver!['_id'] ?? session.caregiver!['id'] ?? '').toString();
+          (session.caregiver!['_id']).toString();
       if (caregiverId.isEmpty) throw Exception("Caregiver ID not found in session");
 
       // ✅ get child list by caregiver
