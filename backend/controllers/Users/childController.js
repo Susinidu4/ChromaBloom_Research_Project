@@ -138,3 +138,21 @@ export const deleteChild = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+// Get CHILDREN BY THERAPIST ID (t-0001)
+export const getChildrenByTherapist = async (req, res) => {
+  try {
+    const { therapistId } = req.params; // e.g. "t-0001"
+
+    const children = await Child.find({ therapist: therapistId })
+      .sort({ createdAt: -1 })
+      .populate("caregiver")
+      .populate("therapist");
+
+    res.json(children);
+  } catch (err) {
+    console.error("getChildrenByTherapist error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
