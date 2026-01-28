@@ -34,8 +34,9 @@ import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Drawing/drawing_predict_api_page.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/Skill_Selection.dart';
+import 'pages/Gamified_Knowlage_Builder/Selection_Screen/skill_knowlageLevel_2.dart';
 import 'pages/Gamified_Knowlage_Builder/Selection_Screen/skill_KnowlageLevel.dart';
-import 'pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
+import 'pages/Gamified_Knowlage_Builder/Selection_Screen/startG_2.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/display_DrawingLesson.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/DisplayContent.dart';
 import 'pages/Gamified_Knowlage_Builder/Drawing/drawingUpload.dart';
@@ -97,6 +98,8 @@ class MyApp extends StatelessWidget {
 
         '/skillSelection': (context) => const SkillSelectionPage(),
         '/skillKnowlageLevel': (context) => const SkillKnowledgeLevelPage(),
+        '/skillKnowlageLevel_2': (context) => const SkillKnowledgeLevelPage_2(),
+        '/startG': (context) => const UnitStartPage_2(),
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
         '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
