@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan, getLatestRoutineSummary, getRoutineDashboard } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
+import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan, getLatestRoutineSummary, getRoutineDashboard, getSystemActivityById } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
 import upload from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
@@ -13,6 +13,10 @@ router.post("/createSystemActivity", upload.single("image"), createSystemActivit
 // Display all system activities
 // GET /chromabloom/systemActivities/getAllSystemActivities
 router.get("/getAllSystemActivities", getAllSystemActivities);
+
+// Get system activity by ID
+// GET /chromabloom/systemActivities/getSystemActivityById/:id
+router.get("/getSystemActivityById/:id", getSystemActivityById)
 
 // ------------------------- Caregiver routes ------------------------- //
 
