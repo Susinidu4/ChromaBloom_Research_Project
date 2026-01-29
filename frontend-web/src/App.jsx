@@ -23,6 +23,10 @@ import QuizeList from "./pages/Gemified_Knowledge_Builder/Quize/QuizeList";
 import QuizeView from "./pages/Gemified_Knowledge_Builder/Quize/QuizeView";
 import QuizeEdit from "./pages/Gemified_Knowledge_Builder/Quize/QuizeEdit";
 
+import RoutineCreate from "./pages/admin/Interactive_Visual_Task_Scheduler/AddRoutine";
+import RoutineList from "./pages/admin/Interactive_Visual_Task_Scheduler/RoutineList";
+import RoutineDetail from "./pages/admin/Interactive_Visual_Task_Scheduler/SelectedRoutine";
+
 function App() {
 
   return (
@@ -37,6 +41,11 @@ function App() {
         <Route path="/admin_dashboard" element={<Admin_Dashboard />} />
         <Route path="/therapists_register" element={<Therapists_register />} />
         <Route path="/therapists_dashboard" element={<Therapists_dashboard />} />
+
+        {/* Interactive Visual Task Scheduler */}
+        <Route path="/routine_create" element={<RoutineCreate />} />
+        <Route path="/routine_list" element={<RoutineList />} />
+        <Route path="/routine_detail/:id" element={<RoutineDetail />} />
 
         {/* Gemified Knowledge Builder */}
         <Route path="/drawing_lessons_create" element={<DrawingLessonCreate />} />
