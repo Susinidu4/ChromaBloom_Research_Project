@@ -208,7 +208,7 @@ export const Admin_Dashboard = () => {
                 <button
                   onClick={() => setActiveTab("therapists")}
                   className={[
-                    "px-8 py-3 font-semibold rounded-t-[8px] shadow-[0_8px_14px_rgba(0,0,0,0.18)] -ml-2",
+                    "px-8 py-3 font-semibold rounded-t-[8px] shadow-[0_8px_14px_rgba(0,0,0,0.18)] ",
                     activeTab === "therapists"
                       ? "bg-[#BD9A6B] text-white"
                       : "bg-[#DFC7A7] text-white/90",
