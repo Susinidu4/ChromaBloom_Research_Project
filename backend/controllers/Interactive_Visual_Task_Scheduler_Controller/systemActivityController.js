@@ -156,6 +156,29 @@ export const getAllSystemActivities = async (req, res) => {
   }
 };
 
+// GET system activity by ID
+export const getSystemActivityById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const activity = await SystemActivity.findById(id);
+
+    if (!activity) {
+      return res.status(404).json({ message: "System activity not found" });
+    }
+
+    return res.status(200).json({
+      message: "System activity fetched successfully",
+      data: activity,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 
 
 
