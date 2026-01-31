@@ -1,4 +1,5 @@
 import RecommendationModel from "../../models/Parental_Stress_Monitoring_Model/recommendationModel.js";
+import mongoose from "mongoose";
 
 // ------------------------- Admin -------------------------- //
 
@@ -22,8 +23,7 @@ export const createRecommendation = async (req, res) => {
       !level ||
       !category ||
       !duration ||
-      !steps ||
-      !source
+      !steps
     ) {
       return res.status(400).json({
         error: "Missing required fields",
@@ -83,6 +83,162 @@ export const createRecommendation = async (req, res) => {
     return res.status(500).json({
       error: "Server error",
       details: err.message,
+    });
+  }
+};
+
+// Get all recommendations
+export const getAllRecommendations = async (req, res) => {
+  try {
+    const recommendations = await RecommendationModel.find()
+      .sort({ created_at: -1 }) // newest first
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: recommendations.length,
+      data: recommendations,
+    });
+  } catch (error) {
+    console.error("Get recommendations error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recommendations",
+    });
+  }
+};
+
+// Get recommendation by ID
+export const getRecommendationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let recommendation = null;
+
+    // 🔹 If Mongo ObjectId
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      recommendation = await RecommendationModel.findById(id).lean();
+    }
+
+    // 🔹 Otherwise, treat as custom recommendationId (REC-0001)
+    if (!recommendation) {
+      recommendation = await RecommendationModel.findOne({
+        recommendationId: id,
+      }).lean();
+    }
+
+    if (!recommendation) {
+      return res.status(404).json({
+        success: false,
+        message: "Recommendation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: recommendation,
+    });
+  } catch (error) {
+    console.error("Get recommendation by ID error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recommendation",
+    });
+  }
+};
+
+// Update recommendation
+export const updateRecommendation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    delete req.body.recommendationId;
+    delete req.body._id;
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No update data provided",
+      });
+    }
+
+    let updated = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      updated = await RecommendationModel.findByIdAndUpdate(
+        id,
+        req.body,
+        { new: true, runValidators: true }
+      ).lean();
+    }
+
+    if (!updated) {
+      updated = await RecommendationModel.findOneAndUpdate(
+        { recommendationId: id },
+        req.body,
+        { new: true, runValidators: true }
+      ).lean();
+    }
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Recommendation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Recommendation updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update recommendation error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update recommendation",
+    });
+  }
+};
+
+
+// delete recommendation
+export const deleteRecommendation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let deleted = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      deleted = await RecommendationModel.findByIdAndDelete(id).lean();
+    }
+
+    if (!deleted) {
+      deleted = await RecommendationModel.findOneAndDelete({
+        recommendationId: id,
+      }).lean();
+    }
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Recommendation not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Recommendation permanently deleted",
+    });
+  } catch (error) {
+    console.error("Hard delete error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete recommendation",
     });
   }
 };
