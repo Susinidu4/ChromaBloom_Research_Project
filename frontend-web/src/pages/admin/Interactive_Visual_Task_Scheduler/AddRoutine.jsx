@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+
 import AdminLayout from "../AdminLayout";
 import { createSystemActivityService } from "../../../services/Admin/Interactive_Visual_Task_Scheduler/adminRoutineService";
 import createRoutineImg from "../../../assets/Interactive_Visual_Task_Scheduler/admin_create_routine.png";
@@ -28,10 +30,22 @@ export default function AddRoutine() {
 
   // ✅ UX states
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
-  const onBack = () => navigate(-1);
+  const onBack = () => {
+    Swal.fire({
+      title: "Discard changes?",
+      text: "Your entered data will be lost.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#BD9A6B",
+      cancelButtonColor: "#6B3B30",
+      confirmButtonText: "Yes, go back",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate(-1);
+      }
+    });
+  };
 
   const addStep = () => setSteps((prev) => [...prev, ""]);
   const removeStep = (index) =>
@@ -46,29 +60,41 @@ export default function AddRoutine() {
   };
 
   const validate = () => {
-    if (!title.trim()) return "Title is required";
-    if (!description.trim()) return "Description is required";
-    if (!ageGroup) return "Age group is required";
-    if (!devArea) return "Development area is required";
-    if (!difficulty) return "Difficulty level is required";
+    const t = title.trim();
+    const d = description.trim();
 
-    const cleanSteps = steps.map((x) => x.trim()).filter(Boolean);
-    if (cleanSteps.length === 0) return "At least one step is required";
+    if (!t) return "Title is required";
+    if (t.length > 50) return "Title cannot exceed 50 characters";
+
+    if (!d) return "Description is required";
+    if (d.length > 150) return "Description cannot exceed 150 characters";
 
     const dur = durationToMinutes();
-    if (!dur || dur <= 0) return "Duration must be a valid number";
+    if (!dur || dur <= 0) return "Duration is required";
+
+    if (!difficulty) return "Difficulty level is required";
+    if (!devArea) return "Development area is required";
+    if (!ageGroup) return "Age group is required";
+
+    const cleanSteps = steps.map((x) => x.trim()).filter(Boolean);
+    if (cleanSteps.length < 1) return "At least one step is required";
+
+    // ✅ image not required → no validation for imageFile
 
     return "";
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccessMsg("");
 
     const v = validate();
     if (v) {
-      setError(v);
+      Swal.fire({
+        icon: "error",
+        title: "Validation Error",
+        text: v,
+        confirmButtonColor: "#BD9A6B",
+      });
       return;
     }
 
@@ -83,9 +109,9 @@ export default function AddRoutine() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      age_group: ageGroup, // backend expects "1".."10"
-      development_area: devArea, // backend expects enum values
-      difficulty_level: difficulty, // easy/medium/hard
+      age_group: ageGroup,
+      development_area: devArea,
+      difficulty_level: difficulty,
       estimated_duration_minutes: durationToMinutes(),
       steps: cleanSteps,
       imageFile,
@@ -94,27 +120,28 @@ export default function AddRoutine() {
     try {
       setSubmitting(true);
       const res = await createSystemActivityService(payload);
-      setSuccessMsg(res?.message || "Created successfully!");
 
-      // ✅ after success you can redirect to list
-      // navigate("/routine_list");
-      // or clear form:
-      setTitle("");
-      setDescription("");
-      setMinutes("");
-      setSeconds("");
-      setDifficulty("");
-      setDevArea("");
-      setAgeGroup("");
-      setSteps(["", ""]);
-      setImageFile(null);
+      Swal.fire({
+        icon: "success",
+        title: "Routine Created",
+        text: res?.message || "Routine created successfully!",
+        confirmButtonColor: "#BD9A6B",
+      }).then(() => {
+        navigate("/routine_list");
+      });
     } catch (err) {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
         "Failed to create routine";
-      setError(msg);
+
+      Swal.fire({
+        icon: "error",
+        title: "Creation Failed",
+        text: msg,
+        confirmButtonColor: "#BD9A6B",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -185,29 +212,31 @@ export default function AddRoutine() {
                 />
               </div>
 
-              {/* Messages */}
-              {error && (
-                <div className="mt-6 rounded-lg bg-red-50 text-red-600 px-4 py-3 text-sm">
-                  {error}
-                </div>
-              )}
-              {successMsg && (
-                <div className="mt-6 rounded-lg bg-green-50 text-green-700 px-4 py-3 text-sm">
-                  {successMsg}
-                </div>
-              )}
-
               {/* Title */}
               <div className="mt-10 grid grid-cols-[120px_1fr] gap-6 items-center">
                 <label className="text-[#BD9A6B] text-sm font-semibold">
                   Title :
                 </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-transparent border-b border-[#BD9A6B]/60 focus:border-[#BD9A6B]
-                             outline-none py-2 text-sm text-[#8F6F4C]"
-                />
+
+                {/* Input wrapper */}
+                <div className="relative">
+                  <input
+                    value={title}
+                    maxLength={50}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-transparent border-b border-[#BD9A6B]/60
+                 focus:border-[#BD9A6B]
+                 outline-none py-2 pr-12 text-sm text-[#8F6F4C]"
+                  />
+
+                  {/* Counter */}
+                  <span
+                    className="absolute right-0 bottom-0 text-[11px]
+                     text-[#BD9A6B] opacity-80"
+                  >
+                    {title.length}/50
+                  </span>
+                </div>
               </div>
 
               {/* Description */}
@@ -215,14 +244,27 @@ export default function AddRoutine() {
                 <label className="text-[#BD9A6B] text-sm font-semibold pt-2">
                   Description :
                 </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-[12px] border border-[#BD9A6B] bg-[#E9DDCC]
-                             outline-none px-4 py-3 text-sm text-[#8F6F4C]
-                             shadow-[0_6px_10px_rgba(0,0,0,0.12)]"
-                />
+
+                {/* Textarea wrapper */}
+                <div className="relative">
+                  <textarea
+                    value={description}
+                    maxLength={150}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-[12px] border border-[#BD9A6B] bg-[#E9DDCC]
+                 outline-none px-4 py-3 pb-7 text-sm text-[#8F6F4C]
+                 shadow-[0_6px_10px_rgba(0,0,0,0.12)]"
+                  />
+
+                  {/* Counter */}
+                  <span
+                    className="absolute right-3 bottom-2 text-[11px]
+                     text-[#BD9A6B] opacity-80"
+                  >
+                    {description.length}/150
+                  </span>
+                </div>
               </div>
 
               {/* Duration */}
