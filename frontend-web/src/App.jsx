@@ -28,6 +28,10 @@ import RoutineList from "./pages/admin/Interactive_Visual_Task_Scheduler/Routine
 import RoutineDetail from "./pages/admin/Interactive_Visual_Task_Scheduler/SelectedRoutine";
 import RoutineEdit from "./pages/admin/Interactive_Visual_Task_Scheduler/EditRoutine";
 
+import StressRecommendationList from "./pages/admin/Parental_Stress_monitoring/StressRecommendationList";
+import StressRecommendationDetail from "./pages/admin/Parental_Stress_monitoring/SelectedStressRecommendation";
+import StressRecommendationAdd from "./pages/admin/Parental_Stress_monitoring/AddStressRecommendation";
+
 function App() {
 
   return (
@@ -48,6 +52,11 @@ function App() {
         <Route path="/routine_list" element={<RoutineList />} />
         <Route path="/routine_detail/:id" element={<RoutineDetail />} />
         <Route path="/routine_edit/:id" element={<RoutineEdit />} />
+
+        {/* Parental Stress Monitoring */}
+        <Route path="/stress_recommendation_list" element={<StressRecommendationList />} />
+        <Route path="/stress_recommendation_detail/:id" element={<StressRecommendationDetail />} />
+        <Route path="/Stress_recommendation_create" element={<StressRecommendationAdd/>}/> 
 
         {/* Gemified Knowledge Builder */}
         <Route path="/drawing_lessons_create" element={<DrawingLessonCreate />} />
