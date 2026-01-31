@@ -47,5 +47,20 @@ export const getSystemActivityByIdService = async (id) => {
   return res.data; // { message, data: {} }
 };
 
+// Update (PATCH based on your backend route)
+export const updateSystemActivityService = async (id, payload) => {
+  // If your backend uses PATCH:
+  const res = await axios.patch(`${API_BASE}/updateSystemActivity/${id}`, payload);
+
+  return res.data;
+};
+
+// DELETE SYSTEM ACTIVITY BY ID
+export const deleteSystemActivityByIdService = async (id) => {
+  const res = await axios.delete(`${API_BASE}/deleteSystemActivity/${id}`);
+  return res.data;
+};
+
+
 
 
