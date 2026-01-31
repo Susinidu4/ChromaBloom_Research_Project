@@ -5,8 +5,13 @@ import { MdDelete } from "react-icons/md";
 import { HiDotsHorizontal } from "react-icons/hi";
 import AdminLayout from "../AdminLayout";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
-import { getAllSystemActivitiesService } from "../../../services/Admin/Interactive_Visual_Task_Scheduler/adminRoutineService.js";
+
+import {
+  getAllSystemActivitiesService,
+  deleteSystemActivityByIdService,
+} from "../../../services/Admin/Interactive_Visual_Task_Scheduler/adminRoutineService.js";
 
 export default function RoutineList() {
   const navigate = useNavigate();
@@ -15,7 +20,6 @@ export default function RoutineList() {
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // what user is selecting right now (not applied yet)
   const [pendingDifficulty, setPendingDifficulty] = useState("");
@@ -27,17 +31,31 @@ export default function RoutineList() {
   const [appliedDevArea, setAppliedDevArea] = useState("");
   const [appliedAgeGroup, setAppliedAgeGroup] = useState("");
 
+  const alertError = (msg) =>
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: msg || "Something went wrong",
+      confirmButtonColor: "#BD9A6B",
+    });
+
+  const alertSuccess = (msg) =>
+    Swal.fire({
+      icon: "success",
+      title: "Success",
+      text: msg || "Done",
+      confirmButtonColor: "#BD9A6B",
+    });
+
   useEffect(() => {
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        setError("");
 
         const res = await getAllSystemActivitiesService();
 
-        // ✅ backend: res.data is the array
         const mapped = (res.data || []).map((a) => ({
-          id: a._id, // or a.system_activityId if you want "SA-001"
+          id: a._id,
           title: a.title || "Untitled",
           age: a.age_group || "",
           difficulty: a.difficulty_level || "",
@@ -47,7 +65,9 @@ export default function RoutineList() {
 
         setRows(mapped);
       } catch (e) {
-        setError(e?.message || "Failed to load routines");
+        const msg =
+          e?.response?.data?.message || e?.message || "Failed to load routines";
+        alertError(msg);
       } finally {
         setLoading(false);
       }
@@ -72,9 +92,35 @@ export default function RoutineList() {
   }, [rows, search, appliedDifficulty, appliedDevArea, appliedAgeGroup]);
 
   const onAddNew = () => navigate("/routine_create");
-  const onDelete = (id) => alert(`Delete ${id}`);
 
-  // ✅ Navigate to detail page
+  const onDelete = async (id) => {
+  const result = await Swal.fire({
+    title: "Delete routine?",
+    text: "This action cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#6B3B30",
+    cancelButtonColor: "#BD9A6B",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    await deleteSystemActivityByIdService(id);
+    setRows((prev) => prev.filter((r) => r.id !== id));
+
+    alertSuccess("Routine deleted successfully.");
+  } catch (e) {
+    const msg =
+      e?.response?.data?.message || e?.message || "Delete failed";
+    alertError(msg);
+  }
+};
+
+
+  // Navigate to detail page
   const onMore = (id) => navigate(`/routine_detail/${id}`);
 
   const onFilter = () => {
@@ -202,13 +248,7 @@ export default function RoutineList() {
                   </div>
                 )}
 
-                {error && (
-                  <div className="py-10 text-center text-red-500">{error}</div>
-                )}
-
-                {!loading &&
-                  !error &&
-                  filtered.map((r) => (
+                {!loading && filtered.map((r) => (
                     <div key={r.id} className="px-1 py-2">
                       <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
                         <div className="truncate">{r.title}</div>
@@ -248,7 +288,7 @@ export default function RoutineList() {
                     </div>
                   ))}
 
-                {!loading && !error && filtered.length === 0 && (
+                {!loading && filtered.length === 0 && (
                   <div className="py-16 text-center text-[#BD9A6B]">
                     No routines found.
                   </div>
