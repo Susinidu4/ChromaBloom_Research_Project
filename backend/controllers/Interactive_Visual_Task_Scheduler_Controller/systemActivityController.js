@@ -14,12 +14,13 @@ import cloudinary from "../../config/cloudinary.js";
 // helper: upload buffer to Cloudinary using upload_stream
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream( // create upload stream from Cloudinary
+    const stream = cloudinary.uploader.upload_stream(
+      // create upload stream from Cloudinary
       { folder },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
-      }
+      },
     );
     stream.end(buffer); // send buffer
   });
@@ -101,7 +102,7 @@ export const createSystemActivity = async (req, res) => {
       try {
         const result = await uploadBufferToCloudinary(
           req.file.buffer,
-          "chromabloom/system_activities"
+          "chromabloom/system_activities",
         );
         uploadedImageUrl = result.secure_url;
       } catch (error) {
@@ -179,19 +180,135 @@ export const getSystemActivityById = async (req, res) => {
   }
 };
 
+// Update System Activity (Edit routine)
+export const updateSystemActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    // find by Mongo _id OR by system_activityId (SA-001)
+    const activity = await SystemActivity.findOne({
+      $or: [{ _id: id }, { system_activityId: id }],
+    });
 
+    if (!activity) {
+      return res.status(404).json({ message: "Routine not found" });
+    }
 
+    const {
+      title,
+      description,
+      age_group,
+      development_area,
+      difficulty_level,
+      estimated_duration_minutes,
+      steps,
+      media_links,
+    } = req.body;
+
+    // Update only if provided
+    if (title !== undefined) activity.title = title;
+    if (description !== undefined) activity.description = description;
+    if (age_group !== undefined) activity.age_group = age_group;
+    if (development_area !== undefined)
+      activity.development_area = development_area;
+    if (difficulty_level !== undefined)
+      activity.difficulty_level = difficulty_level;
+
+    if (estimated_duration_minutes !== undefined) {
+      const dur = Number(estimated_duration_minutes);
+      if (Number.isNaN(dur) || dur <= 0) {
+        return res.status(400).json({
+          message: "estimated_duration_minutes must be a valid number > 0",
+        });
+      }
+      activity.estimated_duration_minutes = dur;
+    }
+
+    // Steps: accept either [{instruction}] or [{step_number,instruction}]
+    if (steps !== undefined) {
+      if (!Array.isArray(steps) || steps.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "Routine must contain at least one step" });
+      }
+
+      const cleanedSteps = steps
+        .map((s) => (typeof s === "string" ? { instruction: s } : s))
+        .map((s) => ({
+          instruction: String(s.instruction || "").trim(),
+        }))
+        .filter((s) => s.instruction.length > 0)
+        .map((s, idx) => ({
+          step_number: idx + 1,
+          instruction: s.instruction,
+        }));
+
+      if (cleanedSteps.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "Routine must contain at least one step" });
+      }
+
+      activity.steps = cleanedSteps;
+    }
+
+    // media_links: replace whole array if provided
+    if (media_links !== undefined) {
+      if (!Array.isArray(media_links)) {
+        return res
+          .status(400)
+          .json({ message: "media_links must be an array" });
+      }
+      activity.media_links = media_links
+        .map((x) => String(x).trim())
+        .filter(Boolean);
+    }
+
+    await activity.save();
+
+    return res.status(200).json({
+      message: "Routine updated successfully",
+      data: activity,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Failed to update routine",
+      error: err.message,
+    });
+  }
+};
+
+// DELETE system activity
+export const deleteSystemActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await SystemActivity.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "SystemActivity not found" });
+    }
+
+    return res.status(200).json({
+      message: "SystemActivity deleted successfully",
+      data: { id: deleted._id, system_activityId: deleted.system_activityId },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to delete SystemActivity",
+      error: err.message,
+    });
+  }
+};
 
 // ------------------------- Caregiver ------------------------- //
-
 
 // Used by Task Scheduler Home page
 
 // GET routine summary: previous vs current difficulty level
 export const getLatestRoutineSummary = async (req, res) => {
   try {
-    const { caregiverId  } = req.params;
+    const { caregiverId } = req.params;
 
     // 1️⃣ Get ACTIVE plan (current)
     const activePlan = await ChildRoutinePlan.findOne({
@@ -269,7 +386,6 @@ function buildDifficultyMessage(previous, current) {
   );
 }
 
-
 // GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)
 export const getRoutineDashboard = async (req, res) => {
   try {
@@ -309,11 +425,11 @@ export const getRoutineDashboard = async (req, res) => {
     const cycles = plans
       .slice()
       .sort(
-        (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+        (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date),
       )
       .map((p) => ({
         label: `${formatDate(p.cycle_start_date)} - ${formatDate(
-          p.cycle_end_date
+          p.cycle_end_date,
         )}`,
         cycleStart: p.cycle_start_date,
         cycleEnd: p.cycle_end_date,
@@ -348,7 +464,8 @@ export const getRoutineDashboard = async (req, res) => {
         plans
           .slice()
           .sort(
-            (a, b) => new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+            (a, b) =>
+              new Date(b.cycle_start_date) - new Date(a.cycle_start_date),
           )[0];
     }
 
@@ -395,14 +512,18 @@ export const getRoutineDashboard = async (req, res) => {
     // 6) Completed total (from runs)
     let completedStepsTotal = runs.reduce(
       (sum, r) => sum + (r.completed_steps || 0),
-      0
+      0,
     );
 
     // If completedStepsTotal is bigger than expected total (edge case), clamp it
-    if (completedStepsTotal > totalStepsTotal) completedStepsTotal = totalStepsTotal;
+    if (completedStepsTotal > totalStepsTotal)
+      completedStepsTotal = totalStepsTotal;
 
     // 7) Skipped total = expected - completed (this is the fix you asked)
-    const skippedStepsTotal = Math.max(totalStepsTotal - completedStepsTotal, 0);
+    const skippedStepsTotal = Math.max(
+      totalStepsTotal - completedStepsTotal,
+      0,
+    );
 
     // 8) Daily progress Day1..Day14
     // Build map by date string -> completedSteps
@@ -452,7 +573,7 @@ export const getRoutineDashboard = async (req, res) => {
         stepAnalysis: {
           completedStepsTotal,
           skippedStepsTotal, // ✅ fixed
-          totalStepsTotal,   // ✅ fixed (plan-based)
+          totalStepsTotal, // ✅ fixed (plan-based)
         },
         dailyProgress,
       },
@@ -468,8 +589,8 @@ export const getRoutineDashboard = async (req, res) => {
 // GetRoutineDashboard helper functions
 function formatDate(date) {
   const d = new Date(date);
-  const dd = String(d.getDate()).padStart(2, "0"); 
-  const mm = String(d.getMonth() + 1).padStart(2, "0"); 
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
@@ -500,10 +621,6 @@ function addDays(d, n) {
   return x;
 }
 
-
-
-
-
 // ------------------------- Special controllers ------------------------- //
 
 // Used in display_userActivity page
@@ -530,7 +647,7 @@ export const getOrCreateStarterPlan = async (req, res) => {
       cycle_end_date: { $gte: now },
     }).populate({
       path: "activities.activityId",
-      model: "SystemActivity", 
+      model: "SystemActivity",
     });
 
     if (existingPlan) {
@@ -544,7 +661,7 @@ export const getOrCreateStarterPlan = async (req, res) => {
     // (Optional) deactivate old plans for safety
     await ChildRoutinePlan.updateMany(
       { caregiverId, childId, is_active: true },
-      { $set: { is_active: false } }
+      { $set: { is_active: false } },
     );
 
     // 3) Pick 5 random EASY activities for that age group
@@ -665,7 +782,7 @@ export const updateSystemActivityProgress = async (req, res) => {
           run_date: runDate,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     res.status(200).json({ message: "Saved", data: run });
@@ -713,12 +830,11 @@ export const getRoutineRunProgress = async (req, res) => {
   }
 };
 
-
 // ------------------------- ML integration ------------------------- //
 
 //This function use for testing ML integration only
 
-// This function computes features for the ended cycle and sends them to ML 
+// This function computes features for the ended cycle and sends them to ML
 // to get the next difficulty level recommendation.
 export const closeCycleAndSendToML = async (req, res) => {
   try {
@@ -798,7 +914,7 @@ async function callMlForNextDifficulty(payload) {
 
 //---------------------------- next routine plan --------------------------- //
 
-// Real production flow 
+// Real production flow
 
 // This function closes the ended plan, sends features to ML, gets next level,
 // picks new activities, and creates the next 14-day plan.
@@ -889,7 +1005,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
     // 5) Deactivate old plan
     await ChildRoutinePlan.updateOne(
       { _id: endedPlan._id },
-      { $set: { is_active: false } }
+      { $set: { is_active: false } },
     );
 
     // 6) Next version number
@@ -945,7 +1061,7 @@ function computeNextCycleDates() {
   start.setDate(start.getDate() + 1);
   start.setHours(0, 0, 0, 0);
 
-  // create the end date -> start + 13 days 
+  // create the end date -> start + 13 days
   const end = new Date(start);
   end.setDate(end.getDate() + 13);
   end.setHours(23, 59, 59, 999);
@@ -978,5 +1094,3 @@ function getAgeGroupFromDOB(dateOfBirth) {
   if (age === 9) return "9";
   return "10";
 }
-
-
