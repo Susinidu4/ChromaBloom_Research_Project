@@ -45,16 +45,39 @@ import 'pages/Gamified_Knowlage_Builder/problemSolving/lessonDetails.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/quize1.dart';
 import 'pages/Gamified_Knowlage_Builder/problemSolving/problemSComplete.dart';
 
-
-
-
 void main() {
-   runApp(
+  runApp(
     ChangeNotifierProvider(
-      create: (_) => SessionProvider()..loadFromStorage(),
-      child: const MyApp(),
+      create: (_) => SessionProvider(),
+      child: const AppBoot(),
     ),
   );
+}
+
+// ✅ NEW: waits for SessionProvider.loadFromStorage() BEFORE running MyApp
+class AppBoot extends StatelessWidget {
+  const AppBoot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = context.read<SessionProvider>();
+
+    return FutureBuilder(
+      future: session.loadFromStorage(),
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const MaterialApp(
+            title: 'ChromaBloom',
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        return const MyApp();
+      },
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -65,7 +88,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ChromaBloom',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue,),
+      theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
@@ -81,7 +104,7 @@ class MyApp extends StatelessWidget {
         '/profile_page': (context) => const ProfilePage(),
         '/profile_settings': (context) => const ProfileSettingsPage(),
         '/child_details': (context) => const ChildDetailsPage(),
-        
+
         '/taskSchedulerHome': (context) => const RoutineHomeScreen(),
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
         '/displayUserActivity': (context) => const DisplayUserActivityScreen(),
@@ -90,7 +113,7 @@ class MyApp extends StatelessWidget {
         '/createJournalEntry': (context) => const CreateJournalEntryScreen(),
         '/displayJournalEntry': (context) => const JournalsScreen(),
         '/stressAnalysis': (context) => const StressAnalysisPage(),
-        
+
         '/caregiver_signup': (_) => const SignUpScreen(),
         '/caregiver_login': (_) => const CaregiverLoginScreen(),
         '/therapistLogin': (_) => const TherapistLoginScreen(),
@@ -102,20 +125,23 @@ class MyApp extends StatelessWidget {
         '/startG': (context) => const UnitStartPage_2(),
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
-        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(), // drawing lesson 
-        '/drawingImprovementCheck': (context) => const DrawingImprovementCheckPage(), //drawing lesson img upload
-        '/drawingperdcit' : (context) => const DrawingPredictApiPage(),
-        '/problemSolvingLessons': (context) =>  ProblemSolvingUnit1Page(),
-        '/problemSolvingLessonDetail': (context) => const ProblemSolvingMiniTutorialPage(lessonId: '',),
+        '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
+        '/drawingImprovementCheck': (context) =>
+            const DrawingImprovementCheckPage(),
+        '/drawingperdcit': (context) => const DrawingPredictApiPage(),
+
+        '/problemSolvingLessons': (context) => ProblemSolvingUnit1Page(),
+        '/problemSolvingLessonDetail': (context) =>
+            const ProblemSolvingMiniTutorialPage(lessonId: ''),
         '/problemSolvingQuiz1': (context) => const ProblemSolvingMatchPage(),
-        '/problemSolvingLessonComplete': (context) => const ProblemSolvingLessonCompletePage(correctness: 0.0, improvement: 0.0, lessonId: '',),
+        '/problemSolvingLessonComplete': (context) =>
+            const ProblemSolvingLessonCompletePage(
+              correctness: 0.0,
+              improvement: 0.0,
+              lessonId: '',
+            ),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
-
-        
-
-
-
       },
     );
   }

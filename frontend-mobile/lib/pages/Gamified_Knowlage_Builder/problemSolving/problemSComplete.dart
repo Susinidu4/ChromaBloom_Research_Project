@@ -55,7 +55,29 @@ class _ProblemSolvingLessonCompletePageState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _autoSaveCompletion());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _waitForSessionThenSave());
+  }
+
+  // ✅ NEW: wait until SessionProvider finishes loadFromStorage()
+  Future<void> _waitForSessionThenSave() async {
+    final session = context.read<SessionProvider>();
+
+    // wait up to ~2 seconds for loadFromStorage() to finish
+    for (int i = 0; i < 20; i++) {
+      if (session.isLoggedIn && session.caregiver != null) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (!mounted) return;
+
+    if (!session.isLoggedIn || session.caregiver == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session is still loading. Please try again.")),
+      );
+      return;
+    }
+
+    await _autoSaveCompletion();
   }
 
   // ----- helpers -----
@@ -167,14 +189,13 @@ class _ProblemSolvingLessonCompletePageState
       final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
 
       // 1) fetch existing records (before save) - optional but useful
-      Map<String, dynamic>? before;
       try {
-        before = await CompleteProblemSolvingSessionService.getByChildAndLesson(
+        await CompleteProblemSolvingSessionService.getByChildAndLesson(
           childId: childId,
           lessonId: widget.lessonId,
         );
       } catch (_) {
-        before = null; // might be 404, etc.
+        // ignore (might be 404)
       }
 
       // 2) ALWAYS create a new record so "last two records" can exist
@@ -266,7 +287,7 @@ class _ProblemSolvingLessonCompletePageState
 
                     const SizedBox(height: 10),
 
-                    // ✅ ID DISPLAY CARD (TOP OF PAGE)
+                    // ✅ ID DISPLAY CARD
                     _IdInfoCard(
                       lessonId: _lessonId,
                       caregiverId: _caregiverId,
