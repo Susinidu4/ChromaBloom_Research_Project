@@ -47,6 +47,11 @@ class _ProblemSolvingLessonCompletePageState
   // ✅ computed from backend last 2 records
   double _computedImprovement = 0.0;
 
+  // ✅ show IDs on UI
+  String _caregiverId = "";
+  String _childId = "";
+  late final String _lessonId = widget.lessonId;
+
   @override
   void initState() {
     super.initState();
@@ -137,9 +142,10 @@ class _ProblemSolvingLessonCompletePageState
         throw Exception("No caregiver session found. Please login again.");
       }
 
-      final caregiverId =
-          (session.caregiver!['_id']).toString();
-      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found in session");
+      final caregiverId = (session.caregiver!['_id']).toString();
+      if (caregiverId.isEmpty) {
+        throw Exception("Caregiver ID not found in session");
+      }
 
       // ✅ get child list by caregiver
       final children = await ChildApi.getChildrenByCaregiver(caregiverId);
@@ -149,6 +155,14 @@ class _ProblemSolvingLessonCompletePageState
       final first = children.first;
       final childId = (first['_id'] ?? first['id'] ?? '').toString();
       if (childId.isEmpty) throw Exception("Child ID not found");
+
+      // ✅ store for UI display
+      if (mounted) {
+        setState(() {
+          _caregiverId = caregiverId;
+          _childId = childId;
+        });
+      }
 
       final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
 
@@ -249,6 +263,16 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ],
                     ),
+
+                    const SizedBox(height: 10),
+
+                    // ✅ ID DISPLAY CARD (TOP OF PAGE)
+                    _IdInfoCard(
+                      lessonId: _lessonId,
+                      caregiverId: _caregiverId,
+                      childId: _childId,
+                    ),
+
                     const SizedBox(height: 14),
 
                     Row(
@@ -329,7 +353,83 @@ class _ProblemSolvingLessonCompletePageState
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
+    );
+  }
+}
+
+class _IdInfoCard extends StatelessWidget {
+  const _IdInfoCard({
+    required this.lessonId,
+    required this.caregiverId,
+    required this.childId,
+  });
+
+  final String lessonId;
+  final String caregiverId;
+  final String childId;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget row(String label, String value) {
+      final v = value.trim().isEmpty ? "—" : value;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 92,
+              child: Text(
+                "$label:",
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: ProblemSolvingLessonCompletePage.topRowBlue,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                v,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ProblemSolvingLessonCompletePage.circleBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: ProblemSolvingLessonCompletePage.circleBorder,
+          width: 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16000000),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          row("Lesson ID", lessonId),
+          row("Caregiver ID", caregiverId),
+          row("Child ID", childId),
+        ],
+      ),
     );
   }
 }

@@ -191,7 +191,7 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
     );
   }
 
