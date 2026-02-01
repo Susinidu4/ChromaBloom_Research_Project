@@ -287,14 +287,14 @@ class _ProblemSolvingLessonCompletePageState
 
                     const SizedBox(height: 10),
 
-                    // ✅ ID DISPLAY CARD
-                    _IdInfoCard(
-                      lessonId: _lessonId,
-                      caregiverId: _caregiverId,
-                      childId: _childId,
-                    ),
+                    // // ✅ ID DISPLAY CARD
+                    // _IdInfoCard(
+                    //   lessonId: _lessonId,
+                    //   caregiverId: _caregiverId,
+                    //   childId: _childId,
+                    // ),
 
-                    const SizedBox(height: 14),
+                    // const SizedBox(height: 14),
 
                     Row(
                       children: [
