@@ -31,6 +31,7 @@ import RoutineEdit from "./pages/admin/Interactive_Visual_Task_Scheduler/EditRou
 import StressRecommendationList from "./pages/admin/Parental_Stress_monitoring/StressRecommendationList";
 import StressRecommendationDetail from "./pages/admin/Parental_Stress_monitoring/SelectedStressRecommendation";
 import StressRecommendationAdd from "./pages/admin/Parental_Stress_monitoring/AddStressRecommendation";
+import StressRecommendationEdit from "./pages/admin/Parental_Stress_monitoring/EditStressRecommendation";
 
 function App() {
 
@@ -57,6 +58,7 @@ function App() {
         <Route path="/stress_recommendation_list" element={<StressRecommendationList />} />
         <Route path="/stress_recommendation_detail/:id" element={<StressRecommendationDetail />} />
         <Route path="/Stress_recommendation_create" element={<StressRecommendationAdd/>}/> 
+        <Route path="/stress_recommendation_edit/:id" element={<StressRecommendationEdit/>}/>
 
         {/* Gemified Knowledge Builder */}
         <Route path="/drawing_lessons_create" element={<DrawingLessonCreate />} />
