@@ -35,10 +35,8 @@ export const getRecommendationByIdService = async (id) => {
 // UPDATE recommendation
 // -----------------------------
 export const updateRecommendationService = async (id, payload) => {
-  const res = await axios.put(`${API_BASE}/updateRecommendation/${id}`, payload, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+  const res = await axios.patch(`${API_BASE}/updateRecommendation/${id}`, payload, {
+    headers: { "Content-Type": "application/json" },
   });
   return res;
 };
