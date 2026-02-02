@@ -16,6 +16,7 @@ export default function RecommendationDetail() {
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
 
   useEffect(() => {
     if (!error) return;
@@ -29,13 +30,8 @@ export default function RecommendationDetail() {
   }, [error]);
 
   const onBack = () => navigate("/stress_recommendation_list");
-  const onEdit = async () => {
-    await Swal.fire({
-      icon: "info",
-      title: "Edit",
-      text: "Edit feature not implemented yet.",
-      confirmButtonColor: "#BD9A6B",
-    });
+  const onEdit = () => {
+    navigate(`/stress_recommendation_edit/${id}`);
   };
 
   const onDelete = async () => {
