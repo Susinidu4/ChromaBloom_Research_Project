@@ -140,12 +140,12 @@ export default function RoutineList() {
 
   return (
     <AdminLayout>
-      <div className="w-full h-full bg-[#F3ECE7]">
+      <div className="w-full h-full bg-[#F3E8E8]">
         {/* Center white-ish canvas like screenshot */}
         <div className="px-10 py-10">
           {/* Top Row: Title + Add New */}
           <div className="flex items-start justify-between">
-            <h1 className="text-[22px] font-semibold text-[#BD9A6B] underline underline-offset-4">
+            <h1 className="text-[22px] font-bold text-[#BD9A6B] underline underline-offset-4">
               Routine List
             </h1>
 
