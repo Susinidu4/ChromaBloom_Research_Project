@@ -126,13 +126,11 @@ class MyApp extends StatelessWidget {
         '/unitStart': (context) => const UnitStartPage(),
         '/drawingUnit1': (context) => DrawingUnit1Page(),
         '/drawingLessonDetail': (context) => const DrawingLessonDetailPage(),
-        '/drawingImprovementCheck': (context) =>
-            const DrawingImprovementCheckPage(),
+        '/drawingImprovementCheck': (context) =>const DrawingImprovementCheckPage(),
         '/drawingperdcit': (context) => const DrawingPredictApiPage(),
 
         '/problemSolvingLessons': (context) => ProblemSolvingUnit1Page(),
-        '/problemSolvingLessonDetail': (context) =>
-            const ProblemSolvingMiniTutorialPage(lessonId: ''),
+        '/problemSolvingLessonDetail': (context) =>const ProblemSolvingMiniTutorialPage(lessonId: ''),
         '/problemSolvingQuiz1': (context) => const ProblemSolvingMatchPage(),
         '/problemSolvingLessonComplete': (context) =>
             const ProblemSolvingLessonCompletePage(
