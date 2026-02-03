@@ -177,7 +177,7 @@ export default function AddRoutine() {
 
   return (
     <AdminLayout>
-      <div className="w-full h-full bg-[#F3ECE7]">
+      <div className="w-full h-full bg-[#F3E8E8]">
         <div className="px-10 py-10">
           <div className="relative min-h-[660px] rounded-[14px] px-10 py-10">
             {/* Back button */}

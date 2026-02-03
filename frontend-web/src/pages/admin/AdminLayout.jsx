@@ -7,7 +7,7 @@ import Footer from "../../components/Footer";
 
 export default function AdminLayout({ children }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F3ECE7]">
+    <div className="min-h-screen flex flex-col bg-[#F3E8E8]">
         
       {/* Header (stays on top) */}
       <div className="sticky top-0 z-50">
@@ -23,7 +23,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Page content area */}
-        <main className="flex-1 bg-white min-h-0 overflow-auto">
+        <main className="flex-1 bg-[#F3E8E8] min-h-0 overflow-auto">
           {children ?? <Outlet />}
         </main>
 

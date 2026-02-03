@@ -76,7 +76,7 @@ export default function Sidebar() {
               icon: HiOutlineClipboardList,
             },
             {
-              to: "/learning_module",
+              to: "/stress_recommendation_list",
               label: "Learning Module",
               icon: PiBooksLight,
             },
