@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class UnitStartPage extends StatelessWidget {
-  const UnitStartPage({super.key});
+// ignore: camel_case_types
+class UnitStartPage_2 extends StatelessWidget {
+  const UnitStartPage_2({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
 
@@ -74,8 +75,11 @@ class UnitStartPage extends StatelessWidget {
                           _PrimaryButton(
                             label: "Continue",
                             onTap: () {
-                              // ✅ Go to drawing unit 1
-                              Navigator.pushReplacementNamed(context, '/drawingUnit1');
+                              // ✅ Problem solving final redirect
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/problemSolvingLessons',
+                              );
                             },
                           ),
 
