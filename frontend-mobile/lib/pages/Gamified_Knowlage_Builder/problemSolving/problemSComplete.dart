@@ -13,7 +13,7 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.correctness,
-    required this.improvement,
+    required this.improvement, // kept for compatibility, but we compute improvement from API now
   });
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -32,7 +32,7 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
 
   final String lessonId; // ✅ REQUIRED for saving
   final double correctness; // 0.0 - 1.0
-  final double improvement; // 0.0 - 1.0
+  final double improvement; // not used for UI anymore (API-based improvement)
 
   @override
   State<ProblemSolvingLessonCompletePage> createState() =>
@@ -44,11 +44,109 @@ class _ProblemSolvingLessonCompletePageState
   bool _saving = false;
   bool _savedOnce = false;
 
+  // ✅ computed from backend last 2 records
+  double _computedImprovement = 0.0;
+
+  // ✅ show IDs on UI
+  String _caregiverId = "";
+  String _childId = "";
+  late final String _lessonId = widget.lessonId;
+
   @override
   void initState() {
     super.initState();
-    // run after build context is ready
-    WidgetsBinding.instance.addPostFrameCallback((_) => _autoSaveCompletion());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _waitForSessionThenSave());
+  }
+
+  // ✅ NEW: wait until SessionProvider finishes loadFromStorage()
+  Future<void> _waitForSessionThenSave() async {
+    final session = context.read<SessionProvider>();
+
+    // wait up to ~2 seconds for loadFromStorage() to finish
+    for (int i = 0; i < 20; i++) {
+      if (session.isLoggedIn && session.caregiver != null) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (!mounted) return;
+
+    if (!session.isLoggedIn || session.caregiver == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session is still loading. Please try again.")),
+      );
+      return;
+    }
+
+    await _autoSaveCompletion();
+  }
+
+  // ----- helpers -----
+
+  List<Map<String, dynamic>> _extractDataList(Map<String, dynamic> res) {
+    final raw = res["data"];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+          .toList();
+    }
+    // if backend returns single object, wrap it
+    if (raw is Map) {
+      return [raw.map((k, v) => MapEntry(k.toString(), v))];
+    }
+    return [];
+  }
+
+  double _readScore(Map<String, dynamic> item) {
+    final v = item["correctness_score"];
+    if (v is num) return v.toDouble();
+    return double.tryParse(v?.toString() ?? "") ?? 0.0;
+  }
+
+  DateTime? _readDate(Map<String, dynamic> item) {
+    // try common fields (optional)
+    final s = item["createdAt"] ?? item["created_at"] ?? item["timestamp"];
+    if (s == null) return null;
+    try {
+      return DateTime.parse(s.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Map<String, dynamic>> _sortRecordsSmart(List<Map<String, dynamic>> list) {
+    // If createdAt exists -> sort by date; else keep original order
+    final hasAnyDate = list.any((e) => _readDate(e) != null);
+    if (!hasAnyDate) return list;
+
+    final copy = [...list];
+    copy.sort((a, b) {
+      final da = _readDate(a);
+      final db = _readDate(b);
+      if (da == null && db == null) return 0;
+      if (da == null) return -1;
+      if (db == null) return 1;
+      return da.compareTo(db);
+    });
+    return copy;
+  }
+
+  double _computeImprovementFromLastTwo(List<Map<String, dynamic>> records) {
+    if (records.isEmpty) return 0.0;
+
+    final sorted = _sortRecordsSmart(records);
+
+    if (sorted.length == 1) {
+      // only 1 record -> improvement can be 0 (or same as score). We'll keep 0.
+      return 0.0;
+    }
+
+    final last = _readScore(sorted[sorted.length - 1]);
+    final prev = _readScore(sorted[sorted.length - 2]);
+
+    // improvement as positive delta (0..1)
+    final delta = (last - prev);
+    return delta.clamp(0.0, 1.0);
   }
 
   Future<void> _autoSaveCompletion() async {
@@ -66,61 +164,61 @@ class _ProblemSolvingLessonCompletePageState
         throw Exception("No caregiver session found. Please login again.");
       }
 
-      final caregiverId =
-          (session.caregiver!['_id'] ?? session.caregiver!['id'] ?? '').toString();
+      final caregiverId = (session.caregiver!['_id']).toString();
       if (caregiverId.isEmpty) {
         throw Exception("Caregiver ID not found in session");
       }
 
       // ✅ get child list by caregiver
       final children = await ChildApi.getChildrenByCaregiver(caregiverId);
-      if (children.isEmpty) {
-        throw Exception("No child found for this caregiver");
-      }
+      if (children.isEmpty) throw Exception("No child found for this caregiver");
 
-      // ✅ choose first child (you can replace with “selected child” later)
+      // ✅ choose first child (replace later with selected child)
       final first = children.first;
       final childId = (first['_id'] ?? first['id'] ?? '').toString();
       if (childId.isEmpty) throw Exception("Child ID not found");
 
-      final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
-
-      // ✅ UPSERT: if exists -> update, else -> create
-      try {
-        final existing = await CompleteProblemSolvingSessionService
-            .getByChildAndLesson(childId: childId, lessonId: widget.lessonId);
-
-        // try to extract id
-        final existingId = (existing['data']?['_id'] ??
-                existing['_id'] ??
-                existing['data']?['id'] ??
-                existing['id'] ??
-                '')
-            .toString();
-
-        if (existingId.isNotEmpty) {
-          await CompleteProblemSolvingSessionService.update(
-            id: existingId,
-            correctnessScore: correctnessClamped,
-          );
-        } else {
-          // if backend returns a different shape, fallback create
-          await CompleteProblemSolvingSessionService.create(
-            childId: childId,
-            lessonId: widget.lessonId,
-            correctnessScore: correctnessClamped,
-          );
-        }
-      } catch (_) {
-        // most likely 404 not found -> create
-        await CompleteProblemSolvingSessionService.create(
-          childId: childId,
-          lessonId: widget.lessonId,
-          correctnessScore: correctnessClamped,
-        );
+      // ✅ store for UI display
+      if (mounted) {
+        setState(() {
+          _caregiverId = caregiverId;
+          _childId = childId;
+        });
       }
 
+      final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
+
+      // 1) fetch existing records (before save) - optional but useful
+      try {
+        await CompleteProblemSolvingSessionService.getByChildAndLesson(
+          childId: childId,
+          lessonId: widget.lessonId,
+        );
+      } catch (_) {
+        // ignore (might be 404)
+      }
+
+      // 2) ALWAYS create a new record so "last two records" can exist
+      await CompleteProblemSolvingSessionService.create(
+        childId: childId,
+        lessonId: widget.lessonId,
+        correctnessScore: correctnessClamped,
+      );
+
+      // 3) fetch again and compute improvement from last two
+      final after = await CompleteProblemSolvingSessionService.getByChildAndLesson(
+        childId: childId,
+        lessonId: widget.lessonId,
+      );
+
+      final records = _extractDataList(after);
+      final computed = _computeImprovementFromLastTwo(records);
+
       if (!mounted) return;
+      setState(() {
+        _computedImprovement = computed;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Lesson completion saved")),
       );
@@ -130,16 +228,14 @@ class _ProblemSolvingLessonCompletePageState
         SnackBar(content: Text("Save failed: $e")),
       );
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
-    final improvementClamped = widget.improvement.clamp(0.0, 1.0);
+    final improvementClamped = _computedImprovement.clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: ProblemSolvingLessonCompletePage.pageBg,
@@ -172,7 +268,6 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                         const SizedBox(width: 10),
                         const Expanded(
-                          // display child id
                           child: Text(
                             "Problem Solving UNIT 1",
                             textAlign: TextAlign.center,
@@ -189,7 +284,17 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+
+                    const SizedBox(height: 10),
+
+                    // // ✅ ID DISPLAY CARD
+                    // _IdInfoCard(
+                    //   lessonId: _lessonId,
+                    //   caregiverId: _caregiverId,
+                    //   childId: _childId,
+                    // ),
+
+                    // const SizedBox(height: 14),
 
                     Row(
                       children: [
@@ -229,7 +334,7 @@ class _ProblemSolvingLessonCompletePageState
                             color: Colors.black.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child:  Text(
+                          child: const Text(
                             "Illustration Missing",
                             style: TextStyle(color: Colors.black54),
                           ),
@@ -239,9 +344,9 @@ class _ProblemSolvingLessonCompletePageState
 
                     const SizedBox(height: 18),
 
-                    const Text(
-                      "Improvement",
-                      style: TextStyle(
+                    Text(
+                      "Improvement  (+${(improvementClamped * 100).round()}%)",
+                      style: const TextStyle(
                         color: ProblemSolvingLessonCompletePage.labelColor,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
@@ -269,7 +374,83 @@ class _ProblemSolvingLessonCompletePageState
           ],
         ),
       ),
-      bottomNavigationBar: const MainNavBar(currentIndex: 2),
+      bottomNavigationBar: const MainNavBar(currentIndex: 3),
+    );
+  }
+}
+
+class _IdInfoCard extends StatelessWidget {
+  const _IdInfoCard({
+    required this.lessonId,
+    required this.caregiverId,
+    required this.childId,
+  });
+
+  final String lessonId;
+  final String caregiverId;
+  final String childId;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget row(String label, String value) {
+      final v = value.trim().isEmpty ? "—" : value;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 92,
+              child: Text(
+                "$label:",
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: ProblemSolvingLessonCompletePage.topRowBlue,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                v,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ProblemSolvingLessonCompletePage.circleBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: ProblemSolvingLessonCompletePage.circleBorder,
+          width: 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16000000),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          row("Lesson ID", lessonId),
+          row("Caregiver ID", caregiverId),
+          row("Child ID", childId),
+        ],
+      ),
     );
   }
 }
