@@ -4,23 +4,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-class SkillKnowledgeLevelPage extends StatelessWidget {
-  const SkillKnowledgeLevelPage({super.key});
+// ignore: camel_case_types
+class SkillKnowledgeLevelPage_2 extends StatelessWidget {
+  const SkillKnowledgeLevelPage_2({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
 
-  static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
-  static const String _prefKeyDrawingLevelValue = "drawing_skill_level_value";
+  // ✅ Problem solving keys
+  static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
+  static const String _prefKeyProblemLevelValue = "problem_solving_skill_level_value";
 
   Future<void> _saveLevelAndGo(BuildContext context, String level) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKeyDrawingLevelSet, true);
-    await prefs.setString(_prefKeyDrawingLevelValue, level);
+    await prefs.setBool(_prefKeyProblemLevelSet, true);
+    await prefs.setString(_prefKeyProblemLevelValue, level);
 
     if (!context.mounted) return;
 
-    // ✅ Go to Unit Start page after selecting level
-    Navigator.pushReplacementNamed(context, '/unitStart');
+    // ✅ Go to unit start page for problem solving
+    Navigator.pushReplacementNamed(context, '/startG');
   }
 
   @override

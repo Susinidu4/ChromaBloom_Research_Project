@@ -77,13 +77,14 @@ export default function Sidebar() {
             },
             {
               to: "/stress_recommendation_list",
-              label: "Learning Module",
-              icon: PiBooksLight,
+              label: "Wellness Module",
+              icon: MdOutlineHealthAndSafety,
+              
             },
             {
               to: "/wellness_module",
-              label: "Wellness Module",
-              icon: MdOutlineHealthAndSafety,
+              label: "Learning Module",
+              icon: PiBooksLight,
             },
           ].map(({ to, label, icon: Icon }) => (
             <NavLink

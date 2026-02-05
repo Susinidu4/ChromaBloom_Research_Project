@@ -16,7 +16,7 @@ class LessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.imageFile,
-    required this.previousCorrectness,
+    required this.previousCorrectness, // (kept, but DB-based improvement is used)
   });
 
   final String lessonId;
@@ -44,8 +44,15 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
   String _predictedLabel = "-";
   double _confidencePercent = 0;
+
+  // 0..1
   double _correctness = 0;
+
+  // 0..1  (currentCorrectness - lastDbCorrectness)
   double _improvement = 0;
+
+  // previous saved correctness from DB (0..1)
+  double _prevDbCorrectness = 0;
 
   @override
   void initState() {
@@ -73,6 +80,84 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     return id;
   }
 
+  /* ===================== DB HELPERS (extract list + last record) ===================== */
+
+  List<Map<String, dynamic>> _extractList(dynamic json) {
+    // common response shapes
+    if (json is Map<String, dynamic>) {
+      final candidates = [
+        json["data"],
+        json["items"],
+        json["results"],
+        json["lessons"],
+        json["completedLessons"],
+      ];
+
+      for (final c in candidates) {
+        if (c is List) {
+          return c
+              .map((e) => (e as Map).cast<String, dynamic>())
+              .toList(growable: false);
+        }
+
+        // sometimes: data = { items: [] }
+        if (c is Map && c["items"] is List) {
+          return (c["items"] as List)
+              .map((e) => (e as Map).cast<String, dynamic>())
+              .toList(growable: false);
+        }
+      }
+    }
+
+    // fallback if API returns raw list
+    if (json is List) {
+      return json
+          .map((e) => (e as Map).cast<String, dynamic>())
+          .toList(growable: false);
+    }
+
+    return const [];
+  }
+
+  double _extractCorrectnessFromRecord(Map<String, dynamic> r) {
+    final v = r["correctness_rate"] ?? r["correctnessRate"] ?? r["correctness"];
+    if (v == null) return 0.0;
+
+    final numVal = (v is num) ? v : num.tryParse(v.toString()) ?? 0.0;
+
+    // normalize 0..100 -> 0..1
+    final rate = (numVal > 1.0) ? (numVal.toDouble() / 100.0) : numVal.toDouble();
+    return rate.clamp(0.0, 1.0);
+  }
+
+  DateTime _extractCreatedAt(Map<String, dynamic> r) {
+    final v = r["createdAt"] ?? r["created_at"] ?? r["timestamp"];
+    if (v == null) return DateTime.fromMillisecondsSinceEpoch(0);
+    return DateTime.tryParse(v.toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  Future<double> _fetchLastCorrectnessFromDb(String userId) async {
+    try {
+      final res = await CompleteDrawingLessonService.getCompletedLessonsByUser(userId);
+      final list = _extractList(res);
+
+      if (list.isEmpty) return 0.0;
+
+      // Prefer createdAt sorting if present; else just use list.last
+      // We'll sort anyway; if createdAt missing, all become epoch and order stays stable-ish.
+      final sorted = [...list];
+      sorted.sort((a, b) => _extractCreatedAt(a).compareTo(_extractCreatedAt(b)));
+      final last = sorted.isNotEmpty ? sorted.last : list.last;
+
+      return _extractCorrectnessFromRecord(last);
+    } catch (_) {
+      // if fetch fails, assume no previous record
+      return 0.0;
+    }
+  }
+
+  /* ===================== SAVE COMPLETED LESSON ===================== */
+
   Future<void> _saveCompletedLesson() async {
     if (_savedOnce) return;
     if (widget.lessonId.isEmpty) return;
@@ -93,7 +178,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       await CompleteDrawingLessonService.createCompletedLesson(
         lessonId: widget.lessonId,
         userId: caregiverId,
-        correctnessRate: _correctness,
+        correctnessRate: _correctness, // 0..1
       );
 
       _savedOnce = true;
@@ -112,10 +197,26 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     }
   }
 
+  /* ===================== PREDICT + COMPUTE IMPROVEMENT (DB-LAST) ===================== */
+
   Future<void> _predictOnLoad() async {
     setState(() => _loading = true);
 
     try {
+      final caregiverId = _getCaregiverIdFromSession();
+      if (caregiverId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Caregiver session not found. Please login again.")),
+        );
+        setState(() => _loading = false);
+        return;
+      }
+
+      // ✅ 1) get last saved correctness from DB BEFORE saving current record
+      final prevDb = await _fetchLastCorrectnessFromDb(caregiverId);
+
+      // ✅ 2) predict current drawing
       final res = await DrawingPredictService.predictDrawing(widget.imageFile);
 
       final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
@@ -124,18 +225,22 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
       final pretty = _prettyLabel(rawLabel);
 
-      final correctness = (conf.clamp(0, 100) / 100.0);
-      final prev = widget.previousCorrectness.clamp(0.0, 1.0);
-      final improvement = (correctness - prev).clamp(0.0, 1.0);
+      // conf 0..100 => correctness 0..1
+      final currentCorrectness = (conf.clamp(0, 100) / 100.0);
+
+      // ✅ 3) improvement = current - lastDb (0..1)
+      final improvement = (currentCorrectness - prevDb).clamp(0.0, 1.0);
 
       if (!mounted) return;
       setState(() {
         _predictedLabel = pretty;
         _confidencePercent = conf;
-        _correctness = correctness;
+        _correctness = currentCorrectness;
+        _prevDbCorrectness = prevDb;
         _improvement = improvement;
       });
 
+      // ✅ 4) save current completion AFTER computing improvement
       await _saveCompletedLesson();
     } catch (e) {
       if (!mounted) return;
@@ -234,8 +339,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                                 SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 ),
                                 SizedBox(width: 10),
                                 Expanded(
@@ -300,6 +404,21 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                     ),
                     const SizedBox(height: 6),
                     _ProgressBar(value: _loading ? 0 : _improvement),
+
+                    // optional small helper text (remove if you don't want)
+                    const SizedBox(height: 6),
+                    if (!_loading)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Previous: ${(_prevDbCorrectness * 100).toStringAsFixed(0)}%   |   Now: ${(_correctness * 100).toStringAsFixed(0)}%",
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
 
                     const SizedBox(height: 14),
 

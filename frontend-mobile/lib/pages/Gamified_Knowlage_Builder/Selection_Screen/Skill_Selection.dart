@@ -14,7 +14,11 @@ class SkillSelectionPage extends StatefulWidget {
 }
 
 class _SkillSelectionPageState extends State<SkillSelectionPage> {
+  // Existing drawing key
   static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
+
+  // ✅ New problem solving keys
+  static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
 
   Future<void> _handleDrawingTap() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,6 +30,22 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
       Navigator.pushNamed(context, '/skillKnowlageLevel');
     } else {
       Navigator.pushNamed(context, '/drawingUnit1');
+    }
+  }
+
+  // ✅ NEW: Problem solving logic
+  Future<void> _handleProblemSolvingTap() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
+
+    if (!mounted) return;
+
+    if (!levelSet) {
+      // new install / not set yet
+      Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+    } else {
+      // already selected before
+      Navigator.pushNamed(context, '/problemSolvingLessons');
     }
   }
 
@@ -46,8 +66,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: LearnContent(
                   onTapDrawing: _handleDrawingTap,
-                  onTapProblemSolving: () =>
-                      Navigator.pushNamed(context, '/problemSolvingLessons'),
+                  onTapProblemSolving: _handleProblemSolvingTap, // ✅ changed
                 ),
               ),
             ),
@@ -203,12 +222,10 @@ class _LearnTile extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(width: 26),
-
                     Center(
                       child: Image.asset(
                         iconAsset,
@@ -222,9 +239,7 @@ class _LearnTile extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 28),
-
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -240,7 +255,6 @@ class _LearnTile extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 32),
                   ],
                 ),
