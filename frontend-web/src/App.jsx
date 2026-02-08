@@ -33,6 +33,8 @@ import StressRecommendationDetail from "./pages/admin/Parental_Stress_monitoring
 import StressRecommendationAdd from "./pages/admin/Parental_Stress_monitoring/AddStressRecommendation";
 import StressRecommendationEdit from "./pages/admin/Parental_Stress_monitoring/EditStressRecommendation";
 
+import ChildParentDetailPage from "./pages/therapists/ChildParentDetailPage";
+
 function App() {
 
   return (
@@ -47,6 +49,7 @@ function App() {
         <Route path="/admin_dashboard" element={<Admin_Dashboard />} />
         <Route path="/therapists_register" element={<Therapists_register />} />
         <Route path="/therapists_dashboard" element={<Therapists_dashboard />} />
+        <Route path="/child_parent_detail/:id" element={<ChildParentDetailPage />} />
 
         {/* Interactive Visual Task Scheduler */}
         <Route path="/routine_create" element={<RoutineCreate />} />
@@ -57,7 +60,7 @@ function App() {
         {/* Parental Stress Monitoring */}
         <Route path="/stress_recommendation_list" element={<StressRecommendationList />} />
         <Route path="/stress_recommendation_detail/:id" element={<StressRecommendationDetail />} />
-        <Route path="/Stress_recommendation_create" element={<StressRecommendationAdd/>}/> 
+        <Route path="/stress_recommendation_create" element={<StressRecommendationAdd/>}/> 
         <Route path="/stress_recommendation_edit/:id" element={<StressRecommendationEdit/>}/>
 
         {/* Gemified Knowledge Builder */}
