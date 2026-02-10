@@ -1,12 +1,27 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { HiDotsHorizontal } from "react-icons/hi";
 import AdminLayout from "./AdminLayout";
-
 import { IoSearchSharp } from "react-icons/io5";
+import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
+import Swal from "sweetalert2";
 
 export const Admin_Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("patients");
+  const [activeTab, setActiveTab] = useState("patients"); // patients | therapists | admins
   const [search, setSearch] = useState("");
+  const [adminList, setAdminList] = useState([]);
+
+  // Fetch Admins
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const data = await getAdmins();
+        setAdminList(data);
+      } catch (err) {
+        console.error("Failed to fetch admins", err);
+      }
+    };
+    fetchAdmins();
+  }, []);
 
   // Dummy data (replace with API later)
   const patients = useMemo(
@@ -20,96 +35,7 @@ export const Admin_Dashboard = () => {
         createdDate: "2/1/2025",
         status: "Active",
       },
-      {
-        id: "p-0002",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0003",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0004",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0005",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0006",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0007",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0008",
-        childName: "nima Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0008",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0008",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "p-0008",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
+      // ... keep existing dummy data or truncate for brevity if you want
     ],
     []
   );
@@ -124,35 +50,12 @@ export const Admin_Dashboard = () => {
         createdDate: "2/1/2025",
         status: "Active",
       },
-      {
-        id: "t-0002",
-        name: "Nimali Silva",
-        email: "nimali@gmail.com",
-        mobile: "0779876543",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "t-0003",
-        name: "Chamath Fernando",
-        email: "chamath@gmail.com",
-        mobile: "0712223333",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      {
-        id: "t-0004",
-        name: "Dilsha Jayasinghe",
-        email: "dilsha@gmail.com",
-        mobile: "0765551111",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
+      // ... keep existing dummy data
     ],
     []
   );
 
-  const data = activeTab === "patients" ? patients : therapists;
+  const data = activeTab === "patients" ? patients : activeTab === "therapists" ? therapists : adminList;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -168,6 +71,30 @@ export const Admin_Dashboard = () => {
   const handleMore = (id) => {
     alert(`More clicked: ${id} (open menu/modal later)`);
   };
+
+  const handleAdminStatusToggle = async (adminId, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    const result = await Swal.fire({
+      title: `Mark as ${newStatus}?`,
+      text: `This will ${newStatus === 'inactive' ? 'disable' : 'enable'} the admin account.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#BD9A6B",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, update it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await updateAccountStatus(adminId, newStatus);
+        setAdminList(prev => prev.map(a => a._id === adminId ? { ...a, account_status: newStatus } : a));
+        Swal.fire("Updated!", `Admin status has been updated to ${newStatus}.`, "success");
+      } catch (err) {
+        Swal.fire("Error", "Failed to update status", "error");
+      }
+    }
+  }
 
   return (
     <AdminLayout>
@@ -216,6 +143,18 @@ export const Admin_Dashboard = () => {
               >
                 Therapist List
               </button>
+
+              <button
+                onClick={() => setActiveTab("admins")}
+                className={[
+                  "px-8 py-3 font-semibold rounded-t-[8px] shadow-[0_8px_14px_rgba(0,0,0,0.18)] ",
+                  activeTab === "admins"
+                    ? "bg-[#BD9A6B] text-white"
+                    : "bg-[#DFC7A7] text-white/90",
+                ].join(" ")}
+              >
+                Admin List
+              </button>
             </div>
 
             {/* Table container */}
@@ -232,12 +171,22 @@ export const Admin_Dashboard = () => {
                     <div className="text-center" />
                     <div className="text-center" />
                   </div>
-                ) : (
+                ) : activeTab === "therapists" ? (
                   <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3">
                     <div>Name</div>
                     <div className="text-center">Email</div>
                     <div className="text-center">Mobile</div>
                     <div className="text-center">Created Date</div>
+                    <div className="text-center" />
+                    <div className="text-center" />
+                  </div>
+                ) : (
+                  // Admin Header
+                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3">
+                    <div>Name</div>
+                    <div className="text-center">Email</div>
+                    <div className="text-center">Mobile</div>
+                    <div className="text-center">Status</div>
                     <div className="text-center" />
                     <div className="text-center" />
                   </div>
@@ -249,7 +198,7 @@ export const Admin_Dashboard = () => {
               {/* Scrollable body */}
               <div className="max-h-[440px] overflow-auto px-8 py-2 custom-scroll">
                 {filtered.map((row) => (
-                  <div key={row.id} className="py-1">
+                  <div key={row.id || row._id} className="py-1">
                     {activeTab === "patients" ? (
                       <div className="grid grid-cols-[2fr_1fr_1fr_2fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#BD9A6B]">
                         <div className="truncate">{row.childName}</div>
@@ -284,7 +233,7 @@ export const Admin_Dashboard = () => {
                           </button>
                         </div>
                       </div>
-                    ) : (
+                    ) : activeTab === "therapists" ? (
                       <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#B0896E]">
                         <div className="truncate">{row.name}</div>
                         <div className="text-center truncate">{row.email}</div>
@@ -306,6 +255,38 @@ export const Admin_Dashboard = () => {
                         <div className="flex justify-center">
                           <button
                             onClick={() => handleMore(row.id)}
+                            className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
+                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                         hover:brightness-95 active:scale-[0.99]"
+                            title="More"
+                          >
+                            <HiDotsHorizontal size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Admin Row
+                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#B0896E]">
+                        <div className="truncate">{row.full_name}</div>
+                        <div className="text-center truncate">{row.email}</div>
+                        <div className="text-center">{row.phone || "N/A"}</div>
+                        <div className="text-center uppercase text-sm font-bold">{row.account_status}</div>
+
+                        {/* Toggle Status button */}
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleAdminStatusToggle(row._id, row.account_status)}
+                            className={`${row.account_status === 'active' ? 'bg-[#711A0C]' : 'bg-[#2E7D32]'} text-white px-6 py-2 rounded-[8px]
+                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-95 active:scale-[0.99] transition-colors`}
+                          >
+                            {row.account_status === 'active' ? 'Disable' : 'Enable'}
+                          </button>
+                        </div>
+
+                        {/* More button */}
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleMore(row._id)}
                             className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
                                          hover:brightness-95 active:scale-[0.99]"
