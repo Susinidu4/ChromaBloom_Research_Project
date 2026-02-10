@@ -3,7 +3,7 @@ import { HiPlus } from "react-icons/hi";
 import { FiSearch } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { HiDotsHorizontal } from "react-icons/hi";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
@@ -94,30 +94,30 @@ export default function RoutineList() {
   const onAddNew = () => navigate("/routine_create");
 
   const onDelete = async (id) => {
-  const result = await Swal.fire({
-    title: "Delete routine?",
-    text: "This action cannot be undone.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Yes, delete",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#6B3B30",
-    cancelButtonColor: "#BD9A6B",
-  });
+    const result = await Swal.fire({
+      title: "Delete routine?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#6B3B30",
+      cancelButtonColor: "#BD9A6B",
+    });
 
-  if (!result.isConfirmed) return;
+    if (!result.isConfirmed) return;
 
-  try {
-    await deleteSystemActivityByIdService(id);
-    setRows((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await deleteSystemActivityByIdService(id);
+      setRows((prev) => prev.filter((r) => r.id !== id));
 
-    alertSuccess("Routine deleted successfully.");
-  } catch (e) {
-    const msg =
-      e?.response?.data?.message || e?.message || "Delete failed";
-    alertError(msg);
-  }
-};
+      alertSuccess("Routine deleted successfully.");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message || e?.message || "Delete failed";
+      alertError(msg);
+    }
+  };
 
 
   // Navigate to detail page
@@ -249,44 +249,44 @@ export default function RoutineList() {
                 )}
 
                 {!loading && filtered.map((r) => (
-                    <div key={r.id} className="px-1 py-2">
-                      <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
-                        <div className="truncate">{r.title}</div>
-                        <div className="text-center">{r.age}</div>
-                        <div className="text-center">{r.difficulty}</div>
-                        <div className="text-center truncate">{r.dev}</div>
-                        <div className="text-center">{r.duration}</div>
+                  <div key={r.id} className="px-1 py-2">
+                    <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
+                      <div className="truncate">{r.title}</div>
+                      <div className="text-center">{r.age}</div>
+                      <div className="text-center">{r.difficulty}</div>
+                      <div className="text-center truncate">{r.dev}</div>
+                      <div className="text-center">{r.duration}</div>
 
-                        {/* Delete */}
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => onDelete(r.id)}
-                            className="h-8 w-8 rounded-[10px] bg-[#6B3B30] text-white
+                      {/* Delete */}
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => onDelete(r.id)}
+                          className="h-8 w-8 rounded-[10px] bg-[#6B3B30] text-white
                                    shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
                                    hover:brightness-110 active:scale-[0.99]"
-                            title="Delete"
-                          >
-                            <MdDelete size={18} />
-                          </button>
-                        </div>
-
-                        {/* More */}
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => onMore(r.id)}
-                            className="h-8 w-8 rounded-[10px] bg-[#BD9A6B] text-white
-                                   shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
-                                   hover:brightness-95 active:scale-[0.99]"
-                            title="More"
-                          >
-                            <HiDotsHorizontal size={18} />
-                          </button>
-                        </div>
+                          title="Delete"
+                        >
+                          <MdDelete size={18} />
+                        </button>
                       </div>
 
-                      <div className="mt-3 h-[1px] bg-[#D9C7BF]" />
+                      {/* More */}
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => onMore(r.id)}
+                          className="h-8 w-8 rounded-[10px] bg-[#BD9A6B] text-white
+                                   shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                   hover:brightness-95 active:scale-[0.99]"
+                          title="More"
+                        >
+                          <HiDotsHorizontal size={18} />
+                        </button>
+                      </div>
                     </div>
-                  ))}
+
+                    <div className="mt-3 h-[1px] bg-[#D9C7BF]" />
+                  </div>
+                ))}
 
                 {!loading && filtered.length === 0 && (
                   <div className="py-16 text-center text-[#BD9A6B]">

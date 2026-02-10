@@ -1,11 +1,11 @@
 // src/pages/AdminLogin.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { adminLogin } from "../../services/Admin/adminService";
+import { adminLogin } from "../../../services/Admin/adminService";
 
-import characters from "../../assets/LoginWeb.png";
-import logi1 from "../../assets/ChromaBloom1.png";
-import logi2 from "../../assets/ChromaBloom2.png";
+import characters from "../../../assets/LoginWeb.png";
+import logi1 from "../../../assets/ChromaBloom1.png";
+import logi2 from "../../../assets/ChromaBloom2.png";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
