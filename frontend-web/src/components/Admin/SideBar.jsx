@@ -119,14 +119,23 @@ export default function Sidebar() {
             <span className="ml-2">: {admin?.email || "N/A"}</span>
           </p>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-2">
             <button
               onClick={() => navigate("/admin_edite")}
-              className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition"
+              className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition text-xs"
             >
               Edit Profile
             </button>
-            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition">Logout</button>
+            <button
+              onClick={() => {
+                localStorage.removeItem("admin_token");
+                localStorage.removeItem("admin_profile");
+                navigate("/admin_login");
+              }}
+              className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition text-xs"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
@@ -190,6 +199,6 @@ export default function Sidebar() {
           ))}
         </nav>
       </div>
-    </aside>
+    </aside >
   );
 }
