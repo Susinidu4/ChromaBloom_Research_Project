@@ -4,6 +4,7 @@ import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
 import { getAllChildrenService } from "../../../services/childService";
+import { getAllTherapistsService } from "../../../services/therapistService";
 import Swal from "sweetalert2";
 
 export const Admin_Dashboard = () => {
@@ -11,6 +12,7 @@ export const Admin_Dashboard = () => {
   const [search, setSearch] = useState("");
   const [adminList, setAdminList] = useState([]);
   const [patientList, setPatientList] = useState([]);
+  const [therapistList, setTherapistList] = useState([]);
 
   // Fetch Data based on active tab
   useEffect(() => {
@@ -26,6 +28,9 @@ export const Admin_Dashboard = () => {
           // Backend returns array of children
           setPatientList(data);
           console.log(data);
+        } else if (activeTab === "therapists") {
+          const data = await getAllTherapistsService();
+          setTherapistList(data);
         }
       } catch (err) {
         console.error(`Failed to fetch ${activeTab}`, err);
@@ -36,15 +41,7 @@ export const Admin_Dashboard = () => {
 
   const therapists = useMemo(
     () => [
-      {
-        id: "t-0001",
-        name: "Kavindu Perera",
-        email: "kavindu@gmail.com",
-        mobile: "0771234567",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      // ... keep existing dummy data
+      // Dummy data removed
     ],
     []
   );
@@ -61,7 +58,7 @@ export const Admin_Dashboard = () => {
     return age;
   }
 
-  const data = activeTab === "patients" ? patientList : activeTab === "therapists" ? therapists : adminList;
+  const data = activeTab === "patients" ? patientList : activeTab === "therapists" ? therapistList : adminList;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -241,10 +238,10 @@ export const Admin_Dashboard = () => {
                       </div>
                     ) : activeTab === "therapists" ? (
                       <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#B0896E]">
-                        <div className="truncate">{row.name}</div>
+                        <div className="truncate">{row.full_name}</div>
                         <div className="text-center truncate">{row.email}</div>
-                        <div className="text-center">{row.mobile}</div>
-                        <div className="text-center">{row.createdDate}</div>
+                        <div className="text-center">{row.phone}</div>
+                        <div className="text-center">{new Date(row.createdAt).toLocaleDateString()}</div>
 
                         {/* Disable button */}
                         <div className="flex justify-center">
