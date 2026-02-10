@@ -7,7 +7,7 @@ import { Readable } from "stream";
 // Create new admin
 export const createAdmin = async (req, res) => {
   try {
-    const { full_name, email, password } = req.body;
+    const { full_name, email, password, phone } = req.body;
 
     if (!full_name || !email || !password) {
       return res.status(400).json({ message: "full_name, email and password are required" });
@@ -18,7 +18,7 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: "Admin with this email already exists" });
     }
 
-    const admin = await Admin.create({ full_name, email, password });
+    const admin = await Admin.create({ full_name, email, password, phone });
 
     const adminObj = admin.toObject();
     delete adminObj.password;
