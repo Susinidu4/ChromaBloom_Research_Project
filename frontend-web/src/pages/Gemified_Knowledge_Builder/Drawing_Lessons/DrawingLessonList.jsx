@@ -85,9 +85,9 @@ export default function DrawingLessonList({ searchTerm = "" }) {
               </div>
 
               {/* Main Content */}
-              <div className="flex-1 px-8 py-5 flex items-center justify-between">
+              <div className="flex-1 px-8 py-2 flex items-center justify-between">
                 <div>
-                  <h3 className="text-[19px] font-bold text-[#A47C5B] mb-2 leading-tight">
+                  <h3 className="text-[16px] font-bold text-[#A47C5B] mb-2 leading-tight">
                     {l.title}
                   </h3>
                   <div className="flex gap-12 text-[13px] text-[#BD9A6B] font-medium opacity-90">
