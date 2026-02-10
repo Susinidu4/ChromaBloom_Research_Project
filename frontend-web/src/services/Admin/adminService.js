@@ -26,3 +26,22 @@ export const getAdmins = async () => {
   const res = await api.get(`${ADMIN_BASE}`);
   return res.data;
 };
+
+// UPDATE ACCOUNT STATUS (PATCH /chromabloom/admins/:id/status)
+export const updateAccountStatus = async (id, status) => {
+  const res = await api.patch(`${ADMIN_BASE}/${id}/status`, { status });
+  return res.data;
+};
+
+// UPLOAD PROFILE PICTURE (PATCH /chromabloom/admins/:id/profile-picture)
+export const uploadAdminProfilePicture = async (id, file) => {
+  const formData = new FormData();
+  formData.append("profile_picture", file);
+
+  const res = await api.patch(`${ADMIN_BASE}/${id}/profile-picture`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};

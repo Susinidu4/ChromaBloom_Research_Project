@@ -1,8 +1,8 @@
-// controllers/admin.controller.js
 import Admin from "../../models/Users/admin.model.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../../utils/generateToken.js";
-
+import cloudinary from "../../config/cloudinary.js";
+import { Readable } from "stream";
 
 // Create new admin
 export const createAdmin = async (req, res) => {
@@ -52,6 +52,7 @@ export const adminLogin = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 // Get all admins
 export const getAdmins = async (req, res) => {
   try {
@@ -126,6 +127,86 @@ export const deleteAdmin = async (req, res) => {
     res.status(200).json({ message: "Admin deleted successfully" });
   } catch (error) {
     console.error("Error deleting admin:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Update Only Account Status
+export const updateAccountStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status match enum
+    if (!["active", "inactive"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const admin = await Admin.findByIdAndUpdate(
+      id,
+      { account_status: status },
+      { new: true }
+    ).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    res.status(200).json({
+      message: "Account status updated",
+      admin
+    });
+  } catch (error) {
+    console.error("Error updating account status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Upload Profile Picture
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    // Upload to Cloudinary using a stream
+    const uploadStream = (buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "chromabloom/admins" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        const readable = new Readable();
+        readable.push(buffer);
+        readable.push(null);
+        readable.pipe(stream);
+      });
+    };
+
+    const result = await uploadStream(req.file.buffer);
+
+    const admin = await Admin.findByIdAndUpdate(
+      id,
+      { profile_picture: result.secure_url },
+      { new: true }
+    ).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile picture uploaded successfully",
+      admin,
+    });
+
+  } catch (error) {
+    console.error("Error uploading profile picture:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
