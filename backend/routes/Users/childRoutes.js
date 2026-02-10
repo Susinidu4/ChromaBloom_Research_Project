@@ -7,7 +7,8 @@ import {
   getChildrenByCaregiver,
   updateChild,
   deleteChild,
-  getChildrenByTherapist
+  getChildrenByTherapist,
+  updateChildStatus
 } from "../../controllers/Users/childController.js";
 
 const router = express.Router();
@@ -22,6 +23,7 @@ router.get("/:id", getChildById);                // GET   /api/children/c-0001
 
 // UPDATE
 router.put("/:id", updateChild);                 // PUT   /api/children/c-0001
+router.patch("/:id/status", updateChildStatus);  // PATCH /api/children/c-0001/status
 
 // DELETE
 router.delete("/:id", deleteChild);              // DELETE /api/children/c-0001

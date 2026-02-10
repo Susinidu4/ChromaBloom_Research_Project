@@ -67,6 +67,17 @@ export const updateChildService = async (id, data, token) => {
   return res.data; // { message, child }
 };
 
+// UPDATE CHILD ACCOUNT STATUS
+export const updateChildStatusService = async (id, account_status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/${id}/status`, { account_status }, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  return res.data; // { message, child }
+};
+
 // DELETE CHILD
 export const deleteChildService = async (id, token) => {
   const res = await axios.delete(`${API_BASE_URL}/${id}`, {

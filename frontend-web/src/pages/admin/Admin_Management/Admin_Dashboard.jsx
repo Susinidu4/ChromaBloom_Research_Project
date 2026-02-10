@@ -3,7 +3,7 @@ import { HiDotsHorizontal } from "react-icons/hi";
 import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
-import { getAllChildrenService } from "../../../services/childService";
+import { getAllChildrenService, updateChildStatusService } from "../../../services/childService";
 import { getAllTherapistsService, updateTherapistAccountStatus } from "../../../services/therapistService";
 import Swal from "sweetalert2";
 
@@ -69,8 +69,29 @@ export const Admin_Dashboard = () => {
     return data.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
   }, [data, search]);
 
-  const handleDisable = (id) => {
-    alert(`Disable clicked: ${id} (connect API later)`);
+  const handleChildStatusToggle = async (childId, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    const result = await Swal.fire({
+      title: `Mark as ${newStatus}?`,
+      text: `This will ${newStatus === 'inactive' ? 'disable' : 'enable'} the child account.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#BD9A6B",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, update it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await updateChildStatusService(childId, newStatus);
+        setPatientList(prev => prev.map(p => p._id === childId ? { ...p, account_status: newStatus } : p));
+        Swal.fire("Updated!", `Child status has been updated to ${newStatus}.`, "success");
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Failed to update status", "error");
+      }
+    }
   };
 
   const handleMore = (id) => {
@@ -197,7 +218,7 @@ export const Admin_Dashboard = () => {
                     <div className="text-center">Age (years)</div>
                     <div className="text-center">Gender</div>
                     <div className="text-center">Parent Name</div>
-                    <div className="text-center">Created Date</div>
+                    <div className="text-center">Status</div>
                     <div className="text-center" />
                     <div className="text-center" />
                   </div>
@@ -237,16 +258,16 @@ export const Admin_Dashboard = () => {
                         <div className="text-center truncate">
                           {row.caregiver.full_name || "N/A"}
                         </div>
-                        <div className="text-center">{new Date(row.createdAt).toLocaleDateString()}</div>
+                        <div className="text-center uppercase text-sm font-bold">{row.account_status || "active"}</div>
 
-                        {/* Disable button */}
+                        {/* Status Toggle button */}
                         <div className="flex justify-center">
                           <button
-                            onClick={() => handleDisable(row.id)}
-                            className="bg-[#711A0C] text-white px-5 py-1.5 rounded-[8px]
-                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-95 active:scale-[0.99]"
+                            onClick={() => handleChildStatusToggle(row._id, row.account_status || "active")}
+                            className={`${(row.account_status || 'active') === 'active' ? 'bg-[#711A0C]' : 'bg-[#2E7D32]'} text-white px-5 py-1.5 rounded-[8px]
+                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-95 active:scale-[0.99] transition-colors`}
                           >
-                            Disable
+                            {(row.account_status || 'active') === 'active' ? 'Disable' : 'Enable'}
                           </button>
                         </div>
 
