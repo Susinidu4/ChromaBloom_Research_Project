@@ -8,19 +8,58 @@ import { HiOutlineClipboardList } from "react-icons/hi";
 import { PiBooksLight } from "react-icons/pi";
 import { MdOutlineHealthAndSafety } from "react-icons/md";
 
+import { uploadAdminProfilePicture, getAdminById } from "../../services/Admin/adminService";
+
 export default function Sidebar() {
   const [admin, setAdmin] = React.useState(null);
+  const fileInputRef = React.useRef(null);
 
   React.useEffect(() => {
-    const stored = localStorage.getItem("admin_profile");
-    if (stored) {
-      try {
-        setAdmin(JSON.parse(stored));
-      } catch (err) {
-        console.error("Failed to parse admin_profile", err);
+    const fetchAdmin = async () => {
+      const stored = localStorage.getItem("admin_profile");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setAdmin(parsed);
+
+          // Fetch latest data to ensure profile picture is current
+          if (parsed._id) {
+            const freshData = await getAdminById(parsed._id);
+            if (freshData) {
+              setAdmin(freshData);
+              localStorage.setItem("admin_profile", JSON.stringify(freshData));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to parse or fetch admin_profile", err);
+        }
       }
-    }
+    };
+    fetchAdmin();
   }, []);
+
+  const handleEditClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !admin?._id) return;
+
+    try {
+      const response = await uploadAdminProfilePicture(admin._id, file);
+      if (response?.admin) {
+        setAdmin(response.admin);
+        localStorage.setItem("admin_profile", JSON.stringify(response.admin));
+        alert("Profile picture updated successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to upload profile picture", error);
+      alert("Failed to upload profile picture");
+    }
+  };
 
   // Default placeholder if no picture
   const defaultImg = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -39,8 +78,20 @@ export default function Sidebar() {
             className="h-28 w-28 rounded-full bg-white object-cover border-4 border-[#386884]"
           />
 
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+
           {/* edit icon */}
-          <button className="absolute bottom-1 right-1 bg-[#D9D9D9] text-[#4E6C82] rounded-full p-2 shadow hover:bg-white transition">
+          <button
+            onClick={handleEditClick}
+            className="absolute bottom-1 right-1 bg-[#D9D9D9] text-[#4E6C82] rounded-full p-2 shadow hover:bg-white transition cursor-pointer"
+          >
             <FaUserEdit size={14} />
           </button>
         </div>
@@ -66,6 +117,11 @@ export default function Sidebar() {
             <span className="font-medium">Email</span>
             <span className="ml-2">: {admin?.email || "N/A"}</span>
           </p>
+
+          <div className="flex gap-2">
+            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full">Edit Profile</button>
+            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full">Logout</button>
+          </div>
         </div>
       </div>
 
