@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import AdminLayout from "../admin/Admin_Management/AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import DrawingLessonList from "./Drawing_Lessons/DrawingLessonList";
+import ProblemSolvingLessonList from "./Problem_Solving_Lessons/ProblemSolvingLessonList";
+import QuizeList from "./Quize/QuizeList";
 
 export default function Wellness_Module() {
     const [activeTab, setActiveTab] = useState("drawing"); // drawing | problem_solving | quizzes
@@ -77,14 +79,12 @@ export default function Wellness_Module() {
                             )}
                             {activeTab === "problem_solving" && (
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#BD9A6B]">Problem Solving Lessons</h2>
-                                    <p className="text-[#7A6357] mt-4">Manage your problem solving lessons here.</p>
+                                    <ProblemSolvingLessonList searchTerm={search} />
                                 </div>
                             )}
                             {activeTab === "quizzes" && (
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#BD9A6B]">Quizzes</h2>
-                                    <p className="text-[#7A6357] mt-4">Manage your quizzes here.</p>
+                                    <QuizeList searchTerm={search} />
                                 </div>
                             )}
                         </div>
