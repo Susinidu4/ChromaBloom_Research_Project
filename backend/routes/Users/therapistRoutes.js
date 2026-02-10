@@ -7,6 +7,7 @@ import {
   getTherapistById,
   updateTherapist,
   deleteTherapist,
+  updateAccountStatus,
 } from "../../controllers/Users/therapistController.js";
 
 const router = express.Router();
@@ -25,6 +26,9 @@ router.get("/:id", getTherapistById);
 
 // 🔹 Update therapist (JSON + optional base64 image)
 router.put("/:id", updateTherapist);
+
+// 🔹 Update Account Status
+router.patch("/:id/status", updateAccountStatus);
 
 // 🔹 Delete therapist
 router.delete("/:id", deleteTherapist);

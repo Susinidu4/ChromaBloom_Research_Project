@@ -4,8 +4,10 @@ import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
 import { getAllChildrenService } from "../../../services/childService";
-import { getAllTherapistsService } from "../../../services/therapistService";
+import { getAllTherapistsService, updateTherapistAccountStatus } from "../../../services/therapistService";
 import Swal from "sweetalert2";
+
+
 
 export const Admin_Dashboard = () => {
   const [activeTab, setActiveTab] = useState("patients"); // patients | therapists | admins
@@ -74,6 +76,31 @@ export const Admin_Dashboard = () => {
   const handleMore = (id) => {
     alert(`More clicked: ${id} (open menu/modal later)`);
   };
+
+  const handleTherapistStatusToggle = async (therapistId, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    const result = await Swal.fire({
+      title: `Mark as ${newStatus}?`,
+      text: `This will ${newStatus === 'inactive' ? 'disable' : 'enable'} the therapist account.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#BD9A6B",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, update it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await updateTherapistAccountStatus(therapistId, newStatus);
+        setTherapistList(prev => prev.map(t => t._id === therapistId ? { ...t, account_status: newStatus } : t));
+        Swal.fire("Updated!", `Therapist status has been updated to ${newStatus}.`, "success");
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Failed to update status", "error");
+      }
+    }
+  }
 
   const handleAdminStatusToggle = async (adminId, currentStatus) => {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
@@ -179,7 +206,7 @@ export const Admin_Dashboard = () => {
                     <div>Name</div>
                     <div className="text-center">Email</div>
                     <div className="text-center">Mobile</div>
-                    <div className="text-center">Created Date</div>
+                    <div className="text-center">Status</div>
                     <div className="text-center" />
                     <div className="text-center" />
                   </div>
@@ -241,16 +268,16 @@ export const Admin_Dashboard = () => {
                         <div className="truncate">{row.full_name}</div>
                         <div className="text-center truncate">{row.email}</div>
                         <div className="text-center">{row.phone}</div>
-                        <div className="text-center">{new Date(row.createdAt).toLocaleDateString()}</div>
+                        <div className="text-center uppercase text-sm font-bold">{row.account_status || "active"}</div>
 
                         {/* Disable button */}
                         <div className="flex justify-center">
                           <button
-                            onClick={() => handleDisable(row.id)}
+                            onClick={() => handleTherapistStatusToggle(row._id, row.account_status || "active")}
                             className="bg-[#711A0C] text-white px-6 py-2 rounded-[8px]
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-95 active:scale-[0.99]"
                           >
-                            Disable
+                            {(row.account_status || "active") === 'active' ? 'Disable' : 'Enable'}
                           </button>
                         </div>
 

@@ -18,7 +18,7 @@ const childSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
-      
+
     },
 
     heightCm: {
@@ -61,6 +61,12 @@ const childSchema = new mongoose.Schema(
     therapist: {
       type: String,          // "t-0001"
       ref: "Therapist",      // make true if every child MUST have therapist
+    },
+
+    account_status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
     },
   },
   {
