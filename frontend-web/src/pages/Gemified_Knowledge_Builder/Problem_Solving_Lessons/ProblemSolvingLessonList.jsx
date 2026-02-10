@@ -4,7 +4,7 @@ import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Bu
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
 
-export default function ProblemSolvingLessonList({ searchTerm = "" }) {
+export default function ProblemSolvingLessonList({ searchTerm = "", difficultyFilter = "" }) {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -47,10 +47,12 @@ export default function ProblemSolvingLessonList({ searchTerm = "" }) {
     }
   };
 
-  const filteredLessons = lessons.filter(l =>
-    l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (l._id && l._id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredLessons = lessons.filter(l => {
+    const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l._id && l._id.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "" || l.difficulty_level === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
+  });
 
   if (loading) return <div className="text-center py-10 text-[#BD9A6B]">Loading...</div>;
 

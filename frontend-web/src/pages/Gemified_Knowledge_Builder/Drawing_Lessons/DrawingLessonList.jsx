@@ -4,7 +4,7 @@ import { deleteDrawingLesson, getAllDrawingLessons } from "../../../services/Gem
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
 
-export default function DrawingLessonList({ searchTerm = "" }) {
+export default function DrawingLessonList({ searchTerm = "", difficultyFilter = "" }) {
   const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState([]);
   const [error, setError] = useState("");
@@ -49,10 +49,12 @@ export default function DrawingLessonList({ searchTerm = "" }) {
     }
   }
 
-  const filteredLessons = lessons.filter(l =>
-    l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (l._id && l._id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredLessons = lessons.filter(l => {
+    const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l._id && l._id.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "" || l.difficulty_level === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
+  });
 
   if (loading) return <div className="text-center py-10 text-[#BD9A6B]">Loading...</div>;
   if (error) return <div className="text-center py-10 text-[#711A0C]">{error}</div>;

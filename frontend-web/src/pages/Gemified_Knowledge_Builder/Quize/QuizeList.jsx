@@ -5,7 +5,7 @@ import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeServ
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
 
-export default function QuizeList({ searchTerm = "" }) {
+export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
   const [quizes, setQuizes] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -48,10 +48,12 @@ export default function QuizeList({ searchTerm = "" }) {
     }
   };
 
-  const filteredQuizes = quizes.filter(q =>
-    (q._id && q._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (q.lesson_id && q.lesson_id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredQuizes = quizes.filter(q => {
+    const matchesSearch = (q._id && q._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (q.lesson_id && q.lesson_id.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "" || q.difficulty_level === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
+  });
 
   if (loading && quizes.length === 0) return <div className="text-center py-10 text-[#BD9A6B]">Loading...</div>;
 
