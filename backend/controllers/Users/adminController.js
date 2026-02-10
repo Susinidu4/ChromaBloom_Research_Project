@@ -85,7 +85,7 @@ export const getAdminById = async (req, res) => {
 export const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { full_name, email, password } = req.body;
+    const { full_name, email, password, phone } = req.body;
 
     const admin = await Admin.findById(id);
     if (!admin) {
@@ -94,6 +94,7 @@ export const updateAdmin = async (req, res) => {
 
     if (full_name !== undefined) admin.full_name = full_name;
     if (email !== undefined) admin.email = email;
+    if (phone !== undefined) admin.phone = phone;
     if (password !== undefined && password !== "") {
       // This will trigger pre('save') and re-hash the password
       admin.password = password;
