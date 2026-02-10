@@ -84,7 +84,10 @@ export default function ProblemSolvingLessonList({ searchTerm = "", difficultyFi
               </div>
 
               {/* Main Content */}
-              <div className="flex-1 px-8 py-2 flex items-center justify-between">
+              <div
+                className="flex-1 px-8 py-2 flex items-center justify-between cursor-pointer hover:bg-black/5 transition"
+                onClick={() => navigate(`/problem_solving_lessons/${l._id}`)}
+              >
                 <div>
                   <h3 className="text-[16px] font-bold text-[#A47C5B] mb-2 leading-tight">
                     {l.title}
@@ -98,14 +101,20 @@ export default function ProblemSolvingLessonList({ searchTerm = "", difficultyFi
                 {/* Actions */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => navigate(`/problem_solving_lessons/${l._id}/edit`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/problem_solving_lessons/${l._id}/edit`);
+                    }}
                     className="text-[#B79264] hover:scale-110 transition p-1"
                     title="Edit"
                   >
                     <HiPencil size={28} />
                   </button>
                   <button
-                    onClick={() => onDelete(l._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(l._id);
+                    }}
                     className="text-[#711A0C] hover:scale-110 transition p-1"
                     title="Delete"
                   >

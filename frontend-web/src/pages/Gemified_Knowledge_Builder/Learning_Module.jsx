@@ -5,7 +5,7 @@ import DrawingLessonList from "./Drawing_Lessons/DrawingLessonList";
 import ProblemSolvingLessonList from "./Problem_Solving_Lessons/ProblemSolvingLessonList";
 import QuizeList from "./Quize/QuizeList";
 
-export default function Wellness_Module() {
+export default function Learning_Module() {
     const [activeTab, setActiveTab] = useState("drawing"); // drawing | problem_solving | quizzes
     const [search, setSearch] = useState("");
     const [difficulty, setDifficulty] = useState(""); // "" | Beginner | Intermediate | Advanced
