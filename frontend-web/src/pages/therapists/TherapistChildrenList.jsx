@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getChildrenByTherapistService } from "../../services/childService";
 
 export const TherapistChildrenList = () => {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadChildren = async () => {
@@ -106,15 +108,24 @@ export const TherapistChildrenList = () => {
                     className="hover:bg-[#f3e9e5] transition-colors text-[#5A483C] font-medium"
                   >
                     <td className="p-4">{c.childName || "—"}</td>
-                    <td className="p-4 text-center md:text-left">{calculateAge(c.dateOfBirth)}</td>
+                    <td className="p-4 text-center md:text-left">
+                      {calculateAge(c.dateOfBirth)}
+                    </td>
                     <td className="p-4">{c.gender || "—"}</td>
-                    <td className="p-4 text-[#C19A6B]">{c.downSyndromeType || "Trisomy 21"}</td>
+                    <td className="p-4 text-[#C19A6B]">
+                      {c.downSyndromeType || "Trisomy 21"}
+                    </td>
                     <td className="p-4 text-[#8c7462]">Genetic test</td>
                     <td className="p-4">
                       {c.caregiver?.full_name || c.caregiver?.name || "—"}
                     </td>
                     <td className="p-4 text-right">
-                      <button className="bg-[#C19A6B] hover:bg-[#a67c52] text-white text-xs px-4 py-2 rounded shadow-sm transition-colors whitespace-nowrap">
+                      <button
+                        onClick={() =>
+                          navigate(`/child_parent_detail/${c._id || c.child_id}`)
+                        }
+                        className="bg-[#C19A6B] hover:bg-[#a67c52] text-white text-xs px-4 py-2 rounded shadow-sm transition-colors whitespace-nowrap"
+                      >
                         More Details
                       </button>
                     </td>

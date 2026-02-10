@@ -135,50 +135,73 @@ _notLoggedIn = false;
 
   // ===== delete =====
   Future<void> _confirmDelete(String entryId) async {
-    if (entryId.isEmpty) return;
+  if (entryId.isEmpty) return;
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Delete Journal"),
-        content: const Text(
-          "Are you sure you want to delete this journal entry?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
-    );
+  await QuickAlert.show(
+    context: context,
+    type: QuickAlertType.confirm,
+    title: "Delete Journal",
+    text: "Are you sure you want to delete this journal entry?",
+    confirmBtnText: "Delete",
+    cancelBtnText: "Cancel",
+    showCancelBtn: true,
+    barrierDismissible: false,
 
-    if (ok != true) return;
+    // 🎨 YOUR EXACT THEME
+    backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+    titleColor: const Color(0xFFBD9A6B),
+    textColor: const Color(0xFFBD9A6B),
+    confirmBtnColor: const Color(0xFFBD9A6B),
 
-    try {
-      await _service.deleteJournal(entryId);
-      if (!mounted) return;
+    onConfirmBtnTap: () async {
+      // close confirm alert
+      Navigator.of(context, rootNavigator: true).pop();
 
-      await showThemedAlert(
-        type: QuickAlertType.success,
-        title: "Deleted",
-        text: "Deleted successfully",
-      );
+      try {
+        await _service.deleteJournal(entryId);
+        if (!mounted) return;
 
-      await _refresh();
-    } catch (e) {
-      if (!mounted) return;
-      await showThemedAlert(
-        type: QuickAlertType.error,
-        title: "Delete Failed",
-        text: e.toString(),
-      );
-    }
-  }
+        // ✅ success alert
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.success,
+          title: "Deleted",
+          text: "Deleted successfully",
+          confirmBtnText: "OK",
+
+          // 🎨 same theme
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+          titleColor: const Color(0xFFBD9A6B),
+          textColor: const Color(0xFFBD9A6B),
+          confirmBtnColor: const Color(0xFFBD9A6B),
+        );
+
+        await _refresh();
+      } catch (e) {
+        if (!mounted) return;
+
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: "Delete Failed",
+          text: e.toString(),
+          confirmBtnText: "OK",
+
+          // 🎨 same theme
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+          titleColor: const Color(0xFFBD9A6B),
+          textColor: const Color(0xFFBD9A6B),
+          confirmBtnColor: const Color(0xFFBD9A6B),
+        );
+      }
+    },
+
+    onCancelBtnTap: () {
+      Navigator.of(context, rootNavigator: true).pop();
+    },
+  );
+}
+
 
   Future<void> _showJournalDetails({
     required String dateText,

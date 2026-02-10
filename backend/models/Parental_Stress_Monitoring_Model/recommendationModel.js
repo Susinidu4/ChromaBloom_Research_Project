@@ -70,7 +70,7 @@ const recommendationSchema = new Schema(
 
     source: {
       type: String,
-      required: true,
+      required: false,
     },
 
     is_active: {
