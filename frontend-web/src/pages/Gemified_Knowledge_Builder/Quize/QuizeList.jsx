@@ -2,33 +2,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
-import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
 
 export default function QuizeList({ searchTerm = "" }) {
   const [quizes, setQuizes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lessons, setLessons] = useState([]);
-  const [lessonFilter, setLessonFilter] = useState("");
   const navigate = useNavigate();
 
-  const loadLessons = async () => {
-    try {
-      const res = await ProblemSolvingLessonService.getAll();
-      const list = Array.isArray(res?.data) ? res.data : [];
-      setLessons(list.sort((a, b) => String(a._id).localeCompare(String(b._id))));
-    } catch {
-      setLessons([]);
-    }
-  };
-
-  const loadQuizes = async (lessonId = "") => {
+  const loadQuizes = async () => {
     setLoading(true);
     try {
-      const res = lessonId
-        ? await QuizeService.getByLessonId(lessonId)
-        : await QuizeService.getAll();
+      const res = await QuizeService.getAll();
       setQuizes(Array.isArray(res?.data) ? res.data : []);
     } catch (e) {
       console.error(e);
@@ -38,8 +23,7 @@ export default function QuizeList({ searchTerm = "" }) {
   };
 
   useEffect(() => {
-    loadLessons();
-    loadQuizes("");
+    loadQuizes();
   }, []);
 
   const onDelete = async (id) => {
@@ -57,7 +41,7 @@ export default function QuizeList({ searchTerm = "" }) {
       try {
         await QuizeService.remove(id);
         Swal.fire("Deleted!", "Quiz has been deleted.", "success");
-        loadQuizes(lessonFilter);
+        loadQuizes();
       } catch (e) {
         Swal.fire("Error", "Failed to delete quiz", "error");
       }
@@ -73,30 +57,8 @@ export default function QuizeList({ searchTerm = "" }) {
 
   return (
     <div className="w-full">
-      {/* Header / Actions */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div className="flex flex-col gap-1 w-full md:w-[350px]">
-          <label className="text-[13px] font-semibold text-[#A47C5B]">
-            Filter by Lesson
-          </label>
-          <select
-            className="px-4 py-2.5 rounded-xl border border-[#BD9A6B]/30 outline-none text-[14px] bg-[#F5ECE9] text-[#7A6357] shadow-sm focus:ring-2 focus:ring-[#BD9A6B]/20"
-            value={lessonFilter}
-            onChange={(e) => {
-              const v = e.target.value;
-              setLessonFilter(v);
-              loadQuizes(v);
-            }}
-          >
-            <option value="">All lessons</option>
-            {lessons.map((l) => (
-              <option key={l._id} value={l._id}>
-                {l._id} — {l.title || "(No title)"}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      {/* Header / Actions - Removed Filter dropdown */}
+      <div className="flex justify-end mb-8">
         <button
           onClick={() => navigate("/quizes/create")}
           className="bg-[#BD9A6B] text-white px-6 py-2.5 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
