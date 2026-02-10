@@ -3,42 +3,36 @@ import { HiDotsHorizontal } from "react-icons/hi";
 import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
+import { getAllChildrenService } from "../../../services/childService";
 import Swal from "sweetalert2";
 
 export const Admin_Dashboard = () => {
   const [activeTab, setActiveTab] = useState("patients"); // patients | therapists | admins
   const [search, setSearch] = useState("");
   const [adminList, setAdminList] = useState([]);
+  const [patientList, setPatientList] = useState([]);
 
-  // Fetch Admins
+  // Fetch Data based on active tab
   useEffect(() => {
-    const fetchAdmins = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAdmins();
-        setAdminList(data);
+        if (activeTab === "admins") {
+          const data = await getAdmins();
+          setAdminList(data);
+        } else if (activeTab === "patients") {
+          // Pass token if required, for now calling without
+          const data = await getAllChildrenService();
+          // Transform data to match table structure if needed
+          // Backend returns array of children
+          setPatientList(data);
+          console.log(data);
+        }
       } catch (err) {
-        console.error("Failed to fetch admins", err);
+        console.error(`Failed to fetch ${activeTab}`, err);
       }
     };
-    fetchAdmins();
-  }, []);
-
-  // Dummy data (replace with API later)
-  const patients = useMemo(
-    () => [
-      {
-        id: "p-0001",
-        childName: "Adhil Thisakya",
-        age: 11,
-        gender: "Male",
-        parentName: "Stephani De Alwis",
-        createdDate: "2/1/2025",
-        status: "Active",
-      },
-      // ... keep existing dummy data or truncate for brevity if you want
-    ],
-    []
-  );
+    fetchData();
+  }, [activeTab]);
 
   const therapists = useMemo(
     () => [
@@ -55,7 +49,19 @@ export const Admin_Dashboard = () => {
     []
   );
 
-  const data = activeTab === "patients" ? patients : activeTab === "therapists" ? therapists : adminList;
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return "N/A";
+    const birth = new Date(birthDate);
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  const data = activeTab === "patients" ? patientList : activeTab === "therapists" ? therapists : adminList;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -202,12 +208,12 @@ export const Admin_Dashboard = () => {
                     {activeTab === "patients" ? (
                       <div className="grid grid-cols-[2fr_1fr_1fr_2fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#BD9A6B]">
                         <div className="truncate">{row.childName}</div>
-                        <div className="text-center">{row.age}</div>
+                        <div className="text-center">{calculateAge(row.dateOfBirth)}</div>
                         <div className="text-center">{row.gender}</div>
                         <div className="text-center truncate">
-                          {row.parentName}
+                          {row.caregiver.full_name || "N/A"}
                         </div>
-                        <div className="text-center">{row.createdDate}</div>
+                        <div className="text-center">{new Date(row.createdAt).toLocaleDateString()}</div>
 
                         {/* Disable button */}
                         <div className="flex justify-center">
