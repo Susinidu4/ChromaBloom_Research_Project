@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 import { createSystemActivityService } from "../../../services/Admin/Interactive_Visual_Task_Scheduler/adminRoutineService";
 import createRoutineImg from "../../../assets/Interactive_Visual_Task_Scheduler/admin_create_routine.png";
 

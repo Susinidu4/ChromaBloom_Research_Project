@@ -1,7 +1,7 @@
 // src/pages/CreateAdmin.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createAdmin } from "../../services/Admin/adminService";
+import { createAdmin } from "../../../services/Admin/adminService";
 
 const CreateAdmin = () => {
   const navigate = useNavigate();
