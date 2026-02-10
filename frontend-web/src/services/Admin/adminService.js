@@ -27,6 +27,12 @@ export const getAdmins = async () => {
   return res.data;
 };
 
+// UPDATE ADMIN (PUT /chromabloom/admins/:id)
+export const updateAdmin = async (id, data) => {
+  const res = await api.put(`${ADMIN_BASE}/${id}`, data);
+  return res.data;
+};
+
 // GET ADMIN BY ID (GET /chromabloom/admins/:id)
 export const getAdminById = async (id) => {
   const res = await api.get(`${ADMIN_BASE}/${id}`);

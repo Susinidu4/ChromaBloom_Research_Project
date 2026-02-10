@@ -34,6 +34,7 @@ import StressRecommendationAdd from "./pages/admin/Parental_Stress_monitoring/Ad
 import StressRecommendationEdit from "./pages/admin/Parental_Stress_monitoring/EditStressRecommendation";
 
 import ChildParentDetailPage from "./pages/therapists/ChildParentDetailPage";
+import { Admin_Edite } from "./pages/admin/Admin_Management/Admin_Edite";
 
 function App() {
 
@@ -47,6 +48,7 @@ function App() {
         <Route path="/create_admin" element={<CreateAdmin />} />
         <Route path="/therapists_login" element={<TherapistsLogin />} />
         <Route path="/admin_dashboard" element={<Admin_Dashboard />} />
+        <Route path="/admin_edite" element={<Admin_Edite />} />
         <Route path="/therapists_register" element={<Therapists_register />} />
         <Route path="/therapists_dashboard" element={<Therapists_dashboard />} />
         <Route path="/child_parent_detail/:id" element={<ChildParentDetailPage />} />

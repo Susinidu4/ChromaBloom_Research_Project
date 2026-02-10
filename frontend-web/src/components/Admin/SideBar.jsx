@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 // React Icons
 import { FaUserEdit } from "react-icons/fa";
@@ -13,6 +13,7 @@ import { uploadAdminProfilePicture, getAdminById } from "../../services/Admin/ad
 export default function Sidebar() {
   const [admin, setAdmin] = React.useState(null);
   const fileInputRef = React.useRef(null);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     const fetchAdmin = async () => {
@@ -119,8 +120,13 @@ export default function Sidebar() {
           </p>
 
           <div className="flex gap-2">
-            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full">Edit Profile</button>
-            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full">Logout</button>
+            <button
+              onClick={() => navigate("/admin_edite")}
+              className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition"
+            >
+              Edit Profile
+            </button>
+            <button className="bg-[#F7EAD7] text-[#386884] px-4 py-2 rounded-full cursor-pointer hover:bg-[#e6d5c0] transition">Logout</button>
           </div>
         </div>
       </div>
