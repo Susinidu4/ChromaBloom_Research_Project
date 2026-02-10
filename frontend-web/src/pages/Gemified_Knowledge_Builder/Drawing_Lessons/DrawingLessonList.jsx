@@ -87,7 +87,10 @@ export default function DrawingLessonList({ searchTerm = "", difficultyFilter = 
               </div>
 
               {/* Main Content */}
-              <div className="flex-1 px-8 py-2 flex items-center justify-between">
+              <div
+                className="flex-1 px-8 py-2 flex items-center justify-between cursor-pointer hover:bg-black/5 transition"
+                onClick={() => navigate(`/drawing_lessons/${l._id}`)}
+              >
                 <div>
                   <h3 className="text-[16px] font-bold text-[#A47C5B] mb-2 leading-tight">
                     {l.title}
