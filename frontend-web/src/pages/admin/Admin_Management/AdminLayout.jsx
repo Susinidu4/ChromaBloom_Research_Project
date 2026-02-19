@@ -1,14 +1,14 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 
-import Header from "../../components/Header";
-import Sidebar from "../../components/SideBar";
-import Footer from "../../components/Footer";
+import Header from "../../../components/Header";
+import Sidebar from "../../../components/Admin/SideBar";
+import Footer from "../../../components/Footer";
 
 export default function AdminLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E8E8]">
-        
+
       {/* Header (stays on top) */}
       <div className="sticky top-0 z-50">
         <Header />

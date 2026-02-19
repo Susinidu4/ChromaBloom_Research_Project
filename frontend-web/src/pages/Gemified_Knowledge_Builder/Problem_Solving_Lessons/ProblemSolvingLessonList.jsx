@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
+import { HiPencil, HiTrash } from "react-icons/hi";
+import Swal from "sweetalert2";
 
-export default function ProblemSolvingLessonList() {
+export default function ProblemSolvingLessonList({ searchTerm = "", difficultyFilter = "" }) {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fetchAll = async () => {
     try {
@@ -12,7 +15,7 @@ export default function ProblemSolvingLessonList() {
       const res = await ProblemSolvingLessonService.getAll();
       setLessons(res?.data || []);
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -23,43 +26,101 @@ export default function ProblemSolvingLessonList() {
   }, []);
 
   const onDelete = async (id) => {
-    if (!window.confirm(`Delete ${id}?`)) return;
-    try {
-      await ProblemSolvingLessonService.remove(id);
-      fetchAll();
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#711A0C",
+      cancelButtonColor: "#BD9A6B",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await ProblemSolvingLessonService.remove(id);
+        Swal.fire("Deleted!", "Lesson has been deleted.", "success");
+        fetchAll();
+      } catch (e) {
+        Swal.fire("Error", e?.response?.data?.message || e.message || "Delete failed", "error");
+      }
     }
   };
 
+  const filteredLessons = lessons.filter(l => {
+    const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l._id && l._id.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDifficulty = difficultyFilter === "" || l.difficulty_level === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
+  });
+
+  if (loading) return <div className="text-center py-10 text-[#BD9A6B]">Loading...</div>;
+
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <h2 style={{ margin: 0 }}>Problem-Solving Lessons</h2>
-        <Link to="/problem_solving_lessons_create">+ Create</Link>
+    <div className="w-full">
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => navigate("/problem_solving_lessons_create")}
+          className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
+        >
+          + Add New Lesson
+        </button>
       </div>
 
-      {loading ? (
-        <div style={{ marginTop: 12 }}>Loading...</div>
-      ) : lessons.length === 0 ? (
-        <div style={{ marginTop: 12, opacity: 0.8 }}>No lessons found</div>
+      {filteredLessons.length === 0 ? (
+        <div className="text-center py-10 text-[#9C8577]">No lessons found.</div>
       ) : (
-        <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-          {lessons.map((l) => (
-            <div key={l._id} style={row}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800 }}>{l.title}</div>
-                <div style={{ opacity: 0.8, fontSize: 13 }}>
-                  {l._id} • {l.difficulty_level || "-"} • mini tutorials: {l.miniTutorials?.length || 0}
-                </div>
+        <div className="flex flex-col gap-5">
+          {filteredLessons.map((l) => (
+            <div
+              key={l._id}
+              className="bg-[#F5ECE9] rounded-[15px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-[#EACFC8] flex items-center overflow-hidden"
+            >
+              {/* Left Accent Bar */}
+              <div className="w-6 self-stretch bg-[#DFC7A7]/40 flex flex-col items-center justify-center gap-1.5 border-r border-[#EACFC8]/50">
+                <div className="w-[3px] h-[3px] rounded-full bg-[#BD9A6B]" />
+                <div className="w-[3px] h-[3px] rounded-full bg-[#BD9A6B]" />
+                <div className="w-[3px] h-[3px] rounded-full bg-[#BD9A6B]" />
               </div>
 
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Link to={`/problem_solving_lessons/${l._id}`}>View</Link>
-                <Link to={`/problem_solving_lessons/${l._id}/edit`}>Edit</Link>
-                <button onClick={() => onDelete(l._id)} style={dangerBtn}>
-                  Delete
-                </button>
+              {/* Main Content */}
+              <div
+                className="flex-1 px-8 py-2 flex items-center justify-between cursor-pointer hover:bg-black/5 transition"
+                onClick={() => navigate(`/problem_solving_lessons/${l._id}`)}
+              >
+                <div>
+                  <h3 className="text-[16px] font-bold text-[#A47C5B] mb-2 leading-tight">
+                    {l.title}
+                  </h3>
+                  <div className="flex gap-12 text-[13px] text-[#BD9A6B] font-medium opacity-90">
+                    <span>ID : {l._id}</span>
+                    <span>Difficulty Level : {l.difficulty_level || "Beginner"}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/problem_solving_lessons/${l._id}/edit`);
+                    }}
+                    className="text-[#B79264] hover:scale-110 transition p-1"
+                    title="Edit"
+                  >
+                    <HiPencil size={28} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(l._id);
+                    }}
+                    className="text-[#711A0C] hover:scale-110 transition p-1"
+                    title="Delete"
+                  >
+                    <HiTrash size={28} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -68,20 +129,3 @@ export default function ProblemSolvingLessonList() {
     </div>
   );
 }
-
-const row = {
-  padding: 12,
-  border: "1px solid #333",
-  borderRadius: 12,
-  display: "flex",
-  gap: 12,
-  alignItems: "center",
-};
-
-const dangerBtn = {
-  border: "1px solid #444",
-  borderRadius: 10,
-  padding: "6px 10px",
-  cursor: "pointer",
-  background: "transparent",
-};
