@@ -41,3 +41,13 @@ export const getTherapistByIdService = async (id, token) => {
   });
   return res.data;
 };
+
+// Update therapist account status
+export const updateTherapistAccountStatus = async (id, status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/${id}/status`, { status }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};

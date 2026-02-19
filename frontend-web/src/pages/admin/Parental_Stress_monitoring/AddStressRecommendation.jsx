@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import { FaArrowLeft } from "react-icons/fa";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";

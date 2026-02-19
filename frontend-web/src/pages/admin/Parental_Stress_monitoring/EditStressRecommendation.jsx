@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import { FaArrowLeft } from "react-icons/fa";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
@@ -98,9 +98,9 @@ export default function EditStressRecommendation() {
         // steps from backend: [{ step_number, instruction }]
         const stepInstructions = Array.isArray(r?.steps)
           ? r.steps
-              .slice()
-              .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
-              .map((s) => s?.instruction ?? "")
+            .slice()
+            .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
+            .map((s) => s?.instruction ?? "")
           : [];
 
         // Keep at least 2 inputs
@@ -108,9 +108,9 @@ export default function EditStressRecommendation() {
           stepInstructions.length >= 2
             ? stepInstructions
             : [
-                ...stepInstructions,
-                ...Array(2 - stepInstructions.length).fill(""),
-              ];
+              ...stepInstructions,
+              ...Array(2 - stepInstructions.length).fill(""),
+            ];
 
         if (!alive) return;
 

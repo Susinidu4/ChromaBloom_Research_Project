@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import {
   getSystemActivityByIdService,

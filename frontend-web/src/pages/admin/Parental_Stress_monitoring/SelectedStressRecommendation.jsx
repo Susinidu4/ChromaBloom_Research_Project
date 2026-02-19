@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import { FaArrowLeft, FaRegEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import {
   getRecommendationByIdService,
@@ -16,7 +16,7 @@ export default function RecommendationDetail() {
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
 
   useEffect(() => {
     if (!error) return;
@@ -105,8 +105,8 @@ export default function RecommendationDetail() {
           duration: r?.duration ? `${r.duration} min` : "",
           steps: Array.isArray(r?.steps)
             ? r.steps
-                .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
-                .map((s) => s.instruction)
+              .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
+              .map((s) => s.instruction)
             : [],
           source: r?.source || "",
         };

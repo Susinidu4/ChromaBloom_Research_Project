@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { getDrawingLessonById, updateDrawingLesson } from "../../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
 import LessonForm from "./DrawingLessonForm.jsx";
+import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
+import { IoArrowBack } from "react-icons/io5";
 
 export default function DrawingLessonEdit() {
   const { id } = useParams();
@@ -45,17 +47,28 @@ export default function DrawingLessonEdit() {
   if (!lesson) return <p>Not found</p>;
 
   return (
-    <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <Link to={`/drawing_lessons/${id}`}>Back</Link>
-      </div>
+    <AdminLayout>
+      <div className="w-full min-h-full bg-[#F3E8E8] px-10 py-16 relative">
+        {/* Back Button */}
+        <button
+          onClick={() => nav(-1)}
+          className="mb-10 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-[#BD9A6B] hover:bg-slate-50 transition z-10"
+        >
+          <IoArrowBack size={20} />
+        </button>
 
-      <LessonForm
-        mode="edit"
-        saving={saving}
-        initialValue={lesson}
-        onSubmit={onSubmit}
-      />
-    </div>
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200">
+            {error}
+          </div>
+        )}
+        <LessonForm
+          mode="edit"
+          saving={saving}
+          initialValue={lesson}
+          onSubmit={onSubmit}
+        />
+      </div>
+    </AdminLayout>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FaArrowLeft, FaRegEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { FiClock } from "react-icons/fi";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 import Swal from "sweetalert2";
 
 import {
@@ -19,94 +19,94 @@ export default function SelectedRoutine() {
   const [loading, setLoading] = useState(true);
 
   const alertError = (msg) =>
-  Swal.fire({
-    icon: "error",
-    title: "Error",
-    text: msg || "Something went wrong",
-    confirmButtonColor: "#BD9A6B",
-  });
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: msg || "Something went wrong",
+      confirmButtonColor: "#BD9A6B",
+    });
 
-const alertSuccess = (msg) =>
-  Swal.fire({
-    icon: "success",
-    title: "Success",
-    text: msg || "Done",
-    confirmButtonColor: "#BD9A6B",
-    timer: 1200,
-    showConfirmButton: false,
-  });
+  const alertSuccess = (msg) =>
+    Swal.fire({
+      icon: "success",
+      title: "Success",
+      text: msg || "Done",
+      confirmButtonColor: "#BD9A6B",
+      timer: 1200,
+      showConfirmButton: false,
+    });
 
   useEffect(() => {
-  const fetchOne = async () => {
-    try {
-      setLoading(true);
+    const fetchOne = async () => {
+      try {
+        setLoading(true);
 
-      const res = await getSystemActivityByIdService(id);
-      const a = res?.data?.data ?? res?.data; // ✅ safe (handles both formats)
+        const res = await getSystemActivityByIdService(id);
+        const a = res?.data?.data ?? res?.data; // ✅ safe (handles both formats)
 
-      const mapped = {
-        id: a?._id,
-        title: a?.title || "Untitled",
-        duration: a?.estimated_duration_minutes || 0,
-        description: a?.description || "No description yet.",
-        difficulty: a?.difficulty_level || "",
-        devArea: a?.development_area || "",
-        steps: (a?.steps || []).map((s) => s.instruction),
-        imageUrl:
-          (a?.media_links && a.media_links[0]) ||
-          "https://images.emojiterra.com/google/noto-emoji/unicode-15.1/color/512px/1f466.png",
-      };
+        const mapped = {
+          id: a?._id,
+          title: a?.title || "Untitled",
+          duration: a?.estimated_duration_minutes || 0,
+          description: a?.description || "No description yet.",
+          difficulty: a?.difficulty_level || "",
+          devArea: a?.development_area || "",
+          steps: (a?.steps || []).map((s) => s.instruction),
+          imageUrl:
+            (a?.media_links && a.media_links[0]) ||
+            "https://images.emojiterra.com/google/noto-emoji/unicode-15.1/color/512px/1f466.png",
+        };
 
-      setRoutine(mapped);
-    } catch (e) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Failed to load routine";
-      alertError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setRoutine(mapped);
+      } catch (e) {
+        const msg =
+          e?.response?.data?.message || e?.message || "Failed to load routine";
+        alertError(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchOne();
-}, [id]);
+    fetchOne();
+  }, [id]);
 
 
   const onBack = () => navigate("/routine_list");
   const onEdit = () => navigate(`/routine_edit/${id}`);
 
   const onDelete = async () => {
-  const result = await Swal.fire({
-    title: "Delete this routine?",
-    text: "This action cannot be undone.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Yes, delete",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#6B3B30",
-    cancelButtonColor: "#BD9A6B",
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    await deleteSystemActivityByIdService(id);
-
-    await Swal.fire({
-      icon: "success",
-      title: "Deleted",
-      text: "Routine deleted successfully.",
-      confirmButtonColor: "#BD9A6B",
-      timer: 1200,
-      showConfirmButton: false,
+    const result = await Swal.fire({
+      title: "Delete this routine?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#6B3B30",
+      cancelButtonColor: "#BD9A6B",
     });
 
-    navigate("/routine_list");
-  } catch (e) {
-    const msg =
-      e?.response?.data?.message || e?.message || "Delete failed";
-    alertError(msg);
-  }
-};
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteSystemActivityByIdService(id);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Deleted",
+        text: "Routine deleted successfully.",
+        confirmButtonColor: "#BD9A6B",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
+      navigate("/routine_list");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message || e?.message || "Delete failed";
+      alertError(msg);
+    }
+  };
 
 
   return (
