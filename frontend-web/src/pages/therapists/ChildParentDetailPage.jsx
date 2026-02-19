@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 import { getChildByIdService } from "../../services/childService";
@@ -18,6 +19,7 @@ export default function ChildParentDetailPage() {
   const [child, setChild] = useState(null);
   const [parent, setParent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
@@ -63,13 +65,24 @@ export default function ChildParentDetailPage() {
     stress: true,
   });
 
-  const toggle = (key) => setOpen((s) => ({ ...s, [key]: !s[key] }))
+  const toggle = (key) => setOpen((s) => ({ ...s, [key]: !s[key] }));
 
   return (
     <TherapistLayout>
       <div className="bg-[#F3E8E8] min-h-[calc(100vh-64px)]">
         {/* Page container */}
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6 relative pt-10">
+          {/* Back button */}
+          <button
+            onClick={() => navigate("/therapists_dashboard")}
+            className="absolute -left-10 top-10 h-10 w-10 rounded-full bg-white/80
+             shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+             grid place-items-center hover:brightness-95 active:scale-[0.98]"
+            title="Back"
+          >
+            <FaArrowLeft className="text-[#BD9A6B]" />
+          </button>
+
           {/* Tabs */}
           <div className="flex ">
             <button
