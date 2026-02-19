@@ -1,7 +1,17 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
+import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
+import { IoArrowBack, IoChevronDownSharp } from "react-icons/io5";
+
+const LEVELS = [
+  { label: "Beginner", value: "Beginner" },
+  { label: "Intermediate", value: "Intermediate" },
+  { label: "Hard", value: "Advanced" },
+];
 
 export default function ProblemSolvingLessonCreate() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -85,17 +95,8 @@ export default function ProblemSolvingLessonCreate() {
 
     try {
       setSubmitting(true);
-      const res = await ProblemSolvingLessonService.create(payload);
-      setMsg({ type: "success", text: `Created successfully: ${res?.data?._id || "LP-xxxx"}` });
-
-      // reset form
-      setForm({
-        title: "",
-        description: "",
-        difficulty_level: "Beginner",
-        miniTutorialsName: "",
-        miniTutorials: [{ tip_number: 1, tip_content: "" }],
-      });
+      await ProblemSolvingLessonService.create(payload);
+      navigate("/wellness_module");
     } catch (error) {
       const apiMsg =
         error?.response?.data?.message ||
@@ -108,248 +109,143 @@ export default function ProblemSolvingLessonCreate() {
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.h2}>Create Problem Solving Lesson</h2>
+    <AdminLayout>
+      <div className="w-full min-h-full bg-[#F3E8E8] px-10 py-16 relative">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-10 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-[#BD9A6B] hover:bg-slate-50 transition z-10"
+        >
+          <IoArrowBack size={20} />
+        </button>
 
-        {msg.text ? (
-          <div
-            style={{
-              ...styles.alert,
-              ...(msg.type === "success" ? styles.alertSuccess : styles.alertError),
-            }}
-          >
-            {msg.text}
-          </div>
-        ) : null}
+        <div className="w-full max-w-5xl mx-auto rounded-[20px] border border-[#BD9A6B]/50 bg-[#F5ECE9] overflow-hidden shadow-sm">
+          <form onSubmit={onSubmit} className="p-8 md:p-12 space-y-8">
 
-        <form onSubmit={onSubmit} style={styles.form}>
-          <div style={styles.grid2}>
-            <div style={styles.field}>
-              <label style={styles.label}>Title *</label>
+            {/* Header Section */}
+            <div className="flex items-center justify-between border-b border-[#BD9A6B]/30 pb-4 mb-8">
+              <h2 className="text-[#BD9A6B] text-xl font-bold">Create Problem Solving Lesson</h2>
+              <IoChevronDownSharp className="text-[#BD9A6B] text-xl" />
+            </div>
+
+            {msg.text && (
+              <div className={`p-4 rounded-xl border text-sm ${msg.type === "success" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+                {msg.text}
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="space-y-3">
+              <label className="block text-[14px] font-bold text-[#BD9A6B] tracking-wider">TITLE</label>
               <input
-                style={styles.input}
                 value={form.title}
                 onChange={(e) => setField("title", e.target.value)}
+                className="w-full bg-transparent rounded-[10px] border border-[#BD9A6B]/40 px-5 py-3 text-[#7A6357] outline-none focus:border-[#BD9A6B]"
                 placeholder="e.g., Match the Shapes"
               />
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Difficulty Level *</label>
-              <select
-                style={styles.input}
-                value={form.difficulty_level}
-                onChange={(e) => setField("difficulty_level", e.target.value)}
-              >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
+            {/* Description */}
+            <div className="space-y-3">
+              <label className="block text-[14px] font-bold text-[#BD9A6B] tracking-wider">DESCRIPTION</label>
+              <textarea
+                rows={6}
+                value={form.description}
+                onChange={(e) => setField("description", e.target.value)}
+                className="w-full bg-transparent rounded-[10px] border border-[#BD9A6B]/40 px-5 py-3 text-[#7A6357] outline-none focus:border-[#BD9A6B]"
+                placeholder="Short lesson description..."
+              />
             </div>
-          </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Description *</label>
-            <textarea
-              style={styles.textarea}
-              value={form.description}
-              onChange={(e) => setField("description", e.target.value)}
-              placeholder="Short lesson description..."
-              rows={4}
-            />
-          </div>
+            {/* Difficulty Level */}
+            <div className="space-y-4">
+              <label className="block text-[14px] font-bold text-[#BD9A6B] tracking-wider uppercase">Difficulty Level</label>
+              <div className="flex flex-wrap gap-4">
+                {LEVELS.map((l) => {
+                  const active = form.difficulty_level === l.value;
+                  return (
+                    <button
+                      key={l.value}
+                      type="button"
+                      onClick={() => setField("difficulty_level", l.value)}
+                      className={[
+                        "px-10 py-2.5 rounded-[10px] border font-semibold transition text-sm",
+                        active
+                          ? "bg-[#BD9A6B] text-white border-[#BD9A6B] shadow-md"
+                          : "bg-transparent text-[#BD9A6B] border-[#BD9A6B]/40 hover:bg-[#BD9A6B]/5",
+                      ].join(" ")}
+                    >
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Mini Tutorials Name (optional)</label>
-            <input
-              style={styles.input}
-              value={form.miniTutorialsName}
-              onChange={(e) => setField("miniTutorialsName", e.target.value)}
-              placeholder="e.g., Parent Guidance Tips"
-            />
-          </div>
+            {/* Mini Tutorials Name */}
+            <div className="space-y-3">
+              <label className="block text-[14px] font-bold text-[#BD9A6B] tracking-wider uppercase">Mini Tutorials Name (optional)</label>
+              <input
+                value={form.miniTutorialsName}
+                onChange={(e) => setField("miniTutorialsName", e.target.value)}
+                className="w-full bg-transparent rounded-[10px] border border-[#BD9A6B]/40 px-5 py-3 text-[#7A6357] outline-none focus:border-[#BD9A6B]"
+                placeholder="e.g., Parent Guidance Tips"
+              />
+            </div>
 
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>
-              <h3 style={styles.h3}>Mini Tutorial Tips</h3>
-              <button type="button" style={styles.btn} onClick={addTip}>
-                + Add Tip
+            {/* Tips Section */}
+            <div className="space-y-4">
+              <label className="block text-[14px] font-bold text-[#BD9A6B] tracking-wider">TIPS</label>
+              <div className="rounded-[15px] border border-[#BD9A6B]/40 p-6 space-y-4">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addTip}
+                    className="bg-[#BD9A6B]/80 hover:bg-[#BD9A6B] text-white px-5 py-2 rounded-lg text-sm font-bold transition shadow-sm"
+                  >
+                    + Add Tip
+                  </button>
+                </div>
+
+                {form.miniTutorials.map((tip, idx) => (
+                  <div key={idx} className="bg-[#EADED7]/80 border border-[#BD9A6B]/20 rounded-[12px] p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="bg-white/80 border border-[#BD9A6B]/30 px-4 py-1 rounded-full text-[11px] font-bold text-[#A47C5B]">
+                        TIP {idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeTip(idx)}
+                        disabled={form.miniTutorials.length === 1}
+                        className="text-[#711A0C] text-[12px] font-bold hover:underline uppercase disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <input
+                      value={tip.tip_content}
+                      onChange={(e) => updateTip(idx, "tip_content", e.target.value)}
+                      placeholder="Tip content..."
+                      className="w-full bg-white/60 border border-[#BD9A6B]/30 rounded-[8px] px-4 py-2 text-[#7A6357] outline-none focus:border-[#BD9A6B]"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <div className="flex justify-end pt-6">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-[#A47C5B] text-white px-10 py-3 rounded-[10px] font-bold shadow-lg hover:brightness-95 transition disabled:opacity-50"
+              >
+                {submitting ? "Creating..." : "Create Lesson"}
               </button>
             </div>
-
-            {(form.miniTutorials || []).map((tip, idx) => (
-              <div key={idx} style={styles.tipRow}>
-                <div style={styles.tipNumber}>#{idx + 1}</div>
-
-                <input
-                  style={styles.input}
-                  value={tip.tip_content}
-                  onChange={(e) => updateTip(idx, "tip_content", e.target.value)}
-                  placeholder="Tip content..."
-                />
-
-                <button
-                  type="button"
-                  style={{ ...styles.btn, ...styles.btnDanger }}
-                  onClick={() => removeTip(idx)}
-                  disabled={(form.miniTutorials?.length || 0) === 1}
-                  title={
-                    (form.miniTutorials?.length || 0) === 1
-                      ? "At least one tip row is kept. Clear it if not needed."
-                      : "Remove tip"
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-
-            <p style={styles.helper}>
-              If you don’t want mini tutorials, you can keep one row and leave it blank,
-              but then remove validation above — currently it requires all tip contents filled.
-            </p>
-          </div>
-
-          <div style={styles.actions}>
-            <button type="submit" style={styles.btnPrimary} disabled={submitting}>
-              {submitting ? "Creating..." : "Create Lesson"}
-            </button>
-            <button
-              type="button"
-              style={styles.btnOutline}
-              onClick={() =>
-                setForm({
-                  title: "",
-                  description: "",
-                  difficulty_level: "Beginner",
-                  miniTutorialsName: "",
-                  miniTutorials: [{ tip_number: 1, tip_content: "" }],
-                })
-              }
-              disabled={submitting}
-            >
-              Reset
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </AdminLayout>
   );
-};
-
-
-
-// --- simple inline styles (no extra libs) ---
-const styles = {
-  page: {
-    minHeight: "100vh",
-    padding: 24,
-    background: "#F5ECEC",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "flex-start",
-  },
-  card: {
-    width: "100%",
-    maxWidth: 860,
-    background: "#fff",
-    borderRadius: 18,
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-    border: "1px solid rgba(0,0,0,0.06)",
-  },
-  h2: { margin: 0, marginBottom: 14, fontSize: 22 },
-  h3: { margin: 0, fontSize: 16 },
-  form: { display: "flex", flexDirection: "column", gap: 14 },
-  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  field: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, opacity: 0.85 },
-  input: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.15)",
-    outline: "none",
-    fontSize: 14,
-  },
-  textarea: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.15)",
-    outline: "none",
-    fontSize: 14,
-    resize: "vertical",
-  },
-  section: {
-    padding: 14,
-    borderRadius: 14,
-    background: "rgba(233,221,204,0.45)",
-    border: "1px solid rgba(0,0,0,0.06)",
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  tipRow: {
-    display: "grid",
-    gridTemplateColumns: "60px 1fr 120px",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  tipNumber: {
-    height: 40,
-    borderRadius: 12,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#F8F2E8",
-    border: "1px solid rgba(0,0,0,0.12)",
-    fontWeight: 700,
-  },
-  helper: { margin: 0, fontSize: 12, opacity: 0.75 },
-  actions: { display: "flex", gap: 10, marginTop: 8 },
-  btn: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.18)",
-    background: "#fff",
-    cursor: "pointer",
-    fontWeight: 700,
-    fontSize: 13,
-  },
-  btnDanger: { background: "#fff5f5", borderColor: "rgba(255,0,0,0.25)" },
-  btnPrimary: {
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "none",
-    background: "#3D6B86",
-    color: "#fff",
-    cursor: "pointer",
-    fontWeight: 800,
-  },
-  btnOutline: {
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.18)",
-    background: "transparent",
-    cursor: "pointer",
-    fontWeight: 800,
-  },
-  alert: {
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  alertSuccess: {
-    background: "rgba(0, 128, 0, 0.08)",
-    border: "1px solid rgba(0, 128, 0, 0.18)",
-  },
-  alertError: {
-    background: "rgba(255, 0, 0, 0.08)",
-    border: "1px solid rgba(255, 0, 0, 0.18)",
-  },
-};
+}

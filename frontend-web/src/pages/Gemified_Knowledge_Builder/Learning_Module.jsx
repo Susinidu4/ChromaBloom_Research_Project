@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import AdminLayout from "../admin/Admin_Management/AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import DrawingLessonList from "./Drawing_Lessons/DrawingLessonList";
+import ProblemSolvingLessonList from "./Problem_Solving_Lessons/ProblemSolvingLessonList";
+import QuizeList from "./Quize/QuizeList";
 
-export default function Wellness_Module() {
+export default function Learning_Module() {
     const [activeTab, setActiveTab] = useState("drawing"); // drawing | problem_solving | quizzes
     const [search, setSearch] = useState("");
+    const [difficulty, setDifficulty] = useState(""); // "" | Beginner | Intermediate | Advanced
 
     return (
         <AdminLayout>
@@ -13,9 +16,29 @@ export default function Wellness_Module() {
                 {/* Outer canvas */}
                 <div className="px-10 py-10 pt-20">
 
-                    {/* Search top-right */}
-                    <div className="absolute right-10 top-25">
-                        <div className="relative w-[280px] max-w-[70vw]">
+                    {/* Filters top-right */}
+                    <div className="absolute right-10 top-25 flex items-center gap-4">
+                        {/* Difficulty Filter */}
+                        <div className="relative">
+                            <select
+                                value={difficulty}
+                                onChange={(e) => setDifficulty(e.target.value)}
+                                className="bg-[#D9D9D9]/50 rounded-full py-1.5 px-6 outline-none text-[#7A6357] appearance-none cursor-pointer pr-10"
+                            >
+                                <option value="">All Levels</option>
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#7A6357]">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Search */}
+                        <div className="relative w-[280px] max-w-[50vw]">
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -72,19 +95,17 @@ export default function Wellness_Module() {
                         <div className="border border-[#BD9A6B]/70 rounded-b-[10px] rounded-tr-[10px] mt-0 bg-transparent min-h-[500px] p-8">
                             {activeTab === "drawing" && (
                                 <div>
-                                    <DrawingLessonList />
+                                    <DrawingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "problem_solving" && (
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#BD9A6B]">Problem Solving Lessons</h2>
-                                    <p className="text-[#7A6357] mt-4">Manage your problem solving lessons here.</p>
+                                    <ProblemSolvingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "quizzes" && (
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#BD9A6B]">Quizzes</h2>
-                                    <p className="text-[#7A6357] mt-4">Manage your quizzes here.</p>
+                                    <QuizeList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                         </div>

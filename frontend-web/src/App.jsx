@@ -35,7 +35,7 @@ import StressRecommendationEdit from "./pages/admin/Parental_Stress_monitoring/E
 
 import ChildParentDetailPage from "./pages/therapists/ChildParentDetailPage";
 import { Admin_Edite } from "./pages/admin/Admin_Management/Admin_Edite";
-import Wellness_Module from "./pages/Gemified_Knowledge_Builder/Wellness_Module";
+import Learning_Module from "./pages/Gemified_Knowledge_Builder/Learning_Module";
 
 function App() {
 
@@ -67,7 +67,7 @@ function App() {
         <Route path="/stress_recommendation_edit/:id" element={<StressRecommendationEdit />} />
 
         {/* Gemified Knowledge Builder */}
-        <Route path="/wellness_module" element={<Wellness_Module />} />
+        <Route path="/learning_module" element={<Learning_Module />} />
         <Route path="/drawing_lessons_create" element={<DrawingLessonCreate />} />
         <Route path="/drawing_lessons/:id" element={<DrawingLessonView />} />
         <Route path="/drawing_lessons/:id/edit" element={<DrawingLessonEdit />} />
