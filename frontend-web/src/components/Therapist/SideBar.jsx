@@ -59,8 +59,8 @@ export default function Sidebar() {
               "flex items-center gap-2 px-6 py-3 font-semibold transition-colors duration-200 text-[#DFC7A7]",
               // "bg-[#F3E8D9] text-[#386884]",
               isActive ? "bg-[#F7EAD7] text-[#386884]"
-                    : "bg-[#386884] text-[#DFC7A7]",
-                  "hover:bg-[#2F566D]",
+                : "bg-[#386884] text-[#DFC7A7]",
+              "hover:bg-[#2F566D]",
             ].join(" ")
           }
         >
@@ -79,7 +79,7 @@ export default function Sidebar() {
               to: "/stress_recommendation_list",
               label: "Wellness Module",
               icon: MdOutlineHealthAndSafety,
-              
+
             },
             {
               to: "/wellness_module",

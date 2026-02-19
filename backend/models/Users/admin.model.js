@@ -6,7 +6,10 @@ const AdminSchema = new mongoose.Schema(
     _id: { type: String }, // a-0001, a-0002 ...
     full_name: { type: String, required: true },
     email: { type: String, unique: true, required: true },
+    phone: { type: String, unique: true, required: true },
     password: { type: String, required: true },
+    account_status: { type: String, enum: ["active", "inactive"], default: "active" },
+    profile_picture: { type: String },
   },
   { timestamps: true }
 );

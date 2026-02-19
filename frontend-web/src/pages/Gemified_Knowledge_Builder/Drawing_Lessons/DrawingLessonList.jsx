@@ -41,7 +41,6 @@ export default function DrawingLessonList() {
 
   return (
     <div>
-      <h3>All Drawing Lessons</h3>
 
       {lessons.length === 0 ? (
         <p>No lessons found.</p>

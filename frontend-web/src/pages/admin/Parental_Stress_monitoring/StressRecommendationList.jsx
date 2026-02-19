@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { FiSearch } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { HiDotsHorizontal } from "react-icons/hi";
-import AdminLayout from "../AdminLayout";
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import {
   getAllRecommendationsService,
@@ -26,15 +26,15 @@ export default function StressSupportRecommendationList() {
   const [filterValue, setFilterValue] = useState("All");
 
   useEffect(() => {
-  if (!error) return;
+    if (!error) return;
 
-  Swal.fire({
-    icon: "error",
-    title: "Failed",
-    text: error,
-    confirmButtonColor: "#BD9A6B",
-  });
-}, [error]);
+    Swal.fire({
+      icon: "error",
+      title: "Failed",
+      text: error,
+      confirmButtonColor: "#BD9A6B",
+    });
+  }, [error]);
 
 
   // ✅ fetch from backend
@@ -252,7 +252,7 @@ export default function StressSupportRecommendationList() {
               </div>
             )}
 
-            
+
 
             {!loading &&
               filtered.map((r) => (
