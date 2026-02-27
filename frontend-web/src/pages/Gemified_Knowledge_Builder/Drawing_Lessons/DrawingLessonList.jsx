@@ -104,7 +104,10 @@ export default function DrawingLessonList({ searchTerm = "", difficultyFilter = 
                 {/* Actions */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => navigate(`/drawing_lessons/${l._id}/edit`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/drawing_lessons/${l._id}/edit`);
+                    }}
                     className="text-[#B79264] hover:scale-110 transition p-1"
                     title="Edit"
                   >
