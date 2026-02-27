@@ -36,6 +36,7 @@ import StressRecommendationEdit from "./pages/admin/Parental_Stress_monitoring/E
 import ChildParentDetailPage from "./pages/therapists/ChildParentDetailPage";
 import { Admin_Edite } from "./pages/admin/Admin_Management/Admin_Edite";
 import Learning_Module from "./pages/Gemified_Knowledge_Builder/Learning_Module";
+import { Child_information } from "./pages/admin/Admin_Management/Child_information";
 
 function App() {
 
@@ -53,6 +54,7 @@ function App() {
         <Route path="/therapists_register" element={<Therapists_register />} />
         <Route path="/therapists_dashboard" element={<Therapists_dashboard />} />
         <Route path="/child_parent_detail/:id" element={<ChildParentDetailPage />} />
+        <Route path="/child_info/:id" element={<Child_information />} />
 
         {/* Interactive Visual Task Scheduler */}
         <Route path="/routine_create" element={<RoutineCreate />} />

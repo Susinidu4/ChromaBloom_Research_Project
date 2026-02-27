@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { HiDotsHorizontal } from "react-icons/hi";
+import { Link } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
 import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
@@ -273,15 +274,14 @@ export const Admin_Dashboard = () => {
 
                         {/* More button */}
                         <div className="flex justify-center">
-                          <button
-                            onClick={() => handleMore(row.id)}
-                            className="h-6 w-8 rounded-[10px] bg-[#BD9A6B] text-white
+                          <Link to={`/child_info/${row._id}`}>
+                            <button className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
                                          hover:brightness-95 active:scale-[0.99]"
-                            title="More"
-                          >
-                            <HiDotsHorizontal size={18} />
-                          </button>
+                            >
+                              <HiDotsHorizontal size={18} />
+                            </button>
+                          </Link>
                         </div>
                       </div>
                     ) : activeTab === "therapists" ? (
@@ -305,7 +305,7 @@ export const Admin_Dashboard = () => {
                         {/* More button */}
                         <div className="flex justify-center">
                           <button
-                            onClick={() => handleMore(row.id)}
+                            
                             className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
                                          hover:brightness-95 active:scale-[0.99]"
