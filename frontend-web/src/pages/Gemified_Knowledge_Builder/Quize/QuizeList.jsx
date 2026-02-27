@@ -1,6 +1,6 @@
 // src/pages/Gamified_Knowledge_Builder/Quize/QuizeList.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
@@ -60,15 +60,6 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
   return (
     <div className="w-full">
       {/* Header / Actions - Removed Filter dropdown */}
-      <div className="flex justify-end mb-8">
-        <button
-          onClick={() => navigate("/quizes/create")}
-          className="bg-[#BD9A6B] text-white px-6 py-2.5 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
-        >
-          + Add New Quiz
-        </button>
-      </div>
-
       {filteredQuizes.length === 0 ? (
         <div className="text-center py-10 text-[#9C8577]">No quizzes found.</div>
       ) : (

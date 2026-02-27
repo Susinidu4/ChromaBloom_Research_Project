@@ -4,11 +4,23 @@ import { IoSearchSharp } from "react-icons/io5";
 import DrawingLessonList from "./Drawing_Lessons/DrawingLessonList";
 import ProblemSolvingLessonList from "./Problem_Solving_Lessons/ProblemSolvingLessonList";
 import QuizeList from "./Quize/QuizeList";
+import { useNavigate } from "react-router-dom";
 
 export default function Learning_Module() {
     const [activeTab, setActiveTab] = useState("drawing"); // drawing | problem_solving | quizzes
     const [search, setSearch] = useState("");
     const [difficulty, setDifficulty] = useState(""); // "" | Beginner | Intermediate | Advanced
+    const navigate = useNavigate();
+
+    const handleCreate = () => {
+        if (activeTab === "drawing") {
+            navigate("/drawing_lessons_create");
+        } else if (activeTab === "problem_solving") {
+            navigate("/problem_solving_lessons_create");
+        } else if (activeTab === "quizzes") {
+            navigate("/quizes/create");
+        }
+    };
 
     return (
         <AdminLayout>
@@ -16,14 +28,27 @@ export default function Learning_Module() {
                 {/* Outer canvas */}
                 <div className="px-10 py-10 pt-20">
 
-                    {/* Filters top-right */}
-                    <div className="absolute right-10 top-25 flex items-center gap-4">
+                    {/* Filters top-right - Full Vertical Stack (Search Top, Create End) */}
+                    <div className="absolute right-10 top-20 flex flex-col items-end gap-3 z-10">
+                        {/* Search */}
+                        <div className="relative w-[280px]">
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357]"
+                                placeholder="Search here..."
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]">
+                                <IoSearchSharp />
+                            </span>
+                        </div>
+
                         {/* Difficulty Filter */}
-                        <div className="relative">
+                        <div className="relative w-[280px]">
                             <select
                                 value={difficulty}
                                 onChange={(e) => setDifficulty(e.target.value)}
-                                className="bg-[#D9D9D9]/50 rounded-full py-1.5 px-6 outline-none text-[#7A6357] appearance-none cursor-pointer pr-10"
+                                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 px-6 outline-none text-[#7A6357] appearance-none cursor-pointer pr-10"
                             >
                                 <option value="">All Levels</option>
                                 <option value="Beginner">Beginner</option>
@@ -37,18 +62,13 @@ export default function Learning_Module() {
                             </div>
                         </div>
 
-                        {/* Search */}
-                        <div className="relative w-[280px] max-w-[50vw]">
-                            <input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357]"
-                                placeholder=""
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]">
-                                <IoSearchSharp />
-                            </span>
-                        </div>
+                        {/* Create Button */}
+                        <button
+                            onClick={handleCreate}
+                            className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold w-[280px] text-center"
+                        >
+                            {activeTab === "quizzes" ? "+ Add New Quiz" : "+ Add New Lesson"}
+                        </button>
                     </div>
 
                     {/* Tabs */}
