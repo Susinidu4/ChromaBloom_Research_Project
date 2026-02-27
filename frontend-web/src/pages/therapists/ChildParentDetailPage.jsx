@@ -29,8 +29,8 @@ export default function ChildParentDetailPage() {
         const token = localStorage.getItem("therapist_token");
         const data = await getChildByIdService(id, token);
 
-        console.log("===== RAW CHILD DATA FROM API =====");
-        console.log(data);
+        // console.log("===== RAW CHILD DATA FROM API =====");
+        // console.log(data);
 
         setChild(data);
 
@@ -186,7 +186,10 @@ export default function ChildParentDetailPage() {
                   open={open.routine}
                   onToggle={() => toggle("routine")}
                 >
-                  <RoutineProgress />
+                  <RoutineProgress
+                    caregiverId={child?.caregiver?._id}
+                    childId={child?._id}
+                  />
                 </Section>
 
                 {/* Skill Development Progress (component) */}
@@ -234,7 +237,7 @@ export default function ChildParentDetailPage() {
                   open={open.stress}
                   onToggle={() => toggle("stress")}
                 >
-                  <StressAnalysis />
+                  <StressAnalysis caregiverId={child?.caregiver?._id} />
                 </Section>
               </div>
             )}
