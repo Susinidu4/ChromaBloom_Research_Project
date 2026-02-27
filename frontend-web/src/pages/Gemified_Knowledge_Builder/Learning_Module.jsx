@@ -28,47 +28,52 @@ export default function Learning_Module() {
                 {/* Outer canvas */}
                 <div className="px-10 py-10 pt-20">
 
-                    {/* Filters top-right - Full Vertical Stack (Search Top, Create End) */}
-                    <div className="absolute right-10 top-20 flex flex-col items-end gap-3 z-10">
-                        {/* Search */}
-                        <div className="relative w-[280px]">
-                            <input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357]"
-                                placeholder="Search here..."
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]">
-                                <IoSearchSharp />
-                            </span>
+                    {/* Header Actions Area */}
+                    <div className="flex flex-col gap-6 mb-2">
+                        {/* Top Row: Create Button */}
+                        <div className="flex justify-end">
+                            <button
+                                onClick={handleCreate}
+                                className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold w-[280px] text-center"
+                            >
+                                {activeTab === "quizzes" ? "+ Add New Quiz" : "+ Add New Lesson"}
+                            </button>
                         </div>
 
-                        {/* Difficulty Filter */}
-                        <div className="relative w-[280px]">
-                            <select
-                                value={difficulty}
-                                onChange={(e) => setDifficulty(e.target.value)}
-                                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 px-6 outline-none text-[#7A6357] appearance-none cursor-pointer pr-10"
-                            >
-                                <option value="">All Levels</option>
-                                <option value="Beginner">Beginner</option>
-                                <option value="Intermediate">Intermediate</option>
-                                <option value="Advanced">Advanced</option>
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#7A6357]">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                        {/* Middle Row: Search (Left) and Difficulty (Right) */}
+                        <div className="flex justify-between items-center">
+                            {/* Search */}
+                            <div className="relative w-[280px]">
+                                <input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357]"
+                                    placeholder="Search here..."
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]">
+                                    <IoSearchSharp />
+                                </span>
+                            </div>
+
+                            {/* Difficulty Filter */}
+                            <div className="relative w-[280px]">
+                                <select
+                                    value={difficulty}
+                                    onChange={(e) => setDifficulty(e.target.value)}
+                                    className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 px-6 outline-none text-[#7A6357] appearance-none cursor-pointer pr-10"
+                                >
+                                    <option value="">All Levels</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#7A6357]">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Create Button */}
-                        <button
-                            onClick={handleCreate}
-                            className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold w-[280px] text-center"
-                        >
-                            {activeTab === "quizzes" ? "+ Add New Quiz" : "+ Add New Lesson"}
-                        </button>
                     </div>
 
                     {/* Tabs */}
