@@ -304,15 +304,13 @@ export const Admin_Dashboard = () => {
 
                         {/* More button */}
                         <div className="flex justify-center">
-                          <button
-                            
-                            className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
+                          <Link to={`/therapist_info/${row._id}`}>
+                            <button className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
-                                         hover:brightness-95 active:scale-[0.99]"
-                            title="More"
-                          >
-                            <HiDotsHorizontal size={18} />
-                          </button>
+                                         hover:brightness-95 active:scale-[0.99]">
+                              <HiDotsHorizontal size={18} />
+                            </button>
+                          </Link>
                         </div>
                       </div>
                     ) : (
