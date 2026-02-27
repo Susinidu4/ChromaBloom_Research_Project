@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { getChildByIdService } from '../../../services/childService';
+import AdminLayout from './AdminLayout';
 
 export const Child_information = () => {
   const { id } = useParams();
@@ -68,110 +69,117 @@ export const Child_information = () => {
   }
 
   // Info row component
-  const InfoRow = ({ label, value, isLast = false }) => (
-    <div className={`flex justify-between items-center py-3 ${!isLast ? 'border-b border-[#e5ddd3]' : ''}`}>
-      <span className="text-[#a08060] text-sm font-medium">{label}</span>
-      <span className="text-[#8b6914] text-sm">{value || '-'}</span>
+  const InfoRow = ({ label, value }) => (
+    <div className="grid grid-cols-[160px_20px_1fr] items-baseline mb-4">
+      <span className="text-[#A68972] text-[15px] font-medium">{label}</span>
+      <span className="text-[#A68972] text-[15px]">:</span>
+      <div className="border-b border-[#DBC7B8] pb-1">
+        <span className="text-[#7A5C41] text-[15px] ml-1">{value || '-'}</span>
+      </div>
     </div>
   );
 
   // Section header component
   const SectionHeader = ({ title }) => (
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-[#8b6914] font-semibold text-base">{title}</h3>
-      <svg className="w-5 h-5 text-[#c4a574]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
+    <div className="mb-6">
+      <div className="flex items-center justify-between pb-1">
+        <h3 className="text-[#8D6E63] font-bold text-[18px] tracking-tight">{title}</h3>
+        <svg className="w-6 h-6 text-[#A68972]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+      <div className="border-b border-[#DBC7B8]"></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        
+    <AdminLayout>
+      <div className="min-h-screen bg-[#F8EBE8] flex flex-col items-center py-12 px-4 relative font-sans">
+
         {/* Back Button */}
-        <button className="mb-6 flex items-center text-[#8b6914] hover:text-[#6b5010] transition-colors">
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <button
+          className="absolute top-8 left-8 w-10 h-10 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.1)] flex items-center justify-center text-[#B08968] hover:bg-gray-50 transition-all hover:scale-105"
+          onClick={() => window.history.back()}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
-        {/* Parent Information Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 mb-4 shadow-sm">
-          <SectionHeader title="Parent Information" />
-          <div className="space-y-0">
-            <InfoRow label="Name" value={child.caregiver.full_name} />
-            <InfoRow label="Gender" value={child.caregiver.gender} />
-            <InfoRow label="User Name" value={child.caregiver.email} />
-            <InfoRow label="Date of Birth" value={formatDate(child.caregiver.dob)} />
-            <InfoRow label="No of children" value={child.caregiver.child_count.toString()} isLast={true} />
-          </div>
-        </div>
+        <div className="w-full max-w-2xl bg-[#FCF6F4]/50 backdrop-blur-sm border border-[#E6D5C7] rounded-[20px] p-10 mt-4 shadow-sm">
 
-        {/* Child Information Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 mb-4 shadow-sm">
-          <SectionHeader title="Child Information" />
-          <div className="space-y-0">
-            <InfoRow label="Name" value={child.childName} />
-            <InfoRow label="Date of Birth" value={formatDate(child.dateOfBirth)} />
-            <InfoRow label="Gender" value={child.gender} />
-            <InfoRow label="Height" value={`${child.heightCm} cm`} />
-            <InfoRow label="Weight" value={`${child.weightKg} kg`} isLast={true} />
+          {/* Parent Information Section */}
+          <div className="mb-10">
+            <SectionHeader title="Parent Information" />
+            <div className="pl-6">
+              <InfoRow label="Name" value={child.caregiver?.full_name} />
+              <InfoRow label="Gender" value={child.caregiver?.gender} />
+              <InfoRow label="User Name" value={child.caregiver?.email} />
+              <InfoRow label="Date of Birth" value={formatDate(child.caregiver?.dob)} />
+              <InfoRow label="No of children" value={child.caregiver?.child_count?.toString()} />
+            </div>
           </div>
-        </div>
 
-        {/* Medical Information Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 mb-4 shadow-sm">
-          <SectionHeader title="Medical Information" />
-          <div className="space-y-0">
-            <InfoRow label="Down Syndrome Type" value={child.downSyndromeType} />
-            <InfoRow label="DS Confirmed By" value={child.downSyndromeConfirmedBy} isLast={true} />
+          {/* Child Information Section */}
+          <div className="mb-10">
+            <SectionHeader title="Child Information" />
+            <div className="pl-6">
+              <InfoRow label="Name" value={child.childName} />
+              <InfoRow label="Date of Birth" value={formatDate(child.dateOfBirth)} />
+              <InfoRow label="Gender" value={child.gender} />
+              <InfoRow label="Height" value={`${child.heightCm} cm`} />
+              <InfoRow label="Weight" value={`${child.weightKg} kg`} />
+            </div>
           </div>
-        </div>
 
-        {/* Other Health Conditions Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 mb-4 shadow-sm">
-          <SectionHeader title="Other Health Conditions" />
-          <div className="space-y-0">
-            <InfoRow 
-              label="Heart Issues" 
-              value={child.otherHealthConditions.heartIssues ? 'Yes' : 'No'} 
-            />
-            <InfoRow 
-              label="Thyroid" 
-              value={child.otherHealthConditions.thyroid ? 'Yes' : 'No'} 
-            />
-            <InfoRow 
-              label="Hearing Problems" 
-              value={child.otherHealthConditions.hearingProblems ? 'Yes' : 'No'} 
-            />
-            <InfoRow 
-              label="Vision Problems" 
-              value={child.otherHealthConditions.visionProblems ? 'Yes' : 'No'} 
-              isLast={true} 
-            />
+          {/* Medical Information Section */}
+          <div className="mb-10">
+            <SectionHeader title="Medical Information" />
+            <div className="pl-6">
+              <InfoRow label="Down Syndrome Type" value={child.downSyndromeType} />
+              <InfoRow label="DS Confirmed By" value={child.downSyndromeConfirmedBy} />
+            </div>
           </div>
-        </div>
 
-        {/* Other Information Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 mb-6 shadow-sm">
-          <SectionHeader title="Other Information" />
-          <div className="space-y-0">
-            <InfoRow label="Created Date" value={formatDate(child.createdAt)} />
-            <InfoRow label="Last Updated on" value={formatDate(child.updatedAt)} isLast={true} />
+          {/* Other Health Conditions Section */}
+          <div className="mb-10">
+            <SectionHeader title="Other Health Conditions" />
+            <div className="pl-6">
+              <InfoRow
+                label="Heart issues"
+                value={child.otherHealthConditions?.heartIssues ? 'Yes' : 'No'}
+              />
+              <InfoRow
+                label="Thyroid"
+                value={child.otherHealthConditions?.thyroid ? 'Yes' : 'No'}
+              />
+              <InfoRow
+                label="Hearing Problems"
+                value={child.otherHealthConditions?.hearingProblems ? 'Yes' : 'No'}
+              />
+              <InfoRow
+                label="Vision Problems"
+                value={child.otherHealthConditions?.visionProblems ? 'Yes' : 'No'}
+              />
+            </div>
           </div>
+
+          {/* Other Information Section */}
+          <div className="mb-6">
+            <SectionHeader title="Other Information" />
+            <div className="pl-6">
+              <InfoRow label="Created Date" value={formatDate(child.createdAt)} />
+              <InfoRow label="Last Updated On" value={formatDate(child.updatedAt)} />
+            </div>
+          </div>
+
         </div>
 
         {/* Disable Patient Button */}
-        <div className="flex justify-end">
-          <button 
-            className={`px-6 py-2 rounded-md text-white text-sm font-medium transition-colors ${
-              child.account_status === 'active' 
-                ? 'bg-[#8b4513] hover:bg-[#6b3410]' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
+        <div className="w-full max-w-2xl flex justify-end mt-8">
+          <button
+            className="bg-[#5C1B11] text-white px-10 py-3 rounded-xl shadow-[0_4px_12px_rgba(92,27,17,0.3)] font-semibold text-sm hover:bg-[#4a160d] transition-all active:scale-95"
             onClick={() => {
-              // Handle disable/enable logic here
               console.log('Toggle patient status');
             }}
           >
@@ -180,6 +188,6 @@ export const Child_information = () => {
         </div>
 
       </div>
-    </div>
+    </AdminLayout>
   );
 };
