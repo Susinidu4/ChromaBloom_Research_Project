@@ -173,7 +173,7 @@ export const Admin_Dashboard = () => {
             <div className="relative">
               <button
                 onClick={() => setShowCreateMenu(!showCreateMenu)}
-                className="bg-[#BD9A6B] text-white px-6 py-2 rounded-full text-sm font-bold shadow-[0_4px_10px_rgba(0,0,0,0.15)] hover:bg-[#a6865a] active:scale-95 transition-all flex items-center gap-2"
+                className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] text-sm font-bold shadow-[0_4px_10px_rgba(0,0,0,0.15)] hover:bg-[#a6865a] active:scale-95 transition-all flex items-center gap-2"
               >
                 <span>+ Create New</span>
               </button>
