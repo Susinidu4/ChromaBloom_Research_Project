@@ -1,6 +1,7 @@
 // src/pages/AdminLogin.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { FaHome } from "react-icons/fa";
 import { adminLogin } from "../../../services/Admin/adminService";
 
 import characters from "../../../assets/LoginWeb.png";
@@ -50,6 +51,15 @@ const AdminLogin = () => {
     <div className="min-h-screen w-full bg-[#386884] relative overflow-hidden">
       {/* Left light area */}
       <div className="absolute inset-y-0 left-0 w-[70%] bg-[#F3E8E8]" />
+
+      {/* Home Button */}
+      <button
+        onClick={() => navigate("/")}
+        className="absolute top-6 right-8 z-50 p-3 rounded-full bg-gray-100 text-[#BD9A6B] shadow-lg hover:bg-[#A6865A] transition-all duration-300 group cursor-pointer"
+        title="Go to Home"
+      >
+        <FaHome className="text-2xl group-hover:scale-110 transition-transform" />
+      </button>
 
       {/* RIGHT blue area clipped into a curve (this creates the true boundary) */}
       <div className="absolute inset-y-0 -left-30 w-full pointer-events-none z-0">
