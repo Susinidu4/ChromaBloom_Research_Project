@@ -226,15 +226,7 @@ const AdminLogin = () => {
                   />
                 </div>
 
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    className="text-[11px] text-[#BD9A6B]/70 hover:text-[#BD9A6B] transition"
-                    onClick={() => navigate("/forgot_password")}
-                  >
-                    Forget Password ?
-                  </button>
-                </div>
+                
 
                 {/* Submit */}
                 <div className="pt-2 flex justify-center">

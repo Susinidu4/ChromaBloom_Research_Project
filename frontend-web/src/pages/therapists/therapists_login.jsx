@@ -242,6 +242,20 @@ export const TherapistsLogin = () => {
                 </div>
               </form>
 
+              {/* Signup Link */}
+              <div className="mt-6 text-center">
+                <p className="text-sm text-[#E9DDCC]/80">
+                  Don't have an account?{" "}
+                  <button
+                    onClick={() => navigate("/therapists_register")}
+                    className="font-semibold text-[#BD9A6B] hover:text-[#FFD9A3] 
+                             underline transition-colors duration-300"
+                  >
+                    Sign up
+                  </button>
+                </p>
+              </div>
+
 
             </div>
 
