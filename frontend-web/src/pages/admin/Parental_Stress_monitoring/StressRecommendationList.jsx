@@ -181,7 +181,7 @@ export default function StressSupportRecommendationList() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-[#D9D9D9]/50 rounded-full h-8 pl-4 pr-10 outline-none text-sm text-[#7A6357]"
-              placeholder=""
+              placeholder="Search by Title"
               aria-label="Search"
             />
             <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-base text-[#6F5E4C]" />
