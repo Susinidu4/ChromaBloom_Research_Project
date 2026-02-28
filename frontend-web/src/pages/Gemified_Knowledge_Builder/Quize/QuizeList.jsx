@@ -67,7 +67,8 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
           {filteredQuizes.map((q) => (
             <div
               key={q._id}
-              className="bg-[#F5ECE9] rounded-[15px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-[#EACFC8] flex items-center overflow-hidden"
+              onClick={() => navigate(`/quizes/view/${q._id}`)}
+              className="bg-[#F5ECE9] rounded-[15px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-[#EACFC8] flex items-center overflow-hidden cursor-pointer hover:bg-[#F2E4E0] transition-colors"
             >
               {/* Left Accent Bar */}
               <div className="w-6 self-stretch bg-[#DFC7A7]/40 flex flex-col items-center justify-center gap-1.5 border-r border-[#EACFC8]/50">
@@ -93,14 +94,20 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
                 {/* Actions */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => navigate(`/quizes/edit/${q._id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/quizes/edit/${q._id}`);
+                    }}
                     className="text-[#B79264] hover:scale-110 transition p-1"
                     title="Edit"
                   >
                     <HiPencil size={28} />
                   </button>
                   <button
-                    onClick={() => onDelete(q._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(q._id);
+                    }}
                     className="text-[#711A0C] hover:scale-110 transition p-1"
                     title="Delete"
                   >

@@ -105,7 +105,10 @@ export default function DrawingLessonList({ searchTerm = "", difficultyFilter = 
                     <HiPencil size={28} />
                   </button>
                   <button
-                    onClick={() => onDelete(l._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(l._id);
+                    }}
                     className="text-[#711A0C] hover:scale-110 transition p-1"
                     title="Delete"
                   >
