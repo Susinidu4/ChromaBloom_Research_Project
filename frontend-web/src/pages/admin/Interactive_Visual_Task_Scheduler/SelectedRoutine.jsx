@@ -52,9 +52,7 @@ export default function SelectedRoutine() {
           difficulty: a?.difficulty_level || "",
           devArea: a?.development_area || "",
           steps: (a?.steps || []).map((s) => s.instruction),
-          imageUrl:
-            (a?.media_links && a.media_links[0]) ||
-            "https://images.emojiterra.com/google/noto-emoji/unicode-15.1/color/512px/1f466.png",
+          videoUrl: (a?.media_links && a.media_links[0]) || "",
         };
 
         setRoutine(mapped);
@@ -69,7 +67,6 @@ export default function SelectedRoutine() {
 
     fetchOne();
   }, [id]);
-
 
   const onBack = () => navigate("/routine_list");
   const onEdit = () => navigate(`/routine_edit/${id}`);
@@ -102,12 +99,10 @@ export default function SelectedRoutine() {
 
       navigate("/routine_list");
     } catch (e) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Delete failed";
+      const msg = e?.response?.data?.message || e?.message || "Delete failed";
       alertError(msg);
     }
   };
-
 
   return (
     <AdminLayout>
@@ -178,11 +173,17 @@ export default function SelectedRoutine() {
 
                 {/* Image */}
                 <div className="mt-8 flex justify-center">
-                  <img
-                    src={routine.imageUrl}
-                    alt="routine"
-                    className="h-[220px] w-auto object-contain"
-                  />
+                  {routine.videoUrl ? (
+                    <video
+                      src={routine.videoUrl}
+                      controls
+                      className="h-[220px] w-auto rounded-[12px] border border-[#BD9A6B]/40 object-contain"
+                    />
+                  ) : (
+                    <p className="text-sm text-[#BD9A6B] opacity-80">
+                      No video uploaded.
+                    </p>
+                  )}
                 </div>
 
                 {/* Description */}
