@@ -122,17 +122,17 @@ export default function Learning_Module() {
                         {/* Content Container */}
                         <div className="border border-[#BD9A6B]/70 rounded-b-[10px] rounded-tr-[10px] mt-0 bg-transparent min-h-[500px] p-8">
                             {activeTab === "drawing" && (
-                                <div className="overflow-y-auto max-h-[500px] pr-4">
+                                <div className="overflow-y-auto max-h-[400px] pr-4 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-[#BD9A6B] [&::-webkit-scrollbar-thumb]:rounded-[10px] hover:[&::-webkit-scrollbar-thumb]:bg-[#A6865A] [scrollbar-width:thin] [scrollbar-color:#BD9A6B_transparent]">
                                     <DrawingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "problem_solving" && (
-                                <div className="overflow-y-auto max-h-[500px] pr-4">
+                                <div className="overflow-y-auto max-h-[500px] pr-4 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-[#BD9A6B] [&::-webkit-scrollbar-thumb]:rounded-[10px] hover:[&::-webkit-scrollbar-thumb]:bg-[#A6865A] [scrollbar-width:thin] [scrollbar-color:#BD9A6B_transparent]">
                                     <ProblemSolvingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "quizzes" && (
-                                <div className="overflow-y-auto max-h-[500px] pr-4">
+                                <div className="overflow-y-auto max-h-[500px] pr-4 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-[#BD9A6B] [&::-webkit-scrollbar-thumb]:rounded-[10px] hover:[&::-webkit-scrollbar-thumb]:bg-[#A6865A] [scrollbar-width:thin] [scrollbar-color:#BD9A6B_transparent]">
                                     <QuizeList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
