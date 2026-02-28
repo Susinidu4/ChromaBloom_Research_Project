@@ -719,7 +719,7 @@ class _LatestSummaryCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 10,
                             height: 1.5,
-                            fontWeight: FontWeight.w300,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFFBD9A6B),
                           ),
                         ),
