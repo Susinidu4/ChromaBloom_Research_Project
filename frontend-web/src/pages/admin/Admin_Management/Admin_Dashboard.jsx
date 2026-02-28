@@ -16,6 +16,7 @@ export const Admin_Dashboard = () => {
   const [adminList, setAdminList] = useState([]);
   const [patientList, setPatientList] = useState([]);
   const [therapistList, setTherapistList] = useState([]);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
 
   // Fetch Data based on active tab
   useEffect(() => {
@@ -154,18 +155,54 @@ export const Admin_Dashboard = () => {
         {/* Outer canvas like screenshot */}
         <div className="px-10 py-10 pt-20">
 
-          {/* Search top-right */}
-          <div className="absolute right-10 top-25">
+          {/* Search and Action Button */}
+          <div className="absolute right-10 top-25 flex flex-col items-end gap-3 z-30">
             <div className="relative w-[280px] max-w-[70vw]">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357]"
-                placeholder=""
+                className="w-full bg-[#D9D9D9]/50 rounded-full py-1.5 pl-5 pr-10 outline-none text-[#7A6357] shadow-inner"
+                placeholder="Search..."
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]">
                 <IoSearchSharp />
               </span>
+            </div>
+
+            {/* Create Button with Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowCreateMenu(!showCreateMenu)}
+                className="bg-[#BD9A6B] text-white px-6 py-2 rounded-full text-sm font-bold shadow-[0_4px_10px_rgba(0,0,0,0.15)] hover:bg-[#a6865a] active:scale-95 transition-all flex items-center gap-2"
+              >
+                <span>+ Create New</span>
+              </button>
+
+              {showCreateMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowCreateMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-[#BD9A6B]/20 py-2 z-50 overflow-hidden transform transition-all">
+                    <Link
+                      to="/create_admin"
+                      className="block px-4 py-3 text-[#7A6357] hover:bg-[#BD9A6B] hover:text-white transition-colors text-sm font-semibold"
+                      onClick={() => setShowCreateMenu(false)}
+                    >
+                      Admin Account
+                    </Link>
+                    <div className="mx-2 h-[1px] bg-[#F3E8E8]" />
+                    <Link
+                      to="/therapists_register"
+                      className="block px-4 py-3 text-[#7A6357] hover:bg-[#BD9A6B] hover:text-white transition-colors text-sm font-semibold"
+                      onClick={() => setShowCreateMenu(false)}
+                    >
+                      Therapist Account
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
