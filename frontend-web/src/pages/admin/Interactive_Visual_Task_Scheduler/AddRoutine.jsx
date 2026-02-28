@@ -25,8 +25,8 @@ export default function AddRoutine() {
   const [ageGroup, setAgeGroup] = useState(""); // "1".."10"
 
   const [steps, setSteps] = useState(["", ""]); // UI has at least 2 lines
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+const [videoFile, setVideoFile] = useState(null);
+const [videoPreview, setVideoPreview] = useState("");
 
   // ✅ UX states
   const [submitting, setSubmitting] = useState(false);
@@ -114,7 +114,7 @@ export default function AddRoutine() {
       difficulty_level: difficulty,
       estimated_duration_minutes: durationToMinutes(),
       steps: cleanSteps,
-      imageFile,
+      videoFile,
     };
 
     try {
@@ -148,15 +148,15 @@ export default function AddRoutine() {
   };
 
   useEffect(() => {
-    if (!imageFile) {
-      setImagePreview("");
+    if (!videoFile) {
+      setVideoPreview("");
       return;
     }
-    const url = URL.createObjectURL(imageFile);
-    setImagePreview(url);
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreview(url);
 
     return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+  }, [videoFile]);
 
   const clamp60 = (v) => Math.max(0, Math.min(60, v));
 
@@ -204,13 +204,13 @@ export default function AddRoutine() {
               </h2>
 
               {/* Illustration */}
-              <div className="mt-8 flex justify-center">
+              {/* <div className="mt-8 flex justify-center">
                 <img
                   src={createRoutineImg}
                   alt="create routine"
                   className="h-[150px] w-auto object-contain"
                 />
-              </div>
+              </div> */}
 
               {/* Title */}
               <div className="mt-10 grid grid-cols-[120px_1fr] gap-6 items-center">
@@ -449,7 +449,7 @@ export default function AddRoutine() {
               {/* Media (Images) */}
               <div className="mt-4 grid grid-cols-[160px_1fr] gap-6 items-start">
                 <label className="text-[#BD9A6B] text-sm font-semibold pt-2">
-                  Media (Images) :
+                  Media (Video) :
                 </label>
 
                 <div>
@@ -460,40 +460,40 @@ export default function AddRoutine() {
                    flex items-center justify-between"
                     >
                       <span className="truncate">
-                        {imageFile ? imageFile.name : "Choose image"}
+                        {videoFile  ? videoFile .name : "Choose video"}
                       </span>
                       <FiUpload className="text-[#BD9A6B]" />
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="video/*"
                         hidden
                         onChange={(e) =>
-                          setImageFile(e.target.files?.[0] || null)
+                          setVideoFile(e.target.files?.[0] || null)
                         }
                       />
                     </label>
 
-                    {imageFile && (
+                    {videoFile && (
                       <button
                         type="button"
-                        onClick={() => setImageFile(null)}
+                        onClick={() => setVideoFile(null)}
                         className="h-10 w-10 rounded-full bg-white/70
                      shadow-[0_10px_18px_rgba(0,0,0,0.18)]
                      grid place-items-center hover:brightness-95"
-                        title="Remove image"
+                        title="Remove video"
                       >
                         <MdClose className="text-[#BD9A6B]" />
                       </button>
                     )}
                   </div>
 
-                  {/* User selected image preview (only here) */}
-                  {imageFile && (
+                  {/* User selected video preview (only here) */}
+                  {videoFile && (
                     <div className="mt-4">
                       <p className="text-xs text-[#BD9A6B] mb-2">Preview:</p>
-                      <img
-                        src={imagePreview}
-                        alt="uploaded preview"
+                      <video
+                        src={videoPreview}
+                        controls
                         className="h-[120px] w-auto rounded-[12px] border border-[#BD9A6B]/40
                      shadow-[0_8px_14px_rgba(0,0,0,0.12)] object-contain"
                       />
