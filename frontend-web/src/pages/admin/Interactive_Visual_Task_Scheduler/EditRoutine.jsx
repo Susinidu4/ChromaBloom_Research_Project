@@ -29,9 +29,9 @@ export default function EditRoutine() {
   const [ageGroup, setAgeGroup] = useState("");
 
   const [steps, setSteps] = useState(["", ""]); // at least 2 lines
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(""); // local preview
-  const [existingImageUrl, setExistingImageUrl] = useState(""); // already saved url
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState("");
+  const [existingVideoUrl, setExistingVideoUrl] = useState("");
 
   // ✅ UX states
   const [loading, setLoading] = useState(true);
@@ -117,11 +117,16 @@ export default function EditRoutine() {
         setSteps(stepList.length ? stepList : ["", ""]);
 
         const firstUrl = (a?.media_links && a.media_links[0]) || "";
-        setExistingImageUrl(firstUrl);
-        setImageFile(null);
-        setImagePreview("");
+        setExistingVideoUrl(firstUrl);
+        setVideoFile(null);
+        setVideoPreview("");
       } catch (e) {
-        setError(e?.message || "Failed to load routine");
+        Swal.fire({
+          icon: "error",
+          title: "Load Failed",
+          text: e?.message || "Failed to load routine",
+          confirmButtonColor: "#BD9A6B",
+        });
       } finally {
         setLoading(false);
       }
@@ -130,16 +135,16 @@ export default function EditRoutine() {
     fetchOne();
   }, [id]);
 
-  // local image preview
+  // local video preview
   useEffect(() => {
-    if (!imageFile) {
-      setImagePreview("");
+    if (!videoFile) {
+      setVideoPreview("");
       return;
     }
-    const url = URL.createObjectURL(imageFile);
-    setImagePreview(url);
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+  }, [videoFile]);
 
   // -----------------------------
   // Submit update
@@ -175,6 +180,7 @@ export default function EditRoutine() {
       difficulty_level: difficulty,
       estimated_duration_minutes: durationToMinutes(),
       steps: cleanSteps,
+      videoFile,
     };
 
     try {
@@ -244,13 +250,13 @@ export default function EditRoutine() {
                 </h2>
 
                 {/* Illustration */}
-                <div className="mt-8 flex justify-center">
+                {/* <div className="mt-8 flex justify-center">
                   <img
                     src={createRoutineImg}
                     alt="routine"
                     className="h-[150px] w-auto object-contain"
                   />
-                </div>
+                </div> */}
 
                 {/* Title */}
                 <div className="mt-10 grid grid-cols-[120px_1fr] gap-6 items-center">
@@ -442,61 +448,62 @@ export default function EditRoutine() {
                 {/* Media */}
                 <div className="mt-4 grid grid-cols-[160px_1fr] gap-6 items-start">
                   <label className="text-[#BD9A6B] text-sm font-semibold pt-2">
-                    Media (Images) :
+                    Media (Video) :
                   </label>
 
                   <div>
                     <div className="flex items-center gap-3">
                       <label
                         className="flex-1 rounded-[12px] border border-[#BD9A6B] bg-[#E9DDCC]
-                                   px-4 py-2 text-sm text-[#8F6F4C] outline-none cursor-pointer
-                                   flex items-center justify-between shadow-[0_6px_10px_rgba(0,0,0,0.10)]
-                                   hover:shadow-[0_10px_16px_rgba(0,0,0,0.14)] transition"
+                   px-4 py-2 text-sm text-[#8F6F4C] outline-none cursor-pointer
+                   flex items-center justify-between shadow-[0_6px_10px_rgba(0,0,0,0.10)]
+                   hover:shadow-[0_10px_16px_rgba(0,0,0,0.14)] transition"
                       >
                         <span className="truncate">
-                          {imageFile
-                            ? imageFile.name
-                            : existingImageUrl
-                              ? "Existing image (optional change)"
-                              : "Choose image"}
+                          {videoFile
+                            ? videoFile.name
+                            : existingVideoUrl
+                              ? "Existing video (optional change)"
+                              : "Choose video"}
                         </span>
+
                         <FiUpload className="text-[#BD9A6B]" />
+
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="video/*"
                           hidden
                           onChange={(e) =>
-                            setImageFile(e.target.files?.[0] || null)
+                            setVideoFile(e.target.files?.[0] || null)
                           }
                         />
                       </label>
 
-                      {(imageFile || existingImageUrl) && (
+                      {(videoFile || existingVideoUrl) && (
                         <button
                           type="button"
                           onClick={() => {
-                            setImageFile(null);
-                            setExistingImageUrl("");
+                            setVideoFile(null);
+                            setExistingVideoUrl("");
                           }}
                           className="h-10 w-10 rounded-full bg-white/70
-                                     shadow-[0_10px_18px_rgba(0,0,0,0.18)]
-                                     grid place-items-center hover:brightness-95"
-                          title="Remove image"
+                     shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+                     grid place-items-center hover:brightness-95"
+                          title="Remove video"
                         >
                           <MdClose className="text-[#BD9A6B]" />
                         </button>
                       )}
                     </div>
 
-                    {/* Preview (new file first, else existing url) */}
-                    {(imagePreview || existingImageUrl) && (
+                    {(videoPreview || existingVideoUrl) && (
                       <div className="mt-4">
                         <p className="text-xs text-[#BD9A6B] mb-2">Preview:</p>
-                        <img
-                          src={imagePreview || existingImageUrl}
-                          alt="preview"
+                        <video
+                          src={videoPreview || existingVideoUrl}
+                          controls
                           className="h-[120px] w-auto rounded-[12px] border border-[#BD9A6B]/40
-                                     shadow-[0_8px_14px_rgba(0,0,0,0.12)] object-contain"
+                     shadow-[0_8px_14px_rgba(0,0,0,0.12)] object-contain"
                         />
                       </div>
                     )}
