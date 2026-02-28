@@ -174,9 +174,6 @@ export default function RoutineProgress({ caregiverId, childId }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card
           title="Routine Analysis"
-          rightSlot={
-            <DatePill label={loading ? "Loading..." : selectedLabel} />
-          }
         >
           <div className="flex gap-10 items-center">
             {/* ✅ Solid PIE like your design */}
@@ -192,9 +189,6 @@ export default function RoutineProgress({ caregiverId, childId }) {
         <Card
           title="Routine Progress"
           subtitle="* 14 days cycle wise"
-          rightSlot={
-            <DatePill label={loading ? "Loading..." : selectedLabel} />
-          }
         >
           {/* ✅ Grid + y-axis like design */}
           <MiniBarChartWithGrid
