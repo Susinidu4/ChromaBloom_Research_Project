@@ -125,7 +125,7 @@ const AdminLogin = () => {
         {/* LEFT COLUMN */}
         <div className="w-full lg:w-[58%] flex flex-col">
           {/* brand */}
-          <div className="px-10 pt-8">
+          <div className="px-30 pt-25">
             {/* Logo row */}
             <div className="flex items-center gap-2">
               {/* DNA mark (left) */}
@@ -156,7 +156,7 @@ const AdminLogin = () => {
             <img
               src={characters}
               alt="Doctor and Therapist"
-              className="w-[380px] ml-30 max-w-full object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.25)]"
+              className="w-[330px] ml-30 max-w-full object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.25)]"
               draggable="false"
             />
           </div>
