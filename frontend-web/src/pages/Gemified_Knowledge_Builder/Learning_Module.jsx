@@ -122,17 +122,17 @@ export default function Learning_Module() {
                         {/* Content Container */}
                         <div className="border border-[#BD9A6B]/70 rounded-b-[10px] rounded-tr-[10px] mt-0 bg-transparent min-h-[500px] p-8">
                             {activeTab === "drawing" && (
-                                <div>
+                                <div className="overflow-y-auto max-h-[500px] pr-4">
                                     <DrawingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "problem_solving" && (
-                                <div>
+                                <div className="overflow-y-auto max-h-[500px] pr-4">
                                     <ProblemSolvingLessonList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
                             {activeTab === "quizzes" && (
-                                <div>
+                                <div className="overflow-y-auto max-h-[500px] pr-4">
                                     <QuizeList searchTerm={search} difficultyFilter={difficulty} />
                                 </div>
                             )}
