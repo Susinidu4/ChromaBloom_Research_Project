@@ -251,16 +251,7 @@ const AdminLogin = () => {
                 </div>
               </form>
 
-              {/* Signup link */}
-              <div className="mt-8 text-center text-xs text-[#BD9A6B]/80">
-                Doesn&apos;t have an account?{" "}
-                <Link
-                  to="/create_admin"
-                  className="text-[#BD9A6B] hover:underline"
-                >
-                  Signup
-                </Link>
-              </div>
+
             </div>
 
             {/* tiny spacing */}

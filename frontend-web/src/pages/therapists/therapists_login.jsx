@@ -242,13 +242,7 @@ export const TherapistsLogin = () => {
                 </div>
               </form>
 
-              {/* Register link (same route, UI only changed) */}
-              <div className="mt-8 text-center text-xs text-[#BD9A6B]/80">
-                Don&apos;t have an account?{" "}
-                <Link to="/therapists_register" className="text-[#BD9A6B] hover:underline">
-                  Signup
-                </Link>
-              </div>
+
             </div>
 
             <div className="h-8" />
