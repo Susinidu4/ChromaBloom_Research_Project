@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
 
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Parental_stress_monitoring/stress_analysis_service.dart';
@@ -23,35 +22,34 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
   // Replace with your logged-in caregiver id
   //final String caregiverId = "p-0001";
 
-String? caregiverId;
+  String? caregiverId;
 
   late Future<StressComputeResponse> _future;
 
   late Future<StressHistoryResponse> _historyFuture;
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  // Delay until context is available
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final session = context.read<SessionProvider>();
-    final id =
-        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
+    // Delay until context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final session = context.read<SessionProvider>();
+      final id = (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+          .toString();
 
-    if (id.isEmpty) return;
+      if (id.isEmpty) return;
 
-    setState(() {
-      caregiverId = id;
-      _future = StressAnalysisService.compute(caregiverId: caregiverId!);
-      _historyFuture = StressAnalysisService.getHistory(
-        caregiverId: caregiverId!,
-        limit: 10,
-      );
+      setState(() {
+        caregiverId = id;
+        _future = StressAnalysisService.compute(caregiverId: caregiverId!);
+        _historyFuture = StressAnalysisService.getHistory(
+          caregiverId: caregiverId!,
+          limit: 10,
+        );
+      });
     });
-  });
-}
-
+  }
 
   void _reload() {
     setState(() {
@@ -466,9 +464,9 @@ class _LatestStressCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _MetaRow(label: "Stress score", value: "$stressScore / 3"),
+          // _MetaRow(label: "Stress score", value: "$stressScore / 3"),
           _MetaRow(
-            label: "Probability",
+            label: "Probability:",
             value: "${(stressProbability * 100).toStringAsFixed(1)}%",
           ),
           // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
@@ -490,23 +488,25 @@ class _MetaRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end, // <-- RIGHT ALIGN
         children: [
           Text(
             label,
             style: const TextStyle(
               fontFamily: "Poppins",
               fontSize: 12,
-              color: Color(0xFF8B6B44),
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFBD9A6B),
             ),
           ),
+          const SizedBox(width: 6), // spacing between label & value
           Text(
             value,
             style: const TextStyle(
               fontFamily: "Poppins",
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF8B6B44),
+              color: Color(0xFFBD9A6B),
             ),
           ),
         ],
