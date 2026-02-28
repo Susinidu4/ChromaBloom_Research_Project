@@ -215,7 +215,7 @@ export default function RoutineList() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-[#D9D9D9]/50 rounded-full py-2 pl-5 pr-10 outline-none text-sm text-[#7A6357]"
-                placeholder=""
+                placeholder="Search by Title"
               />
               <FiSearch
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]"
