@@ -11,6 +11,7 @@ const CreateAdmin = () => {
   const [full_name, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,20 +22,20 @@ const CreateAdmin = () => {
     setError("");
     setSuccessMsg("");
 
-    if (!full_name || !email || !password) {
-      setError("full_name, email and password are required.");
+    if (!full_name || !email || !password || !phone) {
+      setError("full_name, email, password and phone are required.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const data = await createAdmin({ full_name, email, password });
+      const data = await createAdmin({ full_name, email, password, phone });
 
       setSuccessMsg(data?.message || "Admin created successfully!");
 
       // go back to login after success
-      setTimeout(() => navigate("/admin_login"), 800);
+      setTimeout(() => navigate("/admin_dashboard"), 800);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -105,6 +106,20 @@ const CreateAdmin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@chromabloom.com"
+                  className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#BD9A6B] font-bold text-lg ml-1">
+                  Mobile Number
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter mobile number"
                   className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
                 />
               </div>

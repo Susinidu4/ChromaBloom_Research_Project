@@ -3,7 +3,8 @@ import { HiDotsHorizontal } from "react-icons/hi";
 import { Link } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
 import { IoSearchSharp } from "react-icons/io5";
-import { getAdmins, updateAccountStatus } from "../../../services/Admin/adminService";
+import { getAdmins, updateAccountStatus, deleteAdmin } from "../../../services/Admin/adminService";
+import { FaTrash } from "react-icons/fa";
 import { getAllChildrenService, updateChildStatusService } from "../../../services/childService";
 import { getAllTherapistsService, updateTherapistAccountStatus } from "../../../services/therapistService";
 import Swal from "sweetalert2";
@@ -149,6 +150,28 @@ export const Admin_Dashboard = () => {
     }
   }
 
+  const handleDeleteAdmin = async (adminId) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#BD9A6B",
+      confirmButtonText: "Yes, delete it!"
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteAdmin(adminId);
+        setAdminList(prev => prev.filter(a => a._id !== adminId));
+        Swal.fire("Deleted!", "Admin has been deleted.", "success");
+      } catch (err) {
+        Swal.fire("Error", "Failed to delete admin", "error");
+      }
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="w-full h-full bg-[#F3E8E8]">
@@ -271,11 +294,12 @@ export const Admin_Dashboard = () => {
                   </div>
                 ) : (
                   // Admin Header
-                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3">
+                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3">
                     <div>Name</div>
                     <div className="text-center">Email</div>
                     <div className="text-center">Mobile</div>
                     <div className="text-center">Status</div>
+                    <div className="text-center" />
                     <div className="text-center" />
                     <div className="text-center" />
                   </div>
@@ -352,7 +376,7 @@ export const Admin_Dashboard = () => {
                       </div>
                     ) : (
                       // Admin Row
-                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1.3fr_1.2fr_48px] gap-3 text-[13px] text-[#B0896E]">
+                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3 text-[13px] text-[#B0896E]">
                         <div className="truncate">{row.full_name}</div>
                         <div className="text-center truncate">{row.email}</div>
                         <div className="text-center">{row.phone || "N/A"}</div>
@@ -362,10 +386,23 @@ export const Admin_Dashboard = () => {
                         <div className="flex justify-center">
                           <button
                             onClick={() => handleAdminStatusToggle(row._id, row.account_status)}
-                            className={`${row.account_status === 'active' ? 'bg-[#711A0C]' : 'bg-[#2E7D32]'} text-white px-6 py-2 rounded-[8px]
+                            className={`${row.account_status === 'active' ? 'bg-[#711A0C]' : 'bg-[#2E7D32]'} text-white px-5 py-1.5 rounded-[8px]
                                          shadow-[0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-95 active:scale-[0.99] transition-colors`}
                           >
                             {row.account_status === 'active' ? 'Disable' : 'Enable'}
+                          </button>
+                        </div>
+
+                        {/* Delete button */}
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleDeleteAdmin(row._id)}
+                            className="h-9 w-9 rounded-[10px] bg-red-600 text-white
+                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                         hover:bg-red-700 active:scale-[0.99]"
+                            title="Delete Admin"
+                          >
+                            <FaTrash size={16} />
                           </button>
                         </div>
 
