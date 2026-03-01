@@ -63,9 +63,9 @@ export default function CognitiveProgress({ childId }) {
 
 function Card({ title, children }) {
   return (
-    <div className="bg-[#EADBC8] border border-[#D7C6AE] rounded-xl shadow-[0_6px_10px_rgba(0,0,0,0.08)] p-6">
+    <div className="p-6">
       <div className="mb-8">
-        <span className="text-2xl font-bold text-[#8A6B3E] border-b-4 border-[#8A6B3E] pb-1 uppercase tracking-wider">
+        <span className="text-xl font-bold text-[#8A6B3E] border-b-4 border-[#8A6B3E] pb-1 uppercase tracking-wider">
           {title}
         </span>
       </div>
@@ -113,7 +113,7 @@ function MiniLineChart({ data }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#F2E9E3] border border-[#D7C6AE] rounded-lg p-3 overflow-x-auto custom-scrollbar relative">
+      <div className="bg-[#E9DDCC] border border-[#D7C6AE] rounded-lg px-3 overflow-x-auto custom-scrollbar relative">
         <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto block overflow-visible">
           {/* Y-Axis Label */}
           <text

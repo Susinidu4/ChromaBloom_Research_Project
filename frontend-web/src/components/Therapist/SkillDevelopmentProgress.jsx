@@ -1,4 +1,5 @@
-import React from "react";
+import children1 from "../../assets/Therapists/children1.png";
+import children2 from "../../assets/Therapists/children2.png";
 
 export default function SkillDevelopmentProgress() {
   return (
@@ -14,15 +15,9 @@ export default function SkillDevelopmentProgress() {
       </div>
 
       {/* Illustration row */}
-      <div className="hidden md:flex items-center justify-center gap-6 pt-2">
-        {["Kid 1", "Kid 2", "Kid 3", "Kid 4", "Kid 5"].map((t) => (
-          <div
-            key={t}
-            className="w-[120px] h-[90px] bg-[#E8DED0] border border-[#D7C6AE] rounded-xl flex items-center justify-center text-xs text-[#7A5E36]"
-          >
-            {t}
-          </div>
-        ))}
+      <div className="hidden md:flex items-center justify-center mt-8">
+        <img src={children2} alt="children2" className="h-[150px] object-contain" />
+        <img src={children1} alt="children1" className="h-[170px] object-contain" />
       </div>
     </div>
   );
