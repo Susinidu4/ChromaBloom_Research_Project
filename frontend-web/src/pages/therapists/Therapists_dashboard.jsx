@@ -273,11 +273,15 @@ export const Therapists_dashboard = () => {
                 </div>
 
                 {/* Edit Icon Button */}
-                <button className="hidden md:block p-2 text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={() => navigate("/therapists_edit")}
+                  className="hidden md:block p-2 text-gray-400 hover:text-[#BD9A6B] transition-colors"
+                  title="Edit Professional Profile"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="24"
+                    height="24"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

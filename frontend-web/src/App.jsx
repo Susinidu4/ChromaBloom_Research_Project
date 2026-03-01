@@ -38,6 +38,7 @@ import { Admin_Edite } from "./pages/admin/Admin_Management/Admin_Edite";
 import Learning_Module from "./pages/Gemified_Knowledge_Builder/Learning_Module";
 import { Child_information } from "./pages/admin/Admin_Management/Child_information";
 import { Therapist_Infomation } from "./pages/therapists/Therapist_Infomation";
+import { Therapists_Edit } from "./pages/therapists/Therapists_Edit";
 
 function App() {
 
@@ -57,6 +58,7 @@ function App() {
         <Route path="/child_parent_detail/:id" element={<ChildParentDetailPage />} />
         <Route path="/child_info/:id" element={<Child_information />} />
         <Route path="/therapist_info/:id" element={<Therapist_Infomation />} />
+        <Route path="/therapists_edit" element={<Therapists_Edit />} />
 
         {/* Interactive Visual Task Scheduler */}
         <Route path="/routine_create" element={<RoutineCreate />} />
