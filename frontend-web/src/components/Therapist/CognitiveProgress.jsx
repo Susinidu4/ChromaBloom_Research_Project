@@ -85,7 +85,7 @@ function MiniLineChart({ data }) {
 
   const w = 600;
   const h = 320;
-  const padLeft = 80;
+  const padLeft = 110;
   const padRight = 40;
   const padTop = 40;
   const padBottom = 100;
@@ -117,7 +117,7 @@ function MiniLineChart({ data }) {
         <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto block overflow-visible">
           {/* Y-Axis Label */}
           <text
-            transform={`translate(30, ${(h - padBottom + padTop) / 2}) rotate(-90)`}
+            transform={`translate(20, ${(h - padBottom + padTop) / 2}) rotate(-90)`}
             textAnchor="middle"
             className="fill-[#8A6B3E] text-sm font-bold opacity-80"
           >
