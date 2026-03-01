@@ -1,30 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { TherapistChildrenList } from "./TherapistChildrenList";
 import TherapistLayout from "../therapists/TherapistLayout";
+import { getTherapistByIdService, updateTherapistService } from "../../services/therapistService";
+import Swal from "sweetalert2";
 
 export const Therapists_dashboard = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [therapist, setTherapist] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updatingPhoto, setUpdatingPhoto] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("therapist_token");
-    const info = localStorage.getItem("therapist_info");
+    const fetchTherapistData = async () => {
+      const token = localStorage.getItem("therapist_token");
+      const info = localStorage.getItem("therapist_info");
 
-    // If not logged in, redirect to login
-    if (!token || !info) {
-      navigate("/therapists_login");
-      return;
-    }
+      // If not logged in, redirect to login
+      if (!token || !info) {
+        navigate("/therapists_login");
+        return;
+      }
 
-    try {
-      setTherapist(JSON.parse(info));
-    } catch (e) {
-      // corrupted storage -> force logout
-      localStorage.removeItem("therapist_token");
-      localStorage.removeItem("therapist_info");
-      navigate("/therapists_login");
-    }
+      try {
+        const storedInfo = JSON.parse(info);
+        // Fetch fresh data from backend to ensure we have the latest
+        const freshData = await getTherapistByIdService(storedInfo._id || storedInfo.id, token);
+        setTherapist(freshData);
+      } catch (e) {
+        console.error("Error fetching therapist data:", e);
+        // If fetch fails, try to use stored info as fallback if it exists
+        try {
+          setTherapist(JSON.parse(info));
+        } catch (parseError) {
+          // corrupted storage -> force logout
+          localStorage.removeItem("therapist_token");
+          localStorage.removeItem("therapist_info");
+          navigate("/therapists_login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTherapistData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -32,6 +52,90 @@ export const Therapists_dashboard = () => {
     localStorage.removeItem("therapist_info");
     navigate("/therapists_login");
   };
+
+  const handleCameraClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      Swal.fire("Error", "Please select an image file", "error");
+      return;
+    }
+
+    // Validate size (e.g., 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire("Error", "Image size should be less than 2MB", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const base64String = reader.result;
+
+      try {
+        setUpdatingPhoto(true);
+        const token = localStorage.getItem("therapist_token");
+        const res = await updateTherapistService(therapist._id, { profile_picture_base64: base64String }, token);
+
+        // Update local state and storage
+        setTherapist(res.therapist);
+        localStorage.setItem("therapist_info", JSON.stringify(res.therapist));
+
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Profile picture updated successfully!",
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (err) {
+        console.error("Profile update error:", err);
+        Swal.fire("Error", "Failed to update profile picture", "error");
+      } finally {
+        setUpdatingPhoto(false);
+      }
+    };
+  };
+
+  const calculateAge = (dob) => {
+    if (!dob) return "N/A";
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const calculateExperience = (startDate) => {
+    if (!startDate) return "N/A";
+    const start = new Date(startDate);
+    const today = new Date();
+    let years = today.getFullYear() - start.getFullYear();
+    const m = today.getMonth() - start.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < start.getDate())) {
+      years--;
+    }
+    return years > 0 ? `${years} years` : "Less than a year";
+  };
+
+  if (loading) {
+    return (
+      <TherapistLayout>
+        <div className="min-h-screen bg-[#FBF3F0] flex items-center justify-center">
+          <div className="animate-pulse text-[#1E3A5F] text-xl font-semibold">Loading Dashboard...</div>
+        </div>
+      </TherapistLayout>
+    );
+  }
 
   if (!therapist) return null;
 
@@ -60,14 +164,52 @@ export const Therapists_dashboard = () => {
           {/* Profile Header Section */}
           <div className="relative flex flex-col items-start gap-6 mb-12">
             {/* Avatar - Negative Margin to overlap */}
-            <div className="flex-shrink-0 ml-10 -mt-20 z-10">
-              <div className="w-48 h-48 rounded-full border-4 border-[#FBF3F0] overflow-hidden bg-gray-200 shadow-lg">
+            <div className="flex-shrink-0 ml-10 -mt-20 z-10 relative">
+              <div className="w-48 h-48 rounded-full border-4 border-[#FBF3F0] overflow-hidden bg-gray-200 shadow-lg relative">
+                {updatingPhoto && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
                 <img
-                  src="https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg"
+                  src={therapist.profile_picture || "https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg"}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
               </div>
+
+              {/* Profile Image Edit Icon */}
+              <button
+                onClick={handleCameraClick}
+                disabled={updatingPhoto}
+                className="absolute bottom-2 right-2 bg-white p-2.5 rounded-full shadow-md hover:bg-gray-100 transition-all border border-gray-200 group"
+                title="Update Profile Picture"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#1E3A5F"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="group-hover:scale-110 transition-transform"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </button>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
             </div>
 
             {/* Info Section - Below avatar, left aligned */}
@@ -88,17 +230,17 @@ export const Therapists_dashboard = () => {
                     </span>
                     {therapist.licence_number ||
                       therapist.license_no ||
-                      "12345"}
+                      "N/A"}
                   </p>
                   <p>
                     <span className="font-semibold text-[#1E3A5F]">
                       Experience :{" "}
                     </span>
-                    9 years
+                    {calculateExperience(therapist.start_date)}
                   </p>
                   <p>
                     <span className="font-semibold text-[#1E3A5F]">Age : </span>
-                    40 years
+                    {calculateAge(therapist.dob)} years
                   </p>
                 </div>
               </div>
@@ -123,7 +265,7 @@ export const Therapists_dashboard = () => {
                     <span className="font-bold text-[#1E3A5F]">Address</span>
                     <span>
                       :{" "}
-                      {therapist.work_place ||
+                      {therapist.address || therapist.work_place ||
                         therapist.hospital ||
                         "No. 2, Chatham Street, Colombo"}
                     </span>
@@ -157,3 +299,4 @@ export const Therapists_dashboard = () => {
     </TherapistLayout>
   );
 };
+

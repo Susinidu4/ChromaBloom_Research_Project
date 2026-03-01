@@ -136,8 +136,8 @@ export const loginTherapist = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    if (therapist.account_status === "inactive") {
-      return res.status(403).json({ message: "Your account is inactive. Please contact the administrator." });
+    if (therapist.account_status !== "active") {
+      return res.status(403).json({ message: `Your account is ${therapist.account_status}. Please contact the administrator.` });
     }
 
     const token = generateToken(therapist);
@@ -267,7 +267,7 @@ export const updateAccountStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["active", "inactive"].includes(status)) {
+    if (!["active", "inactive", "disabled"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
