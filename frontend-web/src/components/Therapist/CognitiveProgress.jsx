@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getProgressByUserId } from "../../services/Therapist/cognitiveProgressService";
-
+import children3 from "../../assets/Therapists/children3.png";
 export default function CognitiveProgress({ childId }) {
   const [progressData, setProgressData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,13 +45,8 @@ export default function CognitiveProgress({ childId }) {
       </Card>
 
       {/* avatar row */}
-      <div className="flex items-center gap-2 px-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="w-10 h-10 rounded-full bg-[#E8DED0] border border-[#D7C6AE]"
-          />
-        ))}
+      <div className="flex justify-center items-center relative top-9 px-2">
+        <img src={children3} alt="children3" className="h-[120px] object-contain" />
       </div>
 
       <Card title="Top Positive Factors">
@@ -63,9 +58,9 @@ export default function CognitiveProgress({ childId }) {
 
 function Card({ title, children }) {
   return (
-    <div className="p-6">
+    <div className="px-6 py-4">
       <div className="mb-8">
-        <span className="text-xl font-bold text-[#8A6B3E] border-b-4 border-[#8A6B3E] pb-1 uppercase tracking-wider">
+        <span className="text-[14px] font-bold text-[#8A6B3E] border-b-4 border-[#8A6B3E] pb-1 uppercase tracking-wider">
           {title}
         </span>
       </div>
