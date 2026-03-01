@@ -7,7 +7,7 @@ import { getChildByIdService } from "../../services/childService";
 
 import RoutineProgress from "../../components/Therapist/RoutineProgress";
 import SkillDevelopmentProgress from "../../components/Therapist/SkillDevelopmentProgress";
-import CognitiveProgress from "../../components//Therapist/CognitiveProgress";
+import CognitiveProgress from "../../components/Therapist/CognitiveProgress";
 import StressAnalysis from "../../components/Therapist/StressAnalysis";
 
 import TherapistLayout from "../therapists/TherapistLayout";
@@ -88,11 +88,10 @@ export default function ChildParentDetailPage() {
             <button
               onClick={() => setTab("child")}
               className={`px-6 py-2 rounded-t-md text-sm font-semibold border
-              ${
-                tab === "child"
+              ${tab === "child"
                   ? "bg-[#BD9A6B] text-white border-[#DFC7A7]"
                   : "bg-[#DFC7A7] text-white border-[#BD9A6B] hover:bg-[#E5D6C4]"
-              }`}
+                }`}
             >
               Child Information
             </button>
@@ -100,11 +99,10 @@ export default function ChildParentDetailPage() {
             <button
               onClick={() => setTab("parent")}
               className={`px-6 py-2 rounded-t-md text-sm font-semibold border
-              ${
-                tab === "parent"
+              ${tab === "parent"
                   ? "bg-[#BD9A6B] text-white border-[#DFC7A7]"
                   : "bg-[#DFC7A7] text-white border-[#BD9A6B] hover:bg-[#E5D6C4]"
-              }`}
+                }`}
             >
               Parent Information
             </button>
@@ -207,7 +205,7 @@ export default function ChildParentDetailPage() {
                   open={open.cognitive}
                   onToggle={() => toggle("cognitive")}
                 >
-                  <CognitiveProgress />
+                  <CognitiveProgress childId={id} />
                 </Section>
               </div>
             )}
