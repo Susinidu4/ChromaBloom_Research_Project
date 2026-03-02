@@ -185,6 +185,33 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Delete Account
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () => _showDeleteConfirmation(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 187, 69, 14),
+                          foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Delete Account",
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 255, 255, 255),
+                            
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -192,6 +219,50 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Account"),
+          content: const Text(
+              "Are you sure you want to delete your account? This action is permanent and cannot be undone."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await context.read<SessionProvider>().deleteAccount();
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/welcome_screen',
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error deleting account: $e")),
+                    );
+                  }
+                }
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

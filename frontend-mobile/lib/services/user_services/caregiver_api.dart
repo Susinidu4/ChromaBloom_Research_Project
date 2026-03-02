@@ -160,6 +160,29 @@ class CaregiverApi {
     throw Exception(data['message'] ?? 'Caregiver update failed');
   }
 
+  // -------------------------
+  // DELETE CAREGIVER
+  // backend: DELETE /chromabloom/caregivers/:id
+  // -------------------------
+  static Future<Map<String, dynamic>> deleteCaregiver({
+    required String caregiverId,
+    String? token,
+  }) async {
+    final uri = Uri.parse('$_base/$caregiverId');
+
+    final response = await http.delete(
+      uri,
+      headers: {
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = _decodeBody(response);
+
+    if (response.statusCode == 200) return data;
+    throw Exception(data['message'] ?? 'Caregiver deletion failed');
+  }
+
   // Helpers
   static Map<String, dynamic> _decodeBody(http.Response response) {
     try {
