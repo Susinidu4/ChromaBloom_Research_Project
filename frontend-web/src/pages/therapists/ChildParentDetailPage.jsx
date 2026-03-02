@@ -196,7 +196,7 @@ export default function ChildParentDetailPage() {
                   open={open.skill}
                   onToggle={() => toggle("skill")}
                 >
-                  <SkillDevelopmentProgress />
+                  <SkillDevelopmentProgress childId={id} />
                 </Section>
 
                 {/* Cognitive Progress (component) */}
