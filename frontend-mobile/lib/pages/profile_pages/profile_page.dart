@@ -137,7 +137,21 @@ class ProfilePage extends StatelessWidget {
                       subtitle: "Update and Modify your child details",
                       onTap: () => Navigator.pushNamed(context, '/child_details'),
                     ),
-                    const SizedBox(height: 26),
+                    const SizedBox(height: 12),
+                    ProfileMenuItem(
+                      icon: Icons.lock_outline,
+                      title: "Login and Recovery",
+                      subtitle: "Your login credentials",
+                      onTap: () => Navigator.pushNamed(context, '/login_recovery'),
+                    ),
+                    const SizedBox(height: 12),
+                    ProfileMenuItem(
+                      icon: Icons.description_outlined,
+                      title: "Terms Of Use",
+                      subtitle: "Your consent agreement",
+                      onTap: () => Navigator.pushNamed(context, '/terms_of_use'),
+                    ),
+                    const SizedBox(height: 22),
                     const Text(
                       "LOGIN",
                       style: TextStyle(
