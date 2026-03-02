@@ -171,7 +171,7 @@ class ProfilePage extends StatelessWidget {
                           if (context.mounted) {
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              '/welcome_screen',
+                              '/caregiver_login',
                               (route) => false,
                             );
                           }
