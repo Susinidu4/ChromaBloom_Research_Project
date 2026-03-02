@@ -48,8 +48,8 @@ export const getCompleteProblemSolvingSessionById = async (req, res) => {
     });
   }
 };
-// GET BY user ID
 
+// GET BY user ID
 export const getCompleteProblemSolvingSessionByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -70,7 +70,6 @@ export const getCompleteProblemSolvingSessionByUserId = async (req, res) => {
     });
   }
 };
-
 
 
 // GET BY CHILD + LESSON

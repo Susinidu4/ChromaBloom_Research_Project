@@ -1,178 +1,67 @@
-// src/services/completeProblemSolvingSessionService.js
+import axios from "axios";
 
-import axios from 'axios';
+const API_BASE_URL = "http://localhost:5000/chromabloom/complete-problem-solving-sessions";
 
-// Base API URL - adjust according to your backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-const api = axios.create({
-    baseURL: `${API_BASE_URL}/complete-problem-solving-sessions`,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-// Request interceptor for auth tokens
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-// Response interceptor for error handling
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        const customError = {
-            message: error.response?.data?.message || 'An error occurred',
-            status: error.response?.status,
-            data: error.response?.data,
-        };
-        return Promise.reject(customError);
-    }
-);
-
-/**
- * ✅ CREATE - Create a new complete problem solving session
- * @param {Object} sessionData - Session data
- * @param {string} sessionData.childId - Child ID
- * @param {Array<string>} sessionData.lessons - Array of lesson IDs
- * @param {number} [sessionData.correctness_score=0] - Correctness score
- * @returns {Promise<Object>} Created session
- */
-export const createCompleteProblemSolvingSession = async (sessionData) => {
+// CREATE SESSION
+export const createCompleteProblemSolvingSession = async (data) => {
     try {
-        const response = await api.post('/', sessionData);
-        return {
-            success: true,
-            data: response.data,
-            message: 'Session created successfully',
-        };
+        const response = await axios.post(`${API_BASE_URL}/`, data);
+        return response.data;
     } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status,
-        };
+        throw error.response?.data || { message: "Failed to create session" };
     }
 };
 
-/**
- * ✅ GET BY ID - Fetch session by ID
- * @param {string} id - Session ID
- * @returns {Promise<Object>} Session data with populated child and lessons
- */
+// GET SESSION BY ID
 export const getCompleteProblemSolvingSessionById = async (id) => {
     try {
-        const response = await api.get(`/${id}`);
-        return {
-            success: true,
-            data: response.data,
-        };
+        const response = await axios.get(`${API_BASE_URL}/${id}`);
+        return response.data;
     } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status,
-        };
+        throw error.response?.data || { message: "Failed to fetch session" };
     }
 };
 
-/**
- * ✅ GET BY CHILD + LESSON - Fetch sessions by child and lesson
- * @param {string} childId - Child ID
- * @param {string} lessonId - Lesson ID
- * @returns {Promise<Object>} Sessions array with count
- */
-export const getSessionsByChildAndLesson = async (childId, lessonId) => {
+// GET SESSION BY USER ID
+export const getCompleteProblemSolvingSessionByUserId = async (userId) => {
     try {
-        const response = await api.get(`/child/${childId}/lesson/${lessonId}`);
-        return {
-            success: true,
-            data: response.data.data,
-            count: response.data.count,
-        };
+        const response = await axios.get(`${API_BASE_URL}/user/${userId}`);
+        return response.data;
     } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status,
-        };
+        throw error.response?.data || { message: "Failed to fetch sessions by user" };
     }
 };
 
-/**
- * ✅ UPDATE - Update session by ID
- * @param {string} id - Session ID
- * @param {Object} updateData - Fields to update
- * @param {string} [updateData.childId] - Child ID
- * @param {Array<string>} [updateData.lessons] - Array of lesson IDs
- * @param {number} [updateData.correctness_score] - Correctness score
- * @returns {Promise<Object>} Updated session
- */
-export const updateCompleteProblemSolvingSession = async (id, updateData) => {
+// GET SESSION BY CHILD + LESSON
+export const getByChildAndLesson = async (childId, lessonId) => {
     try {
-        const response = await api.put(`/${id}`, updateData);
-        return {
-            success: true,
-            data: response.data,
-            message: 'Session updated successfully',
-        };
+        const response = await axios.get(
+            `${API_BASE_URL}/by-child-lesson/${childId}/${lessonId}`
+        );
+        return response.data;
     } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status,
+        throw error.response?.data || {
+            message: "Failed to fetch sessions by child and lesson",
         };
     }
 };
 
-/**
- * ✅ DELETE - Delete session by ID
- * @param {string} id - Session ID
- * @returns {Promise<Object>} Deletion confirmation
- */
+// UPDATE SESSION
+export const updateCompleteProblemSolvingSession = async (id, data) => {
+    try {
+        const response = await axios.put(`${API_BASE_URL}/${id}`, data);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: "Failed to update session" };
+    }
+};
+
+// DELETE SESSION
 export const deleteCompleteProblemSolvingSession = async (id) => {
     try {
-        const response = await api.delete(`/${id}`);
-        return {
-            success: true,
-            data: response.data,
-            message: 'Session deleted successfully',
-        };
+        const response = await axios.delete(`${API_BASE_URL}/${id}`);
+        return response.data;
     } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            status: error.status,
-        };
+        throw error.response?.data || { message: "Failed to delete session" };
     }
-};
-
-/**
- * 🎯 Custom Hook for React Components
- * Returns all service methods and loading states
- */
-export const useCompleteProblemSolvingSessionService = () => {
-    return {
-        create: createCompleteProblemSolvingSession,
-        getById: getCompleteProblemSolvingSessionById,
-        getByChildAndLesson: getSessionsByChildAndLesson,
-        update: updateCompleteProblemSolvingSession,
-        delete: deleteCompleteProblemSolvingSession,
-    };
-};
-
-export default {
-    createCompleteProblemSolvingSession,
-    getCompleteProblemSolvingSessionById,
-    getSessionsByChildAndLesson,
-    updateCompleteProblemSolvingSession,
-    deleteCompleteProblemSolvingSession,
-    useCompleteProblemSolvingSessionService,
 };
