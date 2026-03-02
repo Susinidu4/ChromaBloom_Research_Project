@@ -146,7 +146,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     ProfileMenuItem(
-                      icon: Icons.description_outlined,
+                      icon: Icons.warning_rounded,
                       title: "Terms Of Use",
                       subtitle: "Your consent agreement",
                       onTap: () => Navigator.pushNamed(context, '/terms_of_use'),
