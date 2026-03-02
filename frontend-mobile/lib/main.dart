@@ -4,7 +4,7 @@ import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
 import 'package:frontend/pages/others/first_time_options.dart';
 import 'package:frontend/pages/profile_pages/login_recover.dart';
-import 'package:frontend/pages/profile_pages/tearm_of_use.dart';
+import 'package:frontend/pages/profile_pages/term_of_use.dart';
 import 'package:provider/provider.dart';
 import 'state/session_provider.dart';
 
