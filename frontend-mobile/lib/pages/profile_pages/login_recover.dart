@@ -126,9 +126,10 @@ class _LoginRecoverPageState extends State<LoginRecoverPage> {
     setState(() => _saving = true);
 
     try {
-      await CaregiverApi.updateCaregiver(
+      await CaregiverApi.changePassword(
         caregiverId: caregiverId,
-        password: _newPwCtrl.text.trim(),
+        currentPassword: _currentPwCtrl.text.trim(),
+        newPassword: _newPwCtrl.text.trim(),
       );
 
       if (!mounted) return;

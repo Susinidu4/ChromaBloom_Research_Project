@@ -200,15 +200,9 @@ export const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "currentPassword and newPassword are required" });
-    }
-
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "New password must be at least 6 characters" });
+      return res.status(400).json({
+        message: "currentPassword and newPassword are required",
+      });
     }
 
     const caregiver = await Caregiver.findById(id);
@@ -216,24 +210,29 @@ export const changePassword = async (req, res) => {
       return res.status(404).json({ message: "Caregiver not found" });
     }
 
-    // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, caregiver.password);
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      caregiver.password
+    );
+
     if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect" });
+      return res.status(400).json({
+        message: "Current password is incorrect",
+      });
     }
 
-    // Hash and save new password
-    const salt = await bcrypt.genSalt(10);
-    caregiver.password = await bcrypt.hash(newPassword, salt);
-    await caregiver.save({ validateBeforeSave: false });
+    // Let model hash it
+    caregiver.password = newPassword;
+    await caregiver.save();
 
     res.json({ message: "Password changed successfully" });
   } catch (err) {
-    console.error("changePassword error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
-
 // ─────────────────────────────────────────────────────────────
 // DELETE
 // DELETE /chromabloom/caregivers/:id
