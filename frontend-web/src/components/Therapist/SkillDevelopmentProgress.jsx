@@ -3,21 +3,27 @@ import children1 from "../../assets/Therapists/children1.png";
 import children2 from "../../assets/Therapists/children2.png";
 import { getChildByIdService } from "../../services/childService";
 import { getCompleteDrawingLessonsByUserId } from "../../services/Therapist/completeDrawingLessonService";
+import { getCompleteProblemSolvingSessionByUserId } from "../../services/Therapist/completeProblemSolvingSessionService";
 
 export default function SkillDevelopmentProgress({ childId }) {
   const [drawingProgress, setDrawingProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [problemSolvingProgress, setProblemSolvingProgress] = useState([]);
+  const [loadingDrawing, setLoadingDrawing] = useState(true);
+  const [loadingProblemSolving, setLoadingProblemSolving] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!childId) return;
+
       try {
-        setLoading(true);
-        // 1. Fetch child info to get caregiver id
+        setLoadingDrawing(true);
+        setLoadingProblemSolving(true);
+
+        // 1. Fetch child info to get caregiver id for drawing lessons
         const childInfo = await getChildByIdService(childId);
 
+        // Fetch Drawing Progress (via caregiver)
         if (childInfo && childInfo.caregiver && childInfo.caregiver._id) {
-          // 2. Fetch drawing lessons using caregiver id
           const drawingResponse = await getCompleteDrawingLessonsByUserId(childInfo.caregiver._id);
 
           if (drawingResponse && drawingResponse.success) {
@@ -30,10 +36,25 @@ export default function SkillDevelopmentProgress({ childId }) {
             setDrawingProgress(rates);
           }
         }
+
+        // Fetch Problem Solving Progress (directly via childId)
+        const problemSolvingResponse = await getCompleteProblemSolvingSessionByUserId(childId);
+
+        if (problemSolvingResponse && problemSolvingResponse.data) {
+          // Sort by createdAt ascending to show progress over time
+          const sortedData = problemSolvingResponse.data.sort(
+            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+          );
+          // Extract correctness scores and convert to percentage (0-100)
+          const scores = sortedData.map(item => item.correctness_score * 100);
+          setProblemSolvingProgress(scores);
+        }
+
       } catch (error) {
         console.error("Error fetching skill development data:", error);
       } finally {
-        setLoading(false);
+        setLoadingDrawing(false);
+        setLoadingProblemSolving(false);
       }
     };
 
@@ -44,7 +65,7 @@ export default function SkillDevelopmentProgress({ childId }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ChartCard title="Drawing Skill Development" rightSlot={<TinySelect label="Easy" />}>
-          {loading ? (
+          {loadingDrawing ? (
             <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
               Loading...
             </div>
@@ -58,7 +79,17 @@ export default function SkillDevelopmentProgress({ childId }) {
         </ChartCard>
 
         <ChartCard title="Problem Solving Skill Development" rightSlot={<TinySelect label="Easy" />}>
-          <MiniBarChart data={[10, 25, 18, 8, 2, 0, 28, 30, 26, 14, 20, 24, 30]} variant />
+          {loadingProblemSolving ? (
+            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
+              Loading...
+            </div>
+          ) : problemSolvingProgress.length > 0 ? (
+            <MiniBarChart data={problemSolvingProgress} variant />
+          ) : (
+            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
+              No data available
+            </div>
+          )}
         </ChartCard>
       </div>
 
@@ -113,7 +144,7 @@ function MiniBarChart({ data, variant = false }) {
           <div
             key={i}
             className="min-w-[12px] flex-1 bg-[#CBB79B] rounded-sm border border-[#B7A078] transition-all hover:bg-[#B7A078]"
-            style={{ height: `${Math.max(6, v)}%` }}
+            style={{ height: `${Math.max(6, Math.min(v, 100))}%` }}
             title={`${v.toFixed(1)}%`}
           />
         ))}
