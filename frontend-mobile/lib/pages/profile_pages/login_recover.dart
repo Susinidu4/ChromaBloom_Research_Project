@@ -381,7 +381,7 @@ class _LoginRecoverPageState extends State<LoginRecoverPage> {
                         child: ElevatedButton(
                           onPressed: _saving ? null : _save,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: headerBlue,
+                            backgroundColor: textGold,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
