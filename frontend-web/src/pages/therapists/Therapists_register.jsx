@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { IoLogIn } from "react-icons/io5";
 import { registerTherapistService } from "../../services/therapistService";
 import ellipse1 from '../../assets/Therapists/ellipse_1.png';
 import ellipse2 from '../../assets/Therapists/ellipse_2.png';
@@ -95,9 +96,16 @@ export const Therapists_register = () => {
 
   return (
     <div className="flex flex-col md:flex-row max-h-screen bg-[#386884] overflow-hidden relative font-sans">
+      <Link
+        to="/therapists_login"
+        className="absolute top-6 left-6 z-50 text-[#C9A87C] hover:text-white transition-all bg-[#2C536A]/50 p-3 rounded-full border border-[#C9A87C]/30 hover:bg-[#2C536A] shadow-lg flex items-center justify-center group"
+        title="Go to Login"
+      >
+        <IoLogIn size={28} className="transform group-hover:scale-110 transition-transform" />
+      </Link>
       {/* Left side: Form portion */}
       <div className="flex-[1.2] flex items-center justify-center p-6 md:p-12 z-20 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
-        <div className="w-full max-w-[90%] mt-[600px] overflow-y-auto bg-transparent border-[3px] border-[#C9A87C]/50 rounded-[3rem] p-10 md:p-16 my-8 relative shadow-[inset_0_0_50px_rgba(0,0,0,0.2)] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
+        <div className="w-full max-w-[90%] mt-[700px] overflow-y-auto bg-transparent border-[3px] border-[#C9A87C]/50 rounded-[3rem] p-10 md:p-16 my-8 relative shadow-[inset_0_0_50px_rgba(0,0,0,0.2)] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
           <div className="flex justify-between items-start mb-10">
             <div></div> {/* Spacer */}
             <h1 className="text-5xl font-bold text-[#C9A87C] tracking-widest uppercase">

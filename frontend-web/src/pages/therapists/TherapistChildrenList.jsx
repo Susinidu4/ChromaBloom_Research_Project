@@ -90,7 +90,9 @@ export const TherapistChildrenList = () => {
           <div className="overflow-x-auto custom-scrollbar h-full">
             {/* Note: The image shows a specific striped/colored table style */}
             <table className="w-full text-sm border-collapse">
-              <thead className="text-[#C19A6B] font-bold text-xs uppercase tracking-wider sticky top-0 z-10 border-b border-[#C19A6B]">
+
+              <thead className="text-[#C19A6B] border-b-2 border-[#EADBD4] font-bold text-xs uppercase tracking-wider sticky top-0 z-10">
+
                 <tr>
                   <th className="text-left p-4">Child Name</th>
                   <th className="text-left p-4">Age (years)</th>
@@ -105,21 +107,25 @@ export const TherapistChildrenList = () => {
                 {children.map((c, idx) => (
                   <tr
                     key={c._id || c.child_id}
-                    className="hover:bg-[#f3e9e5] text-[#BD9A6B] transition-colors border-b border-[#EADBD4]"
+
+                    className="hover:bg-[#f3e9e5] transition-colors text-[#5A483C] font-medium border-b-2 border-[#EADBD4]"
+
                   >
-                    <td className="p-4">{c.childName || "—"}</td>
-                    <td className="p-4 text-center md:text-left">
+                    <td className="px-4 py-2 text-[#C19A6B]">{c.childName || "—"}</td>
+                    <td className="px-4 py-2 text-center md:text-left text-[#C19A6B]">
                       {calculateAge(c.dateOfBirth)}
                     </td>
-                    <td className="p-4">{c.gender || "—"}</td>
-                    <td className="p-4 ">
+
+                    <td className="px-4 py-2 text-[#C19A6B]">{c.gender || "—"}</td>
+                    <td className="px-4 py-2 text-[#C19A6B]">
                       {c.downSyndromeType || "Trisomy 21"}
                     </td>
-                    <td className="p-4 ">{c.downSyndromeConfirmedBy || "—"}</td>
-                    <td className="p-4">
+                    <td className="px-4 py-2 text-[#C19A6B]">Genetic test</td>
+                    <td className="px-4 py-2 text-[#C19A6B]">
+
                       {c.caregiver?.full_name || c.caregiver?.name || "—"}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="px-4 py-2 text-right">
                       <button
                         onClick={() =>
                           navigate(`/child_parent_detail/${c._id || c.child_id}`)
