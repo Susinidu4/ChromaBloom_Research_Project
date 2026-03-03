@@ -61,6 +61,34 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
     });
   }
 
+  String friendlyErrorMessage(Object? err) {
+    final msg = err.toString().toLowerCase();
+
+    if (msg.contains("socketexception") ||
+        msg.contains("failed host lookup") ||
+        msg.contains("connection")) {
+      return "No internet connection.\nPlease check Wi-Fi/mobile data and try again.";
+    }
+
+    if (msg.contains("timeout")) {
+      return "The server is taking too long.\nPlease try again in a moment.";
+    }
+
+    if (msg.contains("401") || msg.contains("unauthorized")) {
+      return "Your session expired.\nPlease login again.";
+    }
+
+    if (msg.contains("404")) {
+      return "Stress analysis not found yet.\nPlease try again later.";
+    }
+
+    if (msg.contains("500") || msg.contains("server")) {
+      return "Server error occurred.\nPlease try again later.";
+    }
+
+    return "Something went wrong.\nPlease try again.";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,12 +157,17 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                         }
                         if (snap.hasError) {
                           return _ErrorCard(
-                            message: snap.error.toString(),
+                            message: friendlyErrorMessage(snap.error),
                             onRetry: _reload,
                           );
                         }
 
-                        final data = snap.data!;
+                        final data = snap.data;
+
+                        if (data == null || data.stress == null) {
+                          return _EmptyStressCard();
+                        }
+
                         final stress = data.stress;
                         final rec = data.recommendation;
 
@@ -278,9 +311,23 @@ class _ErrorCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            message,
-            style: const TextStyle(fontFamily: "Poppins", fontSize: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFFBD9A6B)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    color: Color(0xFF8B6B44),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Align(
@@ -288,6 +335,45 @@ class _ErrorCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onRetry,
               child: const Text("Retry"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyStressCard extends StatelessWidget {
+  const _EmptyStressCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBD9A6B), width: 1.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            "Latest stress level",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFBD9A6B),
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            "No stress analysis available yet.\n"
+            "Please complete your daily inputs to generate analysis.",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 12,
+              color: Color(0xFF8B6B44),
             ),
           ),
         ],

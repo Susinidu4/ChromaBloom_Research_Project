@@ -443,31 +443,38 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    const _SectionTitle("14 Day Plan Summary"),
-                    const Spacer(),
-                    _DatePill(
-                      text: _loadingCycle ? "Loading..." : _selectedCycleLabel,
-                      onTap: () async {
-                        final caregiverId = _getLoggedCaregiverId(context);
-                        if (caregiverId.isEmpty) return;
+                    const Flexible(child: _SectionTitle("14 Day Plan Summary")),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: _DatePill(
+                          text: _loadingCycle
+                              ? "Loading..."
+                              : _selectedCycleLabel,
+                          onTap: () async {
+                            final caregiverId = _getLoggedCaregiverId(context);
+                            if (caregiverId.isEmpty) return;
 
-                        final cache = _dashboardCache;
+                            final cache = _dashboardCache;
 
-                        if (cache == null) {
-                          setState(() => _loadingCycle = true);
+                            if (cache == null) {
+                              setState(() => _loadingCycle = true);
 
-                          final fresh = await _loadDashboard(
-                            caregiverId: caregiverId,
-                            planId: null,
-                          );
+                              final fresh = await _loadDashboard(
+                                caregiverId: caregiverId,
+                                planId: null,
+                              );
 
-                          if (!mounted) return;
-                          await _pickCycleFromDashboard(fresh);
-                          return;
-                        }
+                              if (!mounted) return;
+                              await _pickCycleFromDashboard(fresh);
+                              return;
+                            }
 
-                        await _pickCycleFromDashboard(cache);
-                      },
+                            await _pickCycleFromDashboard(cache);
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -759,18 +766,26 @@ class _LatestSummaryCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFFBD9A6B),
+        Flexible(
+          flex: 6,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFFBD9A6B),
+            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
+          flex: 4,
           child: Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -864,12 +879,16 @@ class _DatePill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Date/cycle label
-            Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFFBD9A6B),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFBD9A6B),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -1049,7 +1068,7 @@ class _StepsPieChart extends StatelessWidget {
     return PieChart(
       PieChartData(
         centerSpaceRadius: 0,
-        sectionsSpace: 2,
+        sectionsSpace: 0,
         sections: [
           PieChartSectionData(
             value: completedPct * 100,
