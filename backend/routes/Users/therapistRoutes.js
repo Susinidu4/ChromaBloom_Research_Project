@@ -25,7 +25,7 @@ router.get("/", getAllTherapists);
 router.get("/:id", getTherapistById);
 
 // 🔹 Update therapist (JSON + optional base64 image)
-router.put("/:id", updateTherapist);
+router.patch("/:id", updateTherapist);
 
 // 🔹 Update Account Status
 router.patch("/:id/status", updateAccountStatus);

@@ -16,7 +16,7 @@ export default function DrawingLessonCreate() {
       setError("");
 
       const res = await createDrawingLesson(values);
-      nav(`/wellness_module`);
+      nav(`/learning_module`);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Create failed");
     } finally {

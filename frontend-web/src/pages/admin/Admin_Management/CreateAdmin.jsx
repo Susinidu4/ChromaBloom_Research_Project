@@ -1,7 +1,9 @@
 // src/pages/CreateAdmin.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { FaChevronCircleLeft } from "react-icons/fa";
 import { createAdmin } from "../../../services/Admin/adminService";
+import AdminLayout from "./AdminLayout";
 
 const CreateAdmin = () => {
   const navigate = useNavigate();
@@ -9,6 +11,7 @@ const CreateAdmin = () => {
   const [full_name, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,20 +22,20 @@ const CreateAdmin = () => {
     setError("");
     setSuccessMsg("");
 
-    if (!full_name || !email || !password) {
-      setError("full_name, email and password are required.");
+    if (!full_name || !email || !password || !phone) {
+      setError("full_name, email, password and phone are required.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const data = await createAdmin({ full_name, email, password });
+      const data = await createAdmin({ full_name, email, password, phone });
 
       setSuccessMsg(data?.message || "Admin created successfully!");
 
       // go back to login after success
-      setTimeout(() => navigate("/admin_login"), 800);
+      setTimeout(() => navigate("/admin_dashboard"), 800);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -45,74 +48,111 @@ const CreateAdmin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-800">Create Admin</h1>
-        <p className="text-gray-500 mt-1">Add a new admin account.</p>
-
-        {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded">
-            {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mt-4 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded">
-            {successMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Full name</label>
-            <input
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-200"
-              type="text"
-              value={full_name}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-200"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-200"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
-
+    <AdminLayout>
+      <div className="min-h-screen bg-[#F3E8E8] flex flex-col p-8 ml-0">
+        <div className="max-w-2xl w-full mx-auto pt-6">
+          {/* Back Button */}
           <button
-            disabled={loading}
-            className="w-full bg-gray-900 text-white rounded-lg py-2 font-semibold hover:bg-gray-800 disabled:opacity-60"
-            type="submit"
+            onClick={() => navigate(-1)}
+            className="mb-4 text-[#BD9A6B] hover:text-[#a38054] transition-colors shadow-sm rounded-full bg-[#F3E8E8] p-1 inline-flex items-center justify-center shadow-[0_4px_6px_rgba(0,0,0,0.1)] active:scale-95"
+            title="Go Back"
           >
-            {loading ? "Creating..." : "Create Admin"}
+            <FaChevronCircleLeft size={36} />
           </button>
-        </form>
 
-        <div className="mt-4 text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link className="text-gray-900 font-semibold underline" to="/admin_login">
-            Go to Login
-          </Link>
+          {/* Form Container */}
+          <div className="border border-[#BD9A6B] rounded-2xl p-8 md:p-10 relative bg-white/40 backdrop-blur-sm shadow-lg">
+            <div className="mb-8 text-center">
+              <h1 className="text-2xl font-bold text-[#BD9A6B] tracking-wide uppercase">
+                Create New Admin
+              </h1>
+              <div className="w-16 h-1 bg-[#BD9A6B] mx-auto mt-2 rounded-full opacity-60"></div>
+            </div>
+
+            {/* Success/Error Messages */}
+            {error && (
+              <div className="mb-4 text-red-600 bg-red-100 p-3 rounded-lg text-sm animate-pulse">
+                {error}
+              </div>
+            )}
+            {successMsg && (
+              <div className="mb-4 text-green-600 bg-green-100 p-3 rounded-lg text-sm">
+                {successMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              {/* Full Name */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#BD9A6B] font-bold text-lg ml-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={full_name}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter full name"
+                  className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#BD9A6B] font-bold text-lg ml-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@chromabloom.com"
+                  className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#BD9A6B] font-bold text-lg ml-1">
+                  Mobile Number
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter mobile number"
+                  className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#BD9A6B] font-bold text-lg ml-1">
+                  Temporary Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full bg-[#F3E8E8]/50 border border-[#BD9A6B]/40 rounded-xl px-4 py-2.5 outline-none text-[#7A6357] text-base focus:ring-2 focus:ring-[#BD9A6B]/30 transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end mt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#BD9A6B] text-white font-bold text-base py-2.5 px-10 rounded-xl shadow-md hover:brightness-105 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed tracking-wide"
+                >
+                  {loading ? "Registering..." : "Create Account"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 

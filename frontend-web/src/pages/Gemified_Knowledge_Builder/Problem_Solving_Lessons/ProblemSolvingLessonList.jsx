@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
@@ -58,15 +58,6 @@ export default function ProblemSolvingLessonList({ searchTerm = "", difficultyFi
 
   return (
     <div className="w-full">
-      <div className="flex justify-end mb-6">
-        <button
-          onClick={() => navigate("/problem_solving_lessons_create")}
-          className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
-        >
-          + Add New Lesson
-        </button>
-      </div>
-
       {filteredLessons.length === 0 ? (
         <div className="text-center py-10 text-[#9C8577]">No lessons found.</div>
       ) : (

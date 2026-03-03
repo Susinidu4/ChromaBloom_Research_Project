@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { deleteDrawingLesson, getAllDrawingLessons } from "../../../services/Gemified_Knowledge_Builder/drawingLessonService.js";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
@@ -61,15 +61,6 @@ export default function DrawingLessonList({ searchTerm = "", difficultyFilter = 
 
   return (
     <div className="w-full">
-      <div className="flex justify-end mb-6">
-        <button
-          onClick={() => navigate("/drawing_lessons_create")}
-          className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
-        >
-          + Add New Lesson
-        </button>
-      </div>
-
       {filteredLessons.length === 0 ? (
         <div className="text-center py-10 text-[#9C8577]">No lessons found.</div>
       ) : (
@@ -104,14 +95,20 @@ export default function DrawingLessonList({ searchTerm = "", difficultyFilter = 
                 {/* Actions */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => navigate(`/drawing_lessons/${l._id}/edit`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/drawing_lessons/${l._id}/edit`);
+                    }}
                     className="text-[#B79264] hover:scale-110 transition p-1"
                     title="Edit"
                   >
                     <HiPencil size={28} />
                   </button>
                   <button
-                    onClick={() => onDelete(l._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(l._id);
+                    }}
                     className="text-[#711A0C] hover:scale-110 transition p-1"
                     title="Delete"
                   >

@@ -9,13 +9,18 @@ export const createAdmin = async (req, res) => {
   try {
     const { full_name, email, password, phone } = req.body;
 
-    if (!full_name || !email || !password) {
-      return res.status(400).json({ message: "full_name, email and password are required" });
+    if (!full_name || !email || !password || !phone) {
+      return res.status(400).json({ message: "full_name, email, password and phone are required" });
     }
 
-    const existing = await Admin.findOne({ email });
-    if (existing) {
+    const existingEmail = await Admin.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({ message: "Admin with this email already exists" });
+    }
+
+    const existingPhone = await Admin.findOne({ phone });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Admin with this phone number already exists" });
     }
 
     const admin = await Admin.create({ full_name, email, password, phone });
@@ -40,6 +45,10 @@ export const adminLogin = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
+
+    if (admin.account_status === "inactive") {
+      return res.status(403).json({ message: "Your account is inactive. Please contact the super admin." });
+    }
 
     const token = generateToken(admin);
 
