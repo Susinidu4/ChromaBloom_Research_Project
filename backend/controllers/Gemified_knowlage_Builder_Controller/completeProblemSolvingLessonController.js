@@ -1,6 +1,6 @@
 import CompleteProblemSolvingSession from "../../models/Gamified_Knowlage_Builder_Model/Complete_Problem_Sloving_Session.js";
 
-// ✅ CREATE
+// CREATE
 export const createCompleteProblemSolvingSession = async (req, res) => {
   try {
     const { childId, lessons, correctness_score } = req.body;
@@ -27,7 +27,7 @@ export const createCompleteProblemSolvingSession = async (req, res) => {
   }
 };
 
-// ✅ GET BY ID
+// GET BY ID
 export const getCompleteProblemSolvingSessionById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -49,7 +49,30 @@ export const getCompleteProblemSolvingSessionById = async (req, res) => {
   }
 };
 
-// ✅ GET BY CHILD + LESSON
+// GET BY user ID
+export const getCompleteProblemSolvingSessionByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const sessions = await CompleteProblemSolvingSession.find({ childId: userId })
+      .sort({ createdAt: -1 })
+      .populate("childId")
+      .populate("lessons");
+
+    return res.status(200).json({
+      count: sessions.length,
+      data: sessions,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Failed to fetch sessions by user ID",
+      error: err.message,
+    });
+  }
+};
+
+
+// GET BY CHILD + LESSON
 export const getByChildAndLesson = async (req, res) => {
   try {
     const { childId, lessonId } = req.params;
@@ -74,7 +97,7 @@ export const getByChildAndLesson = async (req, res) => {
   }
 };
 
-// ✅ UPDATE
+// UPDATE
 export const updateCompleteProblemSolvingSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -107,7 +130,7 @@ export const updateCompleteProblemSolvingSession = async (req, res) => {
   }
 };
 
-// ✅ DELETE
+// DELETE
 export const deleteCompleteProblemSolvingSession = async (req, res) => {
   try {
     const { id } = req.params;

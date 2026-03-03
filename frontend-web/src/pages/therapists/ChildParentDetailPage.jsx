@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 import { getChildByIdService } from "../../services/childService";
 
 import RoutineProgress from "../../components/Therapist/RoutineProgress";
 import SkillDevelopmentProgress from "../../components/Therapist/SkillDevelopmentProgress";
-import CognitiveProgress from "../../components//Therapist/CognitiveProgress";
+import CognitiveProgress from "../../components/Therapist/CognitiveProgress";
 import StressAnalysis from "../../components/Therapist/StressAnalysis";
 
 import TherapistLayout from "../therapists/TherapistLayout";
@@ -18,6 +19,7 @@ export default function ChildParentDetailPage() {
   const [child, setChild] = useState(null);
   const [parent, setParent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
@@ -27,8 +29,8 @@ export default function ChildParentDetailPage() {
         const token = localStorage.getItem("therapist_token");
         const data = await getChildByIdService(id, token);
 
-        console.log("===== RAW CHILD DATA FROM API =====");
-        console.log(data);
+        // console.log("===== RAW CHILD DATA FROM API =====");
+        // console.log(data);
 
         setChild(data);
 
@@ -63,23 +65,33 @@ export default function ChildParentDetailPage() {
     stress: true,
   });
 
-  const toggle = (key) => setOpen((s) => ({ ...s, [key]: !s[key] }))
+  const toggle = (key) => setOpen((s) => ({ ...s, [key]: !s[key] }));
 
   return (
     <TherapistLayout>
       <div className="bg-[#F3E8E8] min-h-[calc(100vh-64px)]">
         {/* Page container */}
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-6 relative pt-10">
+          {/* Back button */}
+          <button
+            onClick={() => navigate("/therapists_dashboard")}
+            className="absolute -left-10 top-10 h-10 w-10 rounded-full bg-white/80
+             shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+             grid place-items-center hover:brightness-95 active:scale-[0.98]"
+            title="Back"
+          >
+            <FaArrowLeft className="text-[#BD9A6B]" />
+          </button>
+
           {/* Tabs */}
           <div className="flex ">
             <button
               onClick={() => setTab("child")}
               className={`px-6 py-2 rounded-t-md text-sm font-semibold border
-              ${
-                tab === "child"
+              ${tab === "child"
                   ? "bg-[#BD9A6B] text-white border-[#DFC7A7]"
                   : "bg-[#DFC7A7] text-white border-[#BD9A6B] hover:bg-[#E5D6C4]"
-              }`}
+                }`}
             >
               Child Information
             </button>
@@ -87,11 +99,10 @@ export default function ChildParentDetailPage() {
             <button
               onClick={() => setTab("parent")}
               className={`px-6 py-2 rounded-t-md text-sm font-semibold border
-              ${
-                tab === "parent"
+              ${tab === "parent"
                   ? "bg-[#BD9A6B] text-white border-[#DFC7A7]"
                   : "bg-[#DFC7A7] text-white border-[#BD9A6B] hover:bg-[#E5D6C4]"
-              }`}
+                }`}
             >
               Parent Information
             </button>
@@ -173,7 +184,10 @@ export default function ChildParentDetailPage() {
                   open={open.routine}
                   onToggle={() => toggle("routine")}
                 >
-                  <RoutineProgress />
+                  <RoutineProgress
+                    caregiverId={child?.caregiver?._id}
+                    childId={child?._id}
+                  />
                 </Section>
 
                 {/* Skill Development Progress (component) */}
@@ -182,7 +196,7 @@ export default function ChildParentDetailPage() {
                   open={open.skill}
                   onToggle={() => toggle("skill")}
                 >
-                  <SkillDevelopmentProgress />
+                  <SkillDevelopmentProgress childId={id} />
                 </Section>
 
                 {/* Cognitive Progress (component) */}
@@ -191,7 +205,7 @@ export default function ChildParentDetailPage() {
                   open={open.cognitive}
                   onToggle={() => toggle("cognitive")}
                 >
-                  <CognitiveProgress />
+                  <CognitiveProgress childId={id} />
                 </Section>
               </div>
             )}
@@ -221,7 +235,7 @@ export default function ChildParentDetailPage() {
                   open={open.stress}
                   onToggle={() => toggle("stress")}
                 >
-                  <StressAnalysis />
+                  <StressAnalysis caregiverId={child?.caregiver?._id} />
                 </Section>
               </div>
             )}

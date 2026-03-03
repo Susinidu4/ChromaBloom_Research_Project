@@ -173,7 +173,7 @@ export default function Sidebar() {
 
             },
             {
-              to: "/wellness_module",
+              to: "/learning_module",
               label: "Learning Module",
               icon: PiBooksLight,
             },
