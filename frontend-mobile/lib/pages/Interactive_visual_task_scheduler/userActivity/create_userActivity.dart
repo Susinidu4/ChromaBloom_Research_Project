@@ -407,7 +407,42 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
-                    child: _buildFormCard(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                "Let’s add a new task...",
+                                style: TextStyle(
+                                  color: textSoft,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: textSoft,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        Center(
+                          child: Image.asset(
+                            "assets/InteractiveVisualTaskScheduler/create_user_activity.png",
+                            width: 180,
+                            height: 160,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildFormCard(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -437,42 +472,13 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                // Page title
-                const Expanded(
-                  child: Text(
-                    "Let’s add a new task...",
-                    style: TextStyle(
-                      color: textSoft,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                      decorationColor: textSoft,
-                    ),
-                  ),
-                ),
-                // Close button
-                _circleIconButton(
-                  icon: Icons.close,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            // Top image
-            Center(
-              child: Image.asset(
-                "assets/InteractiveVisualTaskScheduler/create_user_activity.png",
-                width: 180,
-                height: 160,
-                fit: BoxFit.contain,
+            Align(
+              alignment: Alignment.topRight,
+              child: _circleIconButton(
+                icon: Icons.close,
+                onTap: () => Navigator.pop(context),
               ),
             ),
-
-            const SizedBox(height: 18),
-
             // Date picker
             _label("Date :"),
             const SizedBox(height: 6),

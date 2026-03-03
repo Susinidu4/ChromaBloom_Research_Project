@@ -51,35 +51,45 @@ class MainHeader extends StatelessWidget {
             ),
 
             // Right avatar + badge
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Color(0xFFD9D9D9), 
-                  child: Icon(Icons.person, color: Color(0xFF386884), size: 30),
-                ),
-                // Notification badge
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4E0909), // dark red/burgundy
-                      shape: BoxShape.circle,
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/profile_page');
+              },
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Color(0xFFD9D9D9),
+                    child: Icon(
+                      Icons.person,
+                      color: Color(0xFF386884),
+                      size: 30,
                     ),
-                    child: Text(
-                      notificationCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  ),
+
+                  // Notification badge
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4E0909),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        notificationCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

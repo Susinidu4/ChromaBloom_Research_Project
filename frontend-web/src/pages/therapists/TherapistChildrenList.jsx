@@ -81,7 +81,7 @@ export const TherapistChildrenList = () => {
       </div>
 
       {/* Table Container */}
-      <div className="bg-[#FBF3F0] border-2 border-[#EADBD4] rounded-xl rounded-tl-none p-1 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="border-1 border-[#BD9A6B] rounded-xl rounded-tl-none p-1 overflow-hidden min-h-[400px]">
         {children.length === 0 ? (
           <p className="text-sm text-gray-600 mt-6 text-center">
             No children assigned to you yet.
@@ -90,7 +90,9 @@ export const TherapistChildrenList = () => {
           <div className="overflow-x-auto custom-scrollbar h-full">
             {/* Note: The image shows a specific striped/colored table style */}
             <table className="w-full text-sm border-collapse">
+
               <thead className="text-[#C19A6B] border-b-2 border-[#EADBD4] font-bold text-xs uppercase tracking-wider sticky top-0 z-10">
+
                 <tr>
                   <th className="text-left p-4">Child Name</th>
                   <th className="text-left p-4">Age (years)</th>
@@ -101,22 +103,26 @@ export const TherapistChildrenList = () => {
                   <th className="p-4"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EADBD4]">
+              <tbody>
                 {children.map((c, idx) => (
                   <tr
                     key={c._id || c.child_id}
+
                     className="hover:bg-[#f3e9e5] transition-colors text-[#5A483C] font-medium border-b-2 border-[#EADBD4]"
+
                   >
                     <td className="px-4 py-2 text-[#C19A6B]">{c.childName || "—"}</td>
                     <td className="px-4 py-2 text-center md:text-left text-[#C19A6B]">
                       {calculateAge(c.dateOfBirth)}
                     </td>
+
                     <td className="px-4 py-2 text-[#C19A6B]">{c.gender || "—"}</td>
                     <td className="px-4 py-2 text-[#C19A6B]">
                       {c.downSyndromeType || "Trisomy 21"}
                     </td>
                     <td className="px-4 py-2 text-[#C19A6B]">Genetic test</td>
                     <td className="px-4 py-2 text-[#C19A6B]">
+
                       {c.caregiver?.full_name || c.caregiver?.name || "—"}
                     </td>
                     <td className="px-4 py-2 text-right">

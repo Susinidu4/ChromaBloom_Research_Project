@@ -119,6 +119,7 @@ export const TherapistsLogin = () => {
         </svg>
       </div>
 
+
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col lg:flex-row">
         {/* LEFT COLUMN */}
@@ -147,6 +148,7 @@ export const TherapistsLogin = () => {
 
           {/* illustration */}
           <div className="flex-1 flex items-center lg:items-end justify-center lg:justify-start px-10 pb-6 lg:pb-10 overflow-hidden">
+
             <img
               src={characters}
               alt="Doctor and Therapist"
@@ -155,6 +157,7 @@ export const TherapistsLogin = () => {
             />
           </div>
         </div>
+
 
         {/* RIGHT COLUMN */}
         <div className="w-full lg:w-[42%] flex items-center justify-center px-6 pb-12 lg:pb-0 bg-[#386884] lg:bg-transparent">
@@ -167,6 +170,7 @@ export const TherapistsLogin = () => {
               <h1 className="text-2xl md:text-3xl font-extrabold text-[#BD9A6B] tracking-wide drop-shadow-[0_3px_0_rgba(0,0,0,0.25)] text-center lg:text-left">
                 THERAPIST LOGIN
               </h1>
+
 
               {errorMsg && (
                 <div className="mt-4 bg-red-100/10 text-red-100 border border-red-400/50 px-3 py-2 rounded-lg text-sm text-center">
