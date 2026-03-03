@@ -36,7 +36,6 @@ export default function StressSupportRecommendationList() {
     });
   }, [error]);
 
-
   // ✅ fetch from backend
   useEffect(() => {
     let alive = true;
@@ -103,6 +102,12 @@ export default function StressSupportRecommendationList() {
       return matchesSearch && matchesFilter;
     });
   }, [rows, query, filterBy, filterValue]);
+
+  function handleClearFilters() {
+    setQuery("");
+    setFilterBy("Stress Level");
+    setFilterValue("All");
+  }
 
   async function onDelete(id) {
     const r = await Swal.fire({
@@ -181,7 +186,7 @@ export default function StressSupportRecommendationList() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-[#D9D9D9]/50 rounded-full h-8 pl-4 pr-10 outline-none text-sm text-[#7A6357]"
-              placeholder=""
+              placeholder="Search by Title"
               aria-label="Search"
             />
             <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-base text-[#6F5E4C]" />
@@ -219,10 +224,18 @@ export default function StressSupportRecommendationList() {
                 </option>
               ))}
             </select>
+
+            {/* ✅ Clear Button */}
+            <button
+              onClick={handleClearFilters}
+              className="h-9 rounded-xl bg-[#BD9A6B] px-8 text-sm text-[#F3E8E8] shadow hover:opacity-95 active:scale-[0.97]"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
-        {/* ✅ Card wrapper for table + scroll */}
+        {/* Card wrapper for table + scroll */}
         <div className="bg-[#EFE6E3] rounded-[14px] px-10 py-1 shadow-[0_12px_22px_rgba(0,0,0,0.12)] mt-10 pb-6">
           {/* table header */}
           <div className="grid grid-cols-[1.4fr_0.55fr_0.8fr_0.35fr] border-b border-[#D9C8C8] px-5 py-3 text-sm font-bold text-[#B79C74]">
@@ -251,8 +264,6 @@ export default function StressSupportRecommendationList() {
                 Loading recommendations...
               </div>
             )}
-
-
 
             {!loading &&
               filtered.map((r) => (

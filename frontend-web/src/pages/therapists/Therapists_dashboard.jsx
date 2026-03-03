@@ -84,7 +84,7 @@ export const Therapists_dashboard = () => {
                 <div className="text-md font-medium text-[#3B6088]/80 space-y-1">
                   <p>
                     <span className="font-semibold text-[#1E3A5F]">
-                      SLMC/REG/
+                      Licence No :{" "}
                     </span>
                     {therapist.licence_number ||
                       therapist.license_no ||

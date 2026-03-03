@@ -60,7 +60,7 @@ class StressAnalysisService {
 
   
   // -----------------------------
-  // ✅ Get last N stress score history (default 10)
+  // Get last N stress score history (default 10)
   // -----------------------------
   static Future<StressHistoryResponse> getHistory({
     required String caregiverId,
