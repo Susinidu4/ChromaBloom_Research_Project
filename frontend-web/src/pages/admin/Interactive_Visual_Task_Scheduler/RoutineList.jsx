@@ -7,7 +7,6 @@ import AdminLayout from "../Admin_Management/AdminLayout";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-
 import {
   getAllSystemActivitiesService,
   deleteSystemActivityByIdService,
@@ -113,12 +112,10 @@ export default function RoutineList() {
 
       alertSuccess("Routine deleted successfully.");
     } catch (e) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Delete failed";
+      const msg = e?.response?.data?.message || e?.message || "Delete failed";
       alertError(msg);
     }
   };
-
 
   // Navigate to detail page
   const onMore = (id) => navigate(`/routine_detail/${id}`);
@@ -140,19 +137,20 @@ export default function RoutineList() {
 
   return (
     <AdminLayout>
-      <div className="w-full h-full bg-[#F3E8E8]">
-        {/* Center white-ish canvas like screenshot */}
-        <div className="px-10 py-10">
-          {/* Top Row: Title + Add New */}
-          <div className="flex items-start justify-between">
-            <h1 className="text-[22px] font-bold text-[#BD9A6B] underline underline-offset-4">
+      <div className="w-full min-h-screen bg-[#F3E8E8]">
+        {/* responsive padding */}
+        <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10">
+          {/* Top Row */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <h1 className="text-[20px] sm:text-[22px] font-bold text-[#BD9A6B] underline underline-offset-4">
               Routine List
             </h1>
 
             <button
               onClick={onAddNew}
-              className="flex items-center gap-2 rounded-[10px] bg-[#BD9A6B] px-4 py-1 text-white
-                         shadow-[0_10px_16px_rgba(0,0,0,0.20)] hover:brightness-95 active:translate-y-[1px]"
+              className="flex items-center justify-center gap-2 rounded-[10px] bg-[#BD9A6B] px-4 py-2 text-white
+                       shadow-[0_10px_16px_rgba(0,0,0,0.20)] hover:brightness-95 active:translate-y-[1px]
+                       w-full sm:w-auto"
             >
               <span className="grid h-8 w-8 place-items-center rounded-md">
                 <HiPlus size={20} />
@@ -161,61 +159,68 @@ export default function RoutineList() {
             </button>
           </div>
 
-          {/* Filters row */}
-          <div className="mt-8 flex items-center justify-end gap-4">
-            <SelectBox
-              value={pendingDifficulty}
-              onChange={setPendingDifficulty}
-              placeholder="Difficulty Level"
-              options={["easy", "medium", "hard"]}
-            />
+          {/* Filters row (wrap + stack on mobile) */}
+          <div className="mt-6 flex flex-col lg:flex-row lg:items-center lg:justify-end gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <SelectBox
+                value={pendingDifficulty}
+                onChange={setPendingDifficulty}
+                placeholder="Difficulty Level"
+                options={["easy", "medium", "hard"]}
+              />
 
-            <SelectBox
-              value={pendingDevArea}
-              onChange={setPendingDevArea}
-              placeholder="Development Area"
-              options={[
-                "social",
-                "motor",
-                "cognitive",
-                "language",
-                "emotional",
-                "self-care",
-              ]}
-            />
+              <SelectBox
+                value={pendingDevArea}
+                onChange={setPendingDevArea}
+                placeholder="Development Area"
+                options={[
+                  "social",
+                  "motor",
+                  "cognitive",
+                  "language",
+                  "emotional",
+                  "self-care",
+                ]}
+              />
 
-            <SelectBox
-              value={pendingAgeGroup}
-              onChange={setPendingAgeGroup}
-              placeholder="Age Group"
-              options={["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]}
-            />
+              <SelectBox
+                value={pendingAgeGroup}
+                onChange={setPendingAgeGroup}
+                placeholder="Age Group"
+                options={["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]}
+              />
+            </div>
 
-            <button
-              onClick={onFilter}
-              className="rounded-[10px] bg-[#B79A6A] px-9 py-2 text-sm font-semibold text-white
-             shadow-[0_10px_16px_rgba(0,0,0,0.20)] hover:brightness-95 active:translate-y-[1px]"
-            >
-              Filter
-            </button>
-            <button
-              onClick={onClearFilter}
-              className="rounded-[10px] px-9 py-1.5 text-sm font-semibold text-[#BD9A6B]
-             shadow-[0_10px_16px_rgba(0,0,0,0.20)] border border-[#BD9A6B] hover:bg-[#BD9A6B]/10
-              hover:shadow-[0_12px_20px_rgba(0,0,0,0.22)] active:translate-y-[1px] transition-all duration-200"
-            >
-              Clear
-            </button>
+            {/* buttons */}
+            <div className="flex gap-3 w-full sm:w-auto">
+              <button
+                onClick={onFilter}
+                className="flex-1 sm:flex-none rounded-[10px] bg-[#B79A6A] px-8 py-2 text-sm font-semibold text-white
+                         shadow-[0_10px_16px_rgba(0,0,0,0.20)] hover:brightness-95 active:translate-y-[1px]"
+              >
+                Filter
+              </button>
+
+              <button
+                onClick={onClearFilter}
+                className="flex-1 sm:flex-none rounded-[10px] px-8 py-2 text-sm font-semibold text-[#BD9A6B]
+                         shadow-[0_10px_16px_rgba(0,0,0,0.20)] border border-[#BD9A6B]
+                         hover:bg-[#BD9A6B]/10 hover:shadow-[0_12px_20px_rgba(0,0,0,0.22)]
+                         active:translate-y-[1px] transition-all duration-200"
+              >
+                Clear
+              </button>
+            </div>
           </div>
 
-          {/* Search */}
-          <div className="mt-3">
-            <div className="relative w-[320px]">
+          {/* Search (full width on mobile) */}
+          <div className="mt-4">
+            <div className="relative w-full sm:w-[320px]">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-[#D9D9D9]/50 rounded-full py-2 pl-5 pr-10 outline-none text-sm text-[#7A6357]"
-                placeholder=""
+                placeholder="Search by Title"
               />
               <FiSearch
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A6357]"
@@ -224,88 +229,90 @@ export default function RoutineList() {
             </div>
           </div>
 
-          <div className="bg-[#EFE6E3] rounded-[14px] px-10 py-1 shadow-[0_12px_22px_rgba(0,0,0,0.12)] mt-6 pb-6">
-            {/* Table */}
-            <div className="mt-6">
-              {/* Header row */}
-              <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-3 px-2 pb-3 text-[13px] font-bold text-[#BD9A6B]">
-                <div>Title</div>
-                <div className="text-center">Age Group</div>
-                <div className="text-center">Difficulty Level</div>
-                <div className="text-center">Development Area</div>
-                <div className="text-center">Est. Duration (min)</div>
-                <div />
-                <div />
-              </div>
+          {/* Table container */}
+          <div className="bg-[#EFE6E3] rounded-[14px] px-4 sm:px-6 lg:px-10 py-4 shadow-[0_12px_22px_rgba(0,0,0,0.12)] mt-6">
+            {/* ✅ horizontal scroll for small screens */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[820px]">
+                {/* Header */}
+                <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-3 px-2 pb-3 text-[13px] font-bold text-[#BD9A6B]">
+                  <div>Title</div>
+                  <div className="text-center">Age Group</div>
+                  <div className="text-center">Difficulty Level</div>
+                  <div className="text-center">Development Area</div>
+                  <div className="text-center">Est. Duration (min)</div>
+                  <div />
+                  <div />
+                </div>
 
-              <div className="h-[1px] bg-[#D9C7BF]" />
+                <div className="h-[1px] bg-[#D9C7BF]" />
 
-              {/* Body with scroll + custom scrollbar */}
-              <div className="max-h-[360px] overflow-auto pr-2 custom-scroll">
-                {loading && (
-                  <div className="py-10 text-center text-[#BD9A6B]">
-                    Loading...
-                  </div>
-                )}
-
-                {!loading && filtered.map((r) => (
-                  <div key={r.id} className="px-1 py-2">
-                    <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
-                      <div className="truncate">{r.title}</div>
-                      <div className="text-center">{r.age}</div>
-                      <div className="text-center">{r.difficulty}</div>
-                      <div className="text-center truncate">{r.dev}</div>
-                      <div className="text-center">{r.duration}</div>
-
-                      {/* Delete */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => onDelete(r.id)}
-                          className="h-8 w-8 rounded-[10px] bg-[#6B3B30] text-white
-                                   shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
-                                   hover:brightness-110 active:scale-[0.99]"
-                          title="Delete"
-                        >
-                          <MdDelete size={18} />
-                        </button>
-                      </div>
-
-                      {/* More */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => onMore(r.id)}
-                          className="h-8 w-8 rounded-[10px] bg-[#BD9A6B] text-white
-                                   shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
-                                   hover:brightness-95 active:scale-[0.99]"
-                          title="More"
-                        >
-                          <HiDotsHorizontal size={18} />
-                        </button>
-                      </div>
+                {/* Body scroll */}
+                <div className="max-h-[360px] overflow-y-auto pr-2 custom-scroll">
+                  {loading && (
+                    <div className="py-10 text-center text-[#BD9A6B]">
+                      Loading...
                     </div>
+                  )}
 
-                    <div className="mt-3 h-[1px] bg-[#D9C7BF]" />
-                  </div>
-                ))}
+                  {!loading &&
+                    filtered.map((r) => (
+                      <div key={r.id} className="px-1 py-2">
+                        <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
+                          <div className="truncate">{r.title}</div>
+                          <div className="text-center">{r.age}</div>
+                          <div className="text-center">{r.difficulty}</div>
+                          <div className="text-center truncate">{r.dev}</div>
+                          <div className="text-center">{r.duration}</div>
 
-                {!loading && filtered.length === 0 && (
-                  <div className="py-16 text-center text-[#BD9A6B]">
-                    No routines found.
-                  </div>
-                )}
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => onDelete(r.id)}
+                              className="h-8 w-8 rounded-[10px] bg-[#6B3B30] text-white
+                                     shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                     hover:brightness-110 active:scale-[0.99]"
+                              title="Delete"
+                            >
+                              <MdDelete size={18} />
+                            </button>
+                          </div>
+
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => onMore(r.id)}
+                              className="h-8 w-8 rounded-[10px] bg-[#BD9A6B] text-white
+                                     shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                     hover:brightness-95 active:scale-[0.99]"
+                              title="More"
+                            >
+                              <HiDotsHorizontal size={18} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 h-[1px] bg-[#D9C7BF]" />
+                      </div>
+                    ))}
+
+                  {!loading && filtered.length === 0 && (
+                    <div className="py-16 text-center text-[#BD9A6B]">
+                      No routines found.
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {/* scrollbar style like mock */}
-              <style>{`
-              .custom-scroll::-webkit-scrollbar { width: 10px; }
-              .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-              .custom-scroll::-webkit-scrollbar-thumb {
-                background: rgba(183, 154, 106, 0.85);
-                border-radius: 999px;
-              }
-              .custom-scroll { scrollbar-color: rgba(183, 154, 106, 0.85) transparent; scrollbar-width: thin; }
-            `}</style>
             </div>
+
+            {/* scrollbar style */}
+            <style>{`
+            .custom-scroll::-webkit-scrollbar { width: 10px; }
+            .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+            .custom-scroll::-webkit-scrollbar-thumb {
+              background: rgba(183, 154, 106, 0.85);
+              border-radius: 999px;
+            }
+            .custom-scroll { scrollbar-color: rgba(183, 154, 106, 0.85) transparent; scrollbar-width: thin; }
+          `}</style>
           </div>
         </div>
       </div>
@@ -315,12 +322,12 @@ export default function RoutineList() {
 
 function SelectBox({ value, onChange, placeholder, options }) {
   return (
-    <div className="relative">
+    <div className="relative w-full sm:w-[200px]">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none rounded-[10px] border border-[#BD9A6B] bg-[#EFE6E3]
-                   px-5 py-1.5 pr-10 text-sm text-[#BD9A6B] outline-none"
+        className="w-full appearance-none rounded-[10px] border border-[#BD9A6B] bg-[#EFE6E3]
+                   px-5 py-2 pr-10 text-sm text-[#BD9A6B] outline-none"
       >
         <option value="">{placeholder}</option>
         {options.map((op) => (

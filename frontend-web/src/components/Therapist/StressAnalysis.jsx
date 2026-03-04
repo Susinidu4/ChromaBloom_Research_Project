@@ -38,10 +38,10 @@ export default function StressAnalysis({ caregiverId }) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
       <div className="md:col-span-2">
         <div className="bg-[#E9DDCC] border border-[#BD9A6B] rounded-xl shadow-[0_6px_10px_rgba(0,0,0,0.08)] p-4">
-          <div className="flex items-center justify-end mb-2">
-            <div className="text-[10px] text-[#BD9A6B] bg-[#F2E9E3] border border-[#BD9A6B] rounded-md px-2 py-1">
-              {latestDateLabel}
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[20px] underline font-semibold text-[#BD9A6B]">
+              Past 14 days stress summary
+            </h2>
           </div>
 
           <StressLine items={items} />
