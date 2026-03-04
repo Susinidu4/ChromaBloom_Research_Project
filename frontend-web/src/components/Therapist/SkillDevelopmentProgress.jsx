@@ -8,7 +8,8 @@ import { getCompleteProblemSolvingSessionByUserId } from "../../services/Therapi
 export default function SkillDevelopmentProgress({ childId }) {
   const [allDrawingData, setAllDrawingData] = useState([]);
   const [drawingDifficulty, setDrawingDifficulty] = useState("All");
-  const [problemSolvingProgress, setProblemSolvingProgress] = useState([]);
+  const [allProblemSolvingData, setAllProblemSolvingData] = useState([]);
+  const [problemSolvingDifficulty, setProblemSolvingDifficulty] = useState("All");
   const [loadingDrawing, setLoadingDrawing] = useState(true);
   const [loadingProblemSolving, setLoadingProblemSolving] = useState(true);
 
@@ -36,13 +37,7 @@ export default function SkillDevelopmentProgress({ childId }) {
         const problemSolvingResponse = await getCompleteProblemSolvingSessionByUserId(childId);
         console.log(problemSolvingResponse);
         if (problemSolvingResponse && problemSolvingResponse.data) {
-          // Sort by createdAt ascending to show progress over time
-          const sortedData = problemSolvingResponse.data.sort(
-            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-          );
-          // Extract correctness scores and convert to percentage (0-100)
-          const scores = sortedData.map(item => item.correctness_score * 100);
-          setProblemSolvingProgress(scores);
+          setAllProblemSolvingData(problemSolvingResponse.data);
         }
 
       } catch (error) {
@@ -60,6 +55,11 @@ export default function SkillDevelopmentProgress({ childId }) {
     .filter(item => drawingDifficulty === "All" || item.lesson_id?.difficulty_level === drawingDifficulty)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
     .map(item => item.correctness_rate);
+
+  const problemSolvingScores = allProblemSolvingData
+    .filter(item => problemSolvingDifficulty === "All" || item.lessons?.difficulty_level === problemSolvingDifficulty)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map(item => item.correctness_score * 100);
 
   const difficultyOptions = [
     { label: "All", value: "All" },
@@ -90,13 +90,22 @@ export default function SkillDevelopmentProgress({ childId }) {
           )}
         </ChartCard>
 
-        <ChartCard title="Problem Solving Progress" rightSlot={<TinySelect label="Easy" disabled />}>
+        <ChartCard
+          title="Problem Solving Progress"
+          rightSlot={
+            <TinySelect
+              value={problemSolvingDifficulty}
+              onChange={setProblemSolvingDifficulty}
+              options={difficultyOptions}
+            />
+          }
+        >
           {loadingProblemSolving ? (
             <div className="h-[280px] flex items-center justify-center text-[#A68A64] font-medium">
               Loading...
             </div>
           ) : (
-            <SkillBarChart data={problemSolvingProgress} variant />
+            <SkillBarChart data={problemSolvingScores} variant />
           )}
         </ChartCard>
       </div>
