@@ -27,53 +27,74 @@ const requiredFields = [
   "average_response_time",
 ];
 
-// ================================
-// PREDICT (calls Python service)
+
+// =======================================================
+// PREDICT
 // POST /chromabloom/cognitiveProgress/predict
-// ================================
+// =======================================================
 export const predictCognitiveProgress = async (req, res) => {
   try {
     const input = req.body;
 
+    // Validate required fields
     for (const field of requiredFields) {
       if (!(field in input)) {
-        return res
-          .status(400)
-          .json({ success: false, error: `Missing field: ${field}` });
+        return res.status(400).json({
+          success: false,
+          error: `Missing field: ${field}`,
+        });
       }
     }
 
-    const response = await axios.post(`${PYTHON_SERVICE_URL}/predict`, input);
+    // Call Python ML service
+    const response = await axios.post(
+      `${PYTHON_SERVICE_URL}/predict`,
+      input
+    );
 
-    // Python returns either:
-    // - cognitive_progress_score_next_14_days
-    // or (older)
-    // - predicted_score
     const predicted =
       response.data?.cognitive_progress_score_next_14_days ??
       response.data?.predicted_score;
 
+    const positive_factors =
+      response.data?.explainability?.top_positive_factors ?? [];
+
+    const negative_factors =
+      response.data?.explainability?.top_negative_factors ?? [];
+
     return res.json({
       success: true,
-      predicted_score: predicted, // ✅ normalize for Flutter
-      top_factors: response.data?.top_factors ?? [],
+      predicted_score: predicted,
+      positive_factors,
+      negative_factors,
     });
   } catch (err) {
     console.error("Prediction error:", err.message);
+
     const status = err.response?.status || 500;
     const detail = err.response?.data || { error: err.message };
-    return res.status(status).json({ success: false, ...detail });
+
+    return res.status(status).json({
+      success: false,
+      ...detail,
+    });
   }
 };
 
-// ================================
-// CREATE (store prediction)
+
+
+// =======================================================
+// CREATE (Store Prediction)
 // POST /chromabloom/cognitiveProgress
-// body: { userId, progress_prediction }
-// ================================
+// =======================================================
 export const createProgress = async (req, res) => {
   try {
-    const { userId, progress_prediction } = req.body;
+    const {
+      userId,
+      progress_prediction,
+      positive_factors,
+      negative_factors,
+    } = req.body;
 
     if (!userId || progress_prediction === undefined) {
       return res.status(400).json({
@@ -85,44 +106,87 @@ export const createProgress = async (req, res) => {
     const doc = await CognitiveProgress.create({
       userId,
       progress_prediction,
+      positive_factors: positive_factors || [],
+      negative_factors: negative_factors || [],
     });
 
-    return res.status(201).json({ success: true, data: doc });
+    return res.status(201).json({
+      success: true,
+      data: doc,
+    });
   } catch (err) {
     console.error("createProgress error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
+
+
+// =======================================================
 // VIEW ALL
+// =======================================================
 export const getAllProgress = async (req, res) => {
   try {
-    const docs = await CognitiveProgress.find({}).sort({ createdAt: -1 });
-    return res.json({ success: true, count: docs.length, data: docs });
+    const docs = await CognitiveProgress
+      .find({})
+      .sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      count: docs.length,
+      data: docs,
+    });
   } catch (err) {
     console.error("getAllProgress error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
+
+
+// =======================================================
 // VIEW BY ID
+// =======================================================
 export const getProgressById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const doc = await CognitiveProgress.findById(id);
+
     if (!doc) {
-      return res.status(404).json({ success: false, message: "Not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Not found",
+      });
     }
 
-    return res.json({ success: true, data: doc });
+    return res.json({
+      success: true,
+      data: doc,
+    });
   } catch (err) {
     console.error("getProgressById error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
-// VIEW BY userId
+
+
+// =======================================================
+// VIEW BY USER ID
+// =======================================================
 export const getProgressByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -131,23 +195,46 @@ export const getProgressByUserId = async (req, res) => {
       .find({ userId })
       .sort({ createdAt: -1 });
 
-    return res.json({ success: true, count: docs.length, data: docs });
+    return res.json({
+      success: true,
+      count: docs.length,
+      data: docs,
+    });
   } catch (err) {
     console.error("getProgressByUserId error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
+
+
+// =======================================================
 // UPDATE
+// =======================================================
 export const updateProgress = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, progress_prediction } = req.body;
+
+    const {
+      userId,
+      progress_prediction,
+      positive_factors,
+      negative_factors,
+    } = req.body;
 
     const update = {};
+
     if (userId !== undefined) update.userId = userId;
     if (progress_prediction !== undefined)
       update.progress_prediction = progress_prediction;
+    if (positive_factors !== undefined)
+      update.positive_factors = positive_factors;
+    if (negative_factors !== undefined)
+      update.negative_factors = negative_factors;
 
     const doc = await CognitiveProgress.findByIdAndUpdate(id, update, {
       new: true,
@@ -155,24 +242,42 @@ export const updateProgress = async (req, res) => {
     });
 
     if (!doc) {
-      return res.status(404).json({ success: false, message: "Not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Not found",
+      });
     }
 
-    return res.json({ success: true, data: doc });
+    return res.json({
+      success: true,
+      data: doc,
+    });
   } catch (err) {
     console.error("updateProgress error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
+
+
+// =======================================================
 // DELETE
+// =======================================================
 export const deleteProgress = async (req, res) => {
   try {
     const { id } = req.params;
 
     const doc = await CognitiveProgress.findByIdAndDelete(id);
+
     if (!doc) {
-      return res.status(404).json({ success: false, message: "Not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Not found",
+      });
     }
 
     return res.json({
@@ -182,6 +287,10 @@ export const deleteProgress = async (req, res) => {
     });
   } catch (err) {
     console.error("deleteProgress error:", err.message);
-    return res.status(500).json({ success: false, message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
