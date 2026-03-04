@@ -62,41 +62,33 @@ export default function SkillDevelopmentProgress({ childId }) {
   }, [childId]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-6 md:space-y-10 py-4 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <ChartCard title="Drawing Skill Development" rightSlot={<TinySelect label="Easy" />}>
           {loadingDrawing ? (
-            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
+            <div className="h-[280px] flex items-center justify-center text-[#A68A64] font-medium">
               Loading...
             </div>
-          ) : drawingProgress.length > 0 ? (
-            <MiniBarChart data={drawingProgress} />
           ) : (
-            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
-              No data available
-            </div>
+            <SkillBarChart data={drawingProgress} />
           )}
         </ChartCard>
 
-        <ChartCard title="Problem Solving Skill Development" rightSlot={<TinySelect label="Easy" />}>
+        <ChartCard title="Problem Solving Progress" rightSlot={<TinySelect label="Easy" />}>
           {loadingProblemSolving ? (
-            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
+            <div className="h-[280px] flex items-center justify-center text-[#A68A64] font-medium">
               Loading...
             </div>
-          ) : problemSolvingProgress.length > 0 ? (
-            <MiniBarChart data={problemSolvingProgress} variant />
           ) : (
-            <div className="h-[140px] flex items-center justify-center text-[#8A6B3E] text-xs">
-              No data available
-            </div>
+            <SkillBarChart data={problemSolvingProgress} variant />
           )}
         </ChartCard>
       </div>
 
       {/* Illustration row */}
-      <div className="hidden md:flex items-center justify-center mt-8">
-        <img src={children2} alt="children2" className="h-[150px] object-contain" />
-        <img src={children1} alt="children1" className="h-[170px] object-contain" />
+      <div className="hidden md:flex items-center justify-center mt-12 gap-8 grayscale-25 opacity-90">
+        <img src={children2} alt="children2" className="h-[180px] object-contain transition-transform hover:scale-105 duration-500" />
+        <img src={children1} alt="children1" className="h-[200px] object-contain transition-transform hover:scale-105 duration-500" />
       </div>
     </div>
   );
@@ -104,25 +96,32 @@ export default function SkillDevelopmentProgress({ childId }) {
 
 function ChartCard({ title, rightSlot, children }) {
   return (
-    <div className="bg-[#E8DED0] border border-[#D7C6AE] rounded-xl shadow-[0_6px_10px_rgba(0,0,0,0.08)] p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-xs font-semibold text-[#8A6B3E] uppercase tracking-wider">{title}</div>
-        {rightSlot}
+    <div className="bg-[#E9DBC7] rounded-[32px] shadow-[inset_0_2px_4px_rgba(255,255,255,0.4),0_12px_24px_rgba(138,107,62,0.15)] p-6 md:p-10 flex flex-col h-full border border-[#D7C6AE]/30 relative overflow-hidden">
+      {/* Decorative grain/texture could be added here if needed */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4">
+        <h2 className="text-2xl md:text-[20px] font-bold text-[#A68A64] border-b-[3px] border-[#A68A64] pb-1 leading-tight tracking-tight">
+          {title}
+        </h2>
+        <div className="shrink-0">
+          {rightSlot}
+        </div>
       </div>
-      {children}
+      <div className="flex-1 min-h-[300px]">
+        {children}
+      </div>
     </div>
   );
 }
 
 function TinySelect({ label }) {
   return (
-    <div className="flex items-center gap-2 text-[10px] text-[#7A5E36] bg-[#F2E9E3] border border-[#D7C6AE] rounded-md px-2 py-1">
-      <span>{label}</span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+    <div className="flex items-center gap-3 text-sm font-semibold text-[#A68A64] bg-[#E9DBC7] border-2 border-[#D7C6AE]/60 rounded-2xl px-5 py-2.5 shadow-[0_4px_8px_rgba(138,107,62,0.1)] cursor-pointer hover:bg-[#F2EADA] transition-all group active:scale-95">
+      <span className="tracking-tight">{label}</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 transition-transform group-hover:translate-y-0.5">
         <path
           d="M6 9l6 6 6-6"
-          stroke="#8A6B3E"
-          strokeWidth="2"
+          stroke="currentColor"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -131,41 +130,77 @@ function TinySelect({ label }) {
   );
 }
 
-function MiniBarChart({ data, variant = false }) {
-  // Use provided data or fallback to defaults
-  const bars = data || (variant
-    ? [38, 22, 8, 5, 2, 0, 12, 18, 8, 6, 10, 12, 18]
-    : [10, 25, 18, 8, 2, 0, 28, 30, 26, 14, 20, 24, 30]);
+function SkillBarChart({ data, variant = false }) {
+  // If no data is provided, show 14 zero-value bars to maintain the layout like the image
+  const bars = data && data.length > 0 ? data : Array(14).fill(0);
+
+  const yLabels = [100, 80, 60, 40, 20, 0];
+  const xLabels = Array.from({ length: bars.length }, (_, i) => i);
 
   return (
-    <div className="h-[140px] bg-[#F2E9E3] border border-[#D7C6AE] rounded-lg p-3">
-      <div className="h-full flex items-end gap-2 overflow-x-auto custom-scrollbar">
-        {bars.map((v, i) => (
-          <div
-            key={i}
-            className="min-w-[12px] flex-1 bg-[#CBB79B] rounded-sm border border-[#B7A078] transition-all hover:bg-[#B7A078]"
-            style={{ height: `${Math.max(6, Math.min(v, 100))}%` }}
-            title={`${v.toFixed(1)}%`}
-          />
-        ))}
+    <div className="relative font-sans text-[#A68A64] h-[320px] mt-4 select-none">
+      <div className="flex h-full gap-2">
+        {/* Y Axis Label (Vertical) */}
+        <div className="flex items-center justify-center w-8">
+          <span className="transform -rotate-90 origin-center text-[13px] font-bold tracking-[0.2em] whitespace-nowrap opacity-70 uppercase">
+            Score
+          </span>
+        </div>
+
+        <div className="flex-1 flex flex-col h-full">
+          <div className="relative flex-1 flex">
+            {/* Y axis numbers */}
+            <div className="flex flex-col justify-between py-[1px] pr-4 text-xs font-bold opacity-70 min-w-[30px]">
+              {yLabels.map(label => (
+                <span key={label} className="h-0 flex items-center justify-end">{label}</span>
+              ))}
+            </div>
+
+            {/* Grid and Bars Area */}
+            <div className="relative flex-1 h-full border-l-[2px] border-b-[2px] border-[#D7C6AE]">
+              {/* Horizontal Grid Lines */}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                {yLabels.map((label, idx) => (
+                  <div key={label} className={`w-full border-t-[1px] border-[#D7C6AE]/40 h-0 ${idx === yLabels.length - 1 ? 'hidden' : ''}`} />
+                ))}
+              </div>
+
+              {/* Vertical Grid Lines & Bars (Integrated for perfect alignment) */}
+              <div className="absolute inset-0 flex pointer-events-none">
+                {bars.map((v, i) => (
+                  <div key={i} className="flex-1 border-r-[1px] border-[#D7C6AE]/40 h-full relative flex items-end justify-center">
+                    <div
+                      className="w-[70%] bg-[#B69368] rounded-sm transition-all duration-500 hover:brightness-90 group relative pointer-events-auto cursor-pointer"
+                      style={{ height: `${Math.max(2, Math.min(v, 100))}%` }}
+                    >
+                      {/* Tooltip */}
+                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#A68A64] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 whitespace-nowrap z-20 shadow-xl pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-t-[#A68A64]">
+                        {v.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* X Axis labels */}
+          <div className="flex flex-col items-center mt-3 ml-[46px]">
+            <div className="w-full flex">
+              {xLabels.map(i => (
+                <div key={i} className="flex-1 flex justify-center text-xs font-bold opacity-70">
+                  <span className="translate-x-[-0.5px]">{i}</span>
+                </div>
+              ))}
+            </div>
+            <span className="text-[13px] font-bold tracking-[0.3em] uppercase mt-4 mb-2 opacity-70">
+              Lessons
+            </span>
+          </div>
+        </div>
       </div>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          height: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #F2E9E3;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #D7C6AE;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #8A6B3E;
-        }
-      `}} />
     </div>
   );
 }
+
+
