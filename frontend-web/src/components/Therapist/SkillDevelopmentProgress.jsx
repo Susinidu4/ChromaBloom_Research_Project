@@ -6,7 +6,8 @@ import { getCompleteDrawingLessonsByUserId } from "../../services/Therapist/comp
 import { getCompleteProblemSolvingSessionByUserId } from "../../services/Therapist/completeProblemSolvingSessionService";
 
 export default function SkillDevelopmentProgress({ childId }) {
-  const [drawingProgress, setDrawingProgress] = useState([]);
+  const [allDrawingData, setAllDrawingData] = useState([]);
+  const [drawingDifficulty, setDrawingDifficulty] = useState("All");
   const [problemSolvingProgress, setProblemSolvingProgress] = useState([]);
   const [loadingDrawing, setLoadingDrawing] = useState(true);
   const [loadingProblemSolving, setLoadingProblemSolving] = useState(true);
@@ -27,19 +28,13 @@ export default function SkillDevelopmentProgress({ childId }) {
           const drawingResponse = await getCompleteDrawingLessonsByUserId(childInfo.caregiver._id);
 
           if (drawingResponse && drawingResponse.success) {
-            // Sort by createdAt ascending to show progress over time
-            const sortedData = drawingResponse.data.sort(
-              (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-            );
-            // Extract correctness rates
-            const rates = sortedData.map(item => item.correctness_rate);
-            setDrawingProgress(rates);
+            setAllDrawingData(drawingResponse.data);
           }
         }
 
         // Fetch Problem Solving Progress (directly via childId)
         const problemSolvingResponse = await getCompleteProblemSolvingSessionByUserId(childId);
-
+        console.log(problemSolvingResponse);
         if (problemSolvingResponse && problemSolvingResponse.data) {
           // Sort by createdAt ascending to show progress over time
           const sortedData = problemSolvingResponse.data.sort(
@@ -61,20 +56,41 @@ export default function SkillDevelopmentProgress({ childId }) {
     fetchData();
   }, [childId]);
 
+  const drawingRates = allDrawingData
+    .filter(item => drawingDifficulty === "All" || item.lesson_id?.difficulty_level === drawingDifficulty)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map(item => item.correctness_rate);
+
+  const difficultyOptions = [
+    { label: "All", value: "All" },
+    { label: "Easy", value: "Beginner" },
+    { label: "Medium", value: "Intermediate" },
+    { label: "Hard", value: "Advanced" },
+  ];
+
   return (
     <div className="space-y-6 md:space-y-10 py-4 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <ChartCard title="Drawing Skill Development" rightSlot={<TinySelect label="Easy" />}>
+        <ChartCard
+          title="Drawing Skill Development"
+          rightSlot={
+            <TinySelect
+              value={drawingDifficulty}
+              onChange={setDrawingDifficulty}
+              options={difficultyOptions}
+            />
+          }
+        >
           {loadingDrawing ? (
             <div className="h-[280px] flex items-center justify-center text-[#A68A64] font-medium">
               Loading...
             </div>
           ) : (
-            <SkillBarChart data={drawingProgress} />
+            <SkillBarChart data={drawingRates} />
           )}
         </ChartCard>
 
-        <ChartCard title="Problem Solving Progress" rightSlot={<TinySelect label="Easy" />}>
+        <ChartCard title="Problem Solving Progress" rightSlot={<TinySelect label="Easy" disabled />}>
           {loadingProblemSolving ? (
             <div className="h-[280px] flex items-center justify-center text-[#A68A64] font-medium">
               Loading...
@@ -113,19 +129,42 @@ function ChartCard({ title, rightSlot, children }) {
   );
 }
 
-function TinySelect({ label }) {
+function TinySelect({ value, onChange, options, label, disabled }) {
+  if (disabled) {
+    return (
+      <div className="flex items-center gap-3 text-sm font-semibold text-[#A68A64]/50 bg-[#E9DBC7] border-2 border-[#D7C6AE]/30 rounded-2xl px-5 py-2.5 shadow-none cursor-default">
+        <span className="tracking-tight">{label}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 opacity-30">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 text-sm font-semibold text-[#A68A64] bg-[#E9DBC7] border-2 border-[#D7C6AE]/60 rounded-2xl px-5 py-2.5 shadow-[0_4px_8px_rgba(138,107,62,0.1)] cursor-pointer hover:bg-[#F2EADA] transition-all group active:scale-95">
-      <span className="tracking-tight">{label}</span>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 transition-transform group-hover:translate-y-0.5">
-        <path
-          d="M6 9l6 6 6-6"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <div className="relative group">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none flex items-center gap-3 text-sm font-semibold text-[#A68A64] bg-[#E9DBC7] border-2 border-[#D7C6AE]/60 rounded-2xl px-5 py-2.5 pr-12 shadow-[0_4px_8px_rgba(138,107,62,0.1)] cursor-pointer hover:bg-[#F2EADA] transition-all outline-none active:scale-95 font-sans"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="bg-[#F2EADA] text-[#A68A64]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#A68A64] transition-transform group-hover:translate-y-[-40%]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
     </div>
   );
 }
