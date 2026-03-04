@@ -12,19 +12,17 @@ import cloudinary from "../../config/cloudinary.js";
 // ------------------------- Admin ------------------------- //
 
 // helper: upload buffer to Cloudinary using upload_stream
-const uploadBufferToCloudinary = (buffer, folder) => {
-  return new Promise((resolve, reject) => {
+const uploadBufferToCloudinary = (buffer, folder) =>
+  new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      // create upload stream from Cloudinary
-      { folder },
+      { folder, resource_type: "video", timeout: 180000 },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
       },
     );
-    stream.end(buffer); // send buffer
+    stream.end(buffer);
   });
-};
 
 // Controller to create a new system routine
 export const createSystemActivity = async (req, res) => {
@@ -96,22 +94,38 @@ export const createSystemActivity = async (req, res) => {
     }
 
     // ---------------- CLOUDINARY UPLOAD ----------------
-    let uploadedImageUrl = null;
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Video file is required (field name: video)" });
+    }
 
-    if (req.file) {
-      try {
-        const result = await uploadBufferToCloudinary(
-          req.file.buffer,
-          "chromabloom/system_activities",
+    let uploadedVideoUrl = null;
+
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "chromabloom/system_activities/videos",
+            resource_type: "video",
+            timeout: 180000,
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          },
         );
-        uploadedImageUrl = result.secure_url;
-      } catch (error) {
-        console.error("Cloudinary Upload Error:", error);
-        return res.status(500).json({
-          error: "Image upload failed",
-          details: error.message,
-        });
-      }
+
+        stream.end(req.file.buffer); // ✅ IMPORTANT (buffer, not path)
+      });
+
+      uploadedVideoUrl = result.secure_url;
+    } catch (error) {
+      console.error("Cloudinary Upload Error:", error);
+      return res.status(500).json({
+        error: "Video upload failed",
+        details: error.message,
+      });
     }
 
     // CREATE system activity
@@ -123,7 +137,7 @@ export const createSystemActivity = async (req, res) => {
       steps: parsedSteps,
       estimated_duration_minutes,
       difficulty_level,
-      media_links: uploadedImageUrl ? [uploadedImageUrl] : [],
+      media_links: uploadedVideoUrl ? [uploadedVideoUrl] : [],
     });
 
     return res.status(201).json({
@@ -224,19 +238,27 @@ export const updateSystemActivity = async (req, res) => {
       activity.estimated_duration_minutes = dur;
     }
 
+    let parsedSteps = steps;
+
+    if (typeof steps === "string") {
+      try {
+        parsedSteps = JSON.parse(steps);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid steps JSON format" });
+      }
+    }
+
     // Steps: accept either [{instruction}] or [{step_number,instruction}]
-    if (steps !== undefined) {
-      if (!Array.isArray(steps) || steps.length === 0) {
+    if (parsedSteps !== undefined) {
+      if (!Array.isArray(parsedSteps) || parsedSteps.length === 0) {
         return res
           .status(400)
           .json({ message: "Routine must contain at least one step" });
       }
 
-      const cleanedSteps = steps
+      const cleanedSteps = parsedSteps
         .map((s) => (typeof s === "string" ? { instruction: s } : s))
-        .map((s) => ({
-          instruction: String(s.instruction || "").trim(),
-        }))
+        .map((s) => ({ instruction: String(s.instruction || "").trim() }))
         .filter((s) => s.instruction.length > 0)
         .map((s, idx) => ({
           step_number: idx + 1,
@@ -252,16 +274,20 @@ export const updateSystemActivity = async (req, res) => {
       activity.steps = cleanedSteps;
     }
 
-    // media_links: replace whole array if provided
-    if (media_links !== undefined) {
-      if (!Array.isArray(media_links)) {
-        return res
-          .status(400)
-          .json({ message: "media_links must be an array" });
+    // if new video is uploaded, replace media_links with new URL
+    if (req.file) {
+      try {
+        const result = await uploadBufferToCloudinary(
+          req.file.buffer,
+          "chromabloom/system_activities/videos",
+        );
+        activity.media_links = [result.secure_url];
+      } catch (error) {
+        return res.status(500).json({
+          message: "Video upload failed",
+          error: error.message,
+        });
       }
-      activity.media_links = media_links
-        .map((x) => String(x).trim())
-        .filter(Boolean);
     }
 
     await activity.save();

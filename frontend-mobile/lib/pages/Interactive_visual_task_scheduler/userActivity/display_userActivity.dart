@@ -867,7 +867,11 @@ class _SearchBarWithBack extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     onChanged: onChanged,
-                    decoration: const InputDecoration(border: InputBorder.none),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "Search Routine",
+                      hintStyle: TextStyle(color: Colors.black54, fontSize: 14),
+                      ),
                   ),
                 ),
                 const Icon(Icons.search, color: Colors.black54),

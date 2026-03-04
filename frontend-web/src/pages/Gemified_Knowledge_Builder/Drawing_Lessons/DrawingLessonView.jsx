@@ -80,13 +80,7 @@ export default function DrawingLessonView() {
             <IoArrowBack size={18} />
           </button>
 
-          <Link
-            to={`/drawing_lessons/${lesson._id}/edit`}
-            className="flex items-center gap-2 bg-[#BD9A6B] text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:brightness-95 transition"
-          >
-            <IoPencil size={16} />
-            Edit
-          </Link>
+
         </div>
 
         {/* Lesson View Card */}

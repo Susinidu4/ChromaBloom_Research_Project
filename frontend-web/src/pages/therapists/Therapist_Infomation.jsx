@@ -107,18 +107,37 @@ export const Therapist_Infomation = () => {
         </div>
     );
 
-    // Section header component
-    const SectionHeader = ({ title }) => (
-        <div className="mb-6">
-            <div className="flex items-center justify-between pb-1">
-                <h3 className="text-[#8D6E63] font-bold text-[18px] tracking-tight">{title}</h3>
-                <svg className="w-6 h-6 text-[#A68972]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-                </svg>
+    // Collapsible Section component
+    const CollapsibleSection = ({ title, children }) => {
+        const [isOpen, setIsOpen] = useState(true);
+
+        return (
+            <div className="mb-10">
+                <div
+                    className="mb-6 cursor-pointer group"
+                    onClick={() => setIsOpen(!isOpen)}
+                >
+                    <div className="flex items-center justify-between pb-1">
+                        <h3 className="text-[#8D6E63] font-bold text-[18px] tracking-tight">{title}</h3>
+                        <svg
+                            className={`w-6 h-6 text-[#A68972] transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    <div className="border-b border-[#DBC7B8]"></div>
+                </div>
+                {isOpen && (
+                    <div className="pl-6 animate-fadeIn">
+                        {children}
+                    </div>
+                )}
             </div>
-            <div className="border-b border-[#DBC7B8]"></div>
-        </div>
-    );
+        );
+    };
 
     return (
         <AdminLayout>
@@ -137,45 +156,33 @@ export const Therapist_Infomation = () => {
                 <div className="w-full max-w-3xl bg-[#FCF6F4]/50 backdrop-blur-sm border border-[#E6D5C7] rounded-[20px] p-10 mt-4 shadow-sm">
 
                     {/* Professional Information Section */}
-                    <div className="mb-10">
-                        <SectionHeader title="Professional Information" />
-                        <div className="pl-6">
-                            <InfoRow label="Specialization" value={therapist.specialization} />
-                            <InfoRow label="Licence Number" value={therapist.licence_number} />
-                            <InfoRow label="Work Place" value={therapist.work_place} />
-                            <InfoRow label="Experience Since" value={formatDate(therapist.start_date)} />
-                        </div>
-                    </div>
+                    <CollapsibleSection title="Professional Information">
+                        <InfoRow label="Specialization" value={therapist.specialization} />
+                        <InfoRow label="Licence Number" value={therapist.licence_number} />
+                        <InfoRow label="Work Place" value={therapist.work_place} />
+                        <InfoRow label="Experience Since" value={formatDate(therapist.start_date)} />
+                    </CollapsibleSection>
 
                     {/* Personal Information Section */}
-                    <div className="mb-10">
-                        <SectionHeader title="Personal Information" />
-                        <div className="pl-6">
-                            <InfoRow label="Full Name" value={therapist.full_name} />
-                            <InfoRow label="Gender" value={therapist.gender} />
-                            <InfoRow label="Date of Birth" value={formatDate(therapist.dob)} />
-                        </div>
-                    </div>
+                    <CollapsibleSection title="Personal Information">
+                        <InfoRow label="Full Name" value={therapist.full_name} />
+                        <InfoRow label="Gender" value={therapist.gender} />
+                        <InfoRow label="Date of Birth" value={formatDate(therapist.dob)} />
+                    </CollapsibleSection>
 
                     {/* Contact Information Section */}
-                    <div className="mb-10">
-                        <SectionHeader title="Contact Information" />
-                        <div className="pl-6">
-                            <InfoRow label="Email Address" value={therapist.email} />
-                            <InfoRow label="Phone Number" value={therapist.phone} />
-                            <InfoRow label="Home Address" value={therapist.address} />
-                        </div>
-                    </div>
+                    <CollapsibleSection title="Contact Information">
+                        <InfoRow label="Email Address" value={therapist.email} />
+                        <InfoRow label="Phone Number" value={therapist.phone} />
+                        <InfoRow label="Home Address" value={therapist.address} />
+                    </CollapsibleSection>
 
                     {/* Account Status / Other Section */}
-                    <div className="mb-6">
-                        <SectionHeader title="Other Information" />
-                        <div className="pl-6">
-                            <InfoRow label="Therapist ID" value={therapist._id} />
-                            <InfoRow label="Created Date" value={formatDate(therapist.createdAt)} />
-                            <InfoRow label="Last Updated On" value={formatDate(therapist.updatedAt)} />
-                        </div>
-                    </div>
+                    <CollapsibleSection title="Other Information">
+                        <InfoRow label="Therapist ID" value={therapist._id} />
+                        <InfoRow label="Created Date" value={formatDate(therapist.createdAt)} />
+                        <InfoRow label="Last Updated On" value={formatDate(therapist.updatedAt)} />
+                    </CollapsibleSection>
 
                 </div>
 
@@ -183,8 +190,8 @@ export const Therapist_Infomation = () => {
                 <div className="w-full max-w-3xl flex justify-end mt-8">
                     <button
                         className={`${therapist.account_status === 'active'
-                                ? 'bg-[#5C1B11] shadow-[0_4px_12px_rgba(92,27,17,0.3)] hover:bg-[#4a160d]'
-                                : 'bg-green-700 shadow-[0_4px_12px_rgba(21,128,61,0.3)] hover:bg-green-800'
+                            ? 'bg-[#5C1B11] shadow-[0_4px_12px_rgba(92,27,17,0.3)] hover:bg-[#4a160d]'
+                            : 'bg-green-700 shadow-[0_4px_12px_rgba(21,128,61,0.3)] hover:bg-green-800'
                             } text-white px-10 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95`}
                         onClick={handleStatusToggle}
                     >

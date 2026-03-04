@@ -25,8 +25,8 @@ export default function AddRoutine() {
   const [ageGroup, setAgeGroup] = useState(""); // "1".."10"
 
   const [steps, setSteps] = useState(["", ""]); // UI has at least 2 lines
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState("");
 
   // ✅ UX states
   const [submitting, setSubmitting] = useState(false);
@@ -114,7 +114,7 @@ export default function AddRoutine() {
       difficulty_level: difficulty,
       estimated_duration_minutes: durationToMinutes(),
       steps: cleanSteps,
-      imageFile,
+      videoFile,
     };
 
     try {
@@ -148,15 +148,15 @@ export default function AddRoutine() {
   };
 
   useEffect(() => {
-    if (!imageFile) {
-      setImagePreview("");
+    if (!videoFile) {
+      setVideoPreview("");
       return;
     }
-    const url = URL.createObjectURL(imageFile);
-    setImagePreview(url);
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreview(url);
 
     return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+  }, [videoFile]);
 
   const clamp60 = (v) => Math.max(0, Math.min(60, v));
 
@@ -178,12 +178,12 @@ export default function AddRoutine() {
   return (
     <AdminLayout>
       <div className="w-full h-full bg-[#F3E8E8]">
-        <div className="px-10 py-10">
+        <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10">
           <div className="relative min-h-[660px] rounded-[14px] px-10 py-10">
             {/* Back button */}
             <button
               onClick={onBack}
-              className="absolute left-10 top-10 h-10 w-10 rounded-full bg-white/70
+              className="mb-6 sm:absolute sm:left-0 sm:top-0 h-10 w-10 rounded-full bg-white/70
                          shadow-[0_10px_18px_rgba(0,0,0,0.18)]
                          grid place-items-center hover:brightness-95 active:scale-[0.98]"
               title="Back"
@@ -195,25 +195,23 @@ export default function AddRoutine() {
             {/* Form Card */}
             <form
               onSubmit={onSubmit}
-              className="mx-auto w-[760px] max-w-[92%] bg-[#E9DDCC] rounded-[14px]
-                         shadow-[0_10px_18px_rgba(0,0,0,0.18)]
-                         px-14 py-12 border border-[#BD9A6B]/40"
+              className="mx-auto w-full max-w-3xl bg-[#E9DDCC] rounded-[14px] shadow-[0_10px_18px_rgba(0,0,0,0.18)] px-5 sm:px-8 lg:px-12 py-8 sm:py-10 border border-[#BD9A6B]/40"
             >
               <h2 className="text-center text-[22px] font-semibold text-[#BD9A6B] underline underline-offset-4">
                 Add new Routine
               </h2>
 
               {/* Illustration */}
-              <div className="mt-8 flex justify-center">
+              {/* <div className="mt-8 flex justify-center">
                 <img
                   src={createRoutineImg}
                   alt="create routine"
                   className="h-[150px] w-auto object-contain"
                 />
-              </div>
+              </div> */}
 
               {/* Title */}
-              <div className="mt-10 grid grid-cols-[120px_1fr] gap-6 items-center">
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4 sm:gap-6 items-start sm:items-center">
                 <label className="text-[#BD9A6B] text-sm font-semibold">
                   Title :
                 </label>
@@ -285,7 +283,7 @@ export default function AddRoutine() {
                         if (minutes === "") return;
                         setMinutesClamped(minutes);
                       }}
-                      className="w-[60px] h-[50px] text-center rounded-[18px]
+                      className="w-16 sm:w-20 h-12 sm:h-[50px] text-center rounded-[18px]
                    border border-[#BD9A6B] bg-[#E9DDCC]
                    outline-none text-[18px] font-semibold text-[#8F6F4C]
                    shadow-[0_10px_18px_rgba(0,0,0,0.12)]"
@@ -383,7 +381,7 @@ export default function AddRoutine() {
               </div>
 
               {/* Difficulty */}
-              <div className="mt-6 grid grid-cols-[160px_1fr] gap-6 items-center">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4 sm:gap-6 items-start sm:items-center">
                 <label className="text-[#BD9A6B] text-sm font-semibold">
                   Difficulty Level :
                 </label>
@@ -449,7 +447,7 @@ export default function AddRoutine() {
               {/* Media (Images) */}
               <div className="mt-4 grid grid-cols-[160px_1fr] gap-6 items-start">
                 <label className="text-[#BD9A6B] text-sm font-semibold pt-2">
-                  Media (Images) :
+                  Media (Video) :
                 </label>
 
                 <div>
@@ -460,41 +458,41 @@ export default function AddRoutine() {
                    flex items-center justify-between"
                     >
                       <span className="truncate">
-                        {imageFile ? imageFile.name : "Choose image"}
+                        {videoFile ? videoFile.name : "Choose video"}
                       </span>
                       <FiUpload className="text-[#BD9A6B]" />
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="video/*"
                         hidden
                         onChange={(e) =>
-                          setImageFile(e.target.files?.[0] || null)
+                          setVideoFile(e.target.files?.[0] || null)
                         }
                       />
                     </label>
 
-                    {imageFile && (
+                    {videoFile && (
                       <button
                         type="button"
-                        onClick={() => setImageFile(null)}
+                        onClick={() => setVideoFile(null)}
                         className="h-10 w-10 rounded-full bg-white/70
                      shadow-[0_10px_18px_rgba(0,0,0,0.18)]
                      grid place-items-center hover:brightness-95"
-                        title="Remove image"
+                        title="Remove video"
                       >
                         <MdClose className="text-[#BD9A6B]" />
                       </button>
                     )}
                   </div>
 
-                  {/* User selected image preview (only here) */}
-                  {imageFile && (
+                  {/* User selected video preview (only here) */}
+                  {videoFile && (
                     <div className="mt-4">
                       <p className="text-xs text-[#BD9A6B] mb-2">Preview:</p>
-                      <img
-                        src={imagePreview}
-                        alt="uploaded preview"
-                        className="h-[120px] w-auto rounded-[12px] border border-[#BD9A6B]/40
+                      <video
+                        src={videoPreview}
+                        controls
+                        className="w-full max-w-xs sm:max-w-sm h-[140px] sm:h-[160px] rounded-[12px] border border-[#BD9A6B]/40
                      shadow-[0_8px_14px_rgba(0,0,0,0.12)] object-contain"
                       />
                     </div>
@@ -507,7 +505,7 @@ export default function AddRoutine() {
                 <button
                   disabled={submitting}
                   type="submit"
-                  className="w-[160px] rounded-[10px] bg-[#BD9A6B] py-2 text-sm font-semibold text-white
+                  className="w-full sm:w-[180px] rounded-[10px] bg-[#BD9A6B] py-2 text-sm font-semibold text-white
                              shadow-[0_10px_16px_rgba(0,0,0,0.20)] hover:brightness-95
                              disabled:opacity-60 disabled:cursor-not-allowed"
                 >
