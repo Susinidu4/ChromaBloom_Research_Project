@@ -79,18 +79,37 @@ export const Child_information = () => {
     </div>
   );
 
-  // Section header component
-  const SectionHeader = ({ title }) => (
-    <div className="mb-6">
-      <div className="flex items-center justify-between pb-1">
-        <h3 className="text-[#8D6E63] font-bold text-[18px] tracking-tight">{title}</h3>
-        <svg className="w-6 h-6 text-[#A68972]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-        </svg>
+  // Collapsible Section component
+  const CollapsibleSection = ({ title, children }) => {
+    const [isOpen, setIsOpen] = useState(true);
+
+    return (
+      <div className="mb-10">
+        <div
+          className="mb-6 cursor-pointer group"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="flex items-center justify-between pb-1">
+            <h3 className="text-[#8D6E63] font-bold text-[18px] tracking-tight">{title}</h3>
+            <svg
+              className={`w-6 h-6 text-[#A68972] transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <div className="border-b border-[#DBC7B8]"></div>
+        </div>
+        {isOpen && (
+          <div className="pl-6 animate-fadeIn">
+            {children}
+          </div>
+        )}
       </div>
-      <div className="border-b border-[#DBC7B8]"></div>
-    </div>
-  );
+    );
+  };
 
   return (
     <AdminLayout>
@@ -109,69 +128,54 @@ export const Child_information = () => {
         <div className="w-full max-w-2xl bg-[#FCF6F4]/50 backdrop-blur-sm border border-[#E6D5C7] rounded-[20px] p-10 mt-4 shadow-sm">
 
           {/* Parent Information Section */}
-          <div className="mb-10">
-            <SectionHeader title="Parent Information" />
-            <div className="pl-6">
-              <InfoRow label="Name" value={child.caregiver?.full_name} />
-              <InfoRow label="Gender" value={child.caregiver?.gender} />
-              <InfoRow label="User Name" value={child.caregiver?.email} />
-              <InfoRow label="Date of Birth" value={formatDate(child.caregiver?.dob)} />
-              <InfoRow label="No of children" value={child.caregiver?.child_count?.toString()} />
-            </div>
-          </div>
+          <CollapsibleSection title="Parent Information">
+            <InfoRow label="Name" value={child.caregiver?.full_name} />
+            <InfoRow label="Gender" value={child.caregiver?.gender} />
+            <InfoRow label="User Name" value={child.caregiver?.email} />
+            <InfoRow label="Date of Birth" value={formatDate(child.caregiver?.dob)} />
+            <InfoRow label="No of children" value={child.caregiver?.child_count?.toString()} />
+          </CollapsibleSection>
 
           {/* Child Information Section */}
-          <div className="mb-10">
-            <SectionHeader title="Child Information" />
-            <div className="pl-6">
-              <InfoRow label="Name" value={child.childName} />
-              <InfoRow label="Date of Birth" value={formatDate(child.dateOfBirth)} />
-              <InfoRow label="Gender" value={child.gender} />
-              <InfoRow label="Height" value={`${child.heightCm} cm`} />
-              <InfoRow label="Weight" value={`${child.weightKg} kg`} />
-            </div>
-          </div>
+          <CollapsibleSection title="Child Information">
+            <InfoRow label="Name" value={child.childName} />
+            <InfoRow label="Date of Birth" value={formatDate(child.dateOfBirth)} />
+            <InfoRow label="Gender" value={child.gender} />
+            <InfoRow label="Height" value={`${child.heightCm} cm`} />
+            <InfoRow label="Weight" value={`${child.weightKg} kg`} />
+          </CollapsibleSection>
 
           {/* Medical Information Section */}
-          <div className="mb-10">
-            <SectionHeader title="Medical Information" />
-            <div className="pl-6">
-              <InfoRow label="Down Syndrome Type" value={child.downSyndromeType} />
-              <InfoRow label="DS Confirmed By" value={child.downSyndromeConfirmedBy} />
-            </div>
-          </div>
+          <CollapsibleSection title="Medical Information">
+            <InfoRow label="Down Syndrome Type" value={child.downSyndromeType} />
+            <InfoRow label="DS Confirmed By" value={child.downSyndromeConfirmedBy} />
+          </CollapsibleSection>
 
           {/* Other Health Conditions Section */}
-          <div className="mb-10">
-            <SectionHeader title="Other Health Conditions" />
-            <div className="pl-6">
-              <InfoRow
-                label="Heart issues"
-                value={child.otherHealthConditions?.heartIssues ? 'Yes' : 'No'}
-              />
-              <InfoRow
-                label="Thyroid"
-                value={child.otherHealthConditions?.thyroid ? 'Yes' : 'No'}
-              />
-              <InfoRow
-                label="Hearing Problems"
-                value={child.otherHealthConditions?.hearingProblems ? 'Yes' : 'No'}
-              />
-              <InfoRow
-                label="Vision Problems"
-                value={child.otherHealthConditions?.visionProblems ? 'Yes' : 'No'}
-              />
-            </div>
-          </div>
+          <CollapsibleSection title="Other Health Conditions">
+            <InfoRow
+              label="Heart issues"
+              value={child.otherHealthConditions?.heartIssues ? 'Yes' : 'No'}
+            />
+            <InfoRow
+              label="Thyroid"
+              value={child.otherHealthConditions?.thyroid ? 'Yes' : 'No'}
+            />
+            <InfoRow
+              label="Hearing Problems"
+              value={child.otherHealthConditions?.hearingProblems ? 'Yes' : 'No'}
+            />
+            <InfoRow
+              label="Vision Problems"
+              value={child.otherHealthConditions?.visionProblems ? 'Yes' : 'No'}
+            />
+          </CollapsibleSection>
 
           {/* Other Information Section */}
-          <div className="mb-6">
-            <SectionHeader title="Other Information" />
-            <div className="pl-6">
-              <InfoRow label="Created Date" value={formatDate(child.createdAt)} />
-              <InfoRow label="Last Updated On" value={formatDate(child.updatedAt)} />
-            </div>
-          </div>
+          <CollapsibleSection title="Other Information">
+            <InfoRow label="Created Date" value={formatDate(child.createdAt)} />
+            <InfoRow label="Last Updated On" value={formatDate(child.updatedAt)} />
+          </CollapsibleSection>
 
         </div>
 

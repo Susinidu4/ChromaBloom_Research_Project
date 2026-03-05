@@ -318,7 +318,7 @@ export const Admin_Dashboard = () => {
                         <div className="text-center">{calculateAge(row.dateOfBirth)}</div>
                         <div className="text-center">{row.gender}</div>
                         <div className="text-center truncate">
-                          {row.caregiver.full_name || "N/A"}
+                          {row.caregiver?.full_name || "N/A"}
                         </div>
                         <div className="text-center uppercase text-sm font-bold">{row.account_status || "active"}</div>
 
