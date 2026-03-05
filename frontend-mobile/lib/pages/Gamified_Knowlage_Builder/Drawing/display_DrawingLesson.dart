@@ -11,6 +11,7 @@ import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 // ✅ New session provider for real user ID
 import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DrawingUnit1Page extends StatefulWidget {
   const DrawingUnit1Page({super.key});
@@ -67,22 +68,45 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   }
 
   Future<List<_LessonItem>> _fetchLessons(String userId) async {
-    // 1) Fetch all lessons first (to show all cards even if not completed)
+    // 1) Fetch user's knowledge level from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final levelValue = prefs.getString("drawing_skill_level_value") ?? "new";
+
+    // Mapping selection to difficulty level
+    // beginner: "new" or "some_common"
+    // intermediate: "basic"
+    // advance: "most"
+    String filterLevel = "Beginner";
+    if (levelValue == "basic") {
+      filterLevel = "Intermediate";
+    } else if (levelValue == "most") {
+      filterLevel = "Advance";
+    }
+
+    // 2) Fetch all lessons
     final raw = await _service.getAllLessons(); // List<dynamic>
 
-    final lessons = raw.map<_LessonItem>((e) {
-      final m = (e as Map).cast<String, dynamic>();
-      return _LessonItem(
-        id: (m["_id"] ?? "").toString(),
-        title: (m["title"] ?? "Untitled").toString(),
-        desc: (m["description"] ?? "").toString(),
-        progress: 0.0,
-        correctnessPercent: 0,
-      );
-    }).toList();
+    // 3) Filter lessons by difficulty_level
+    final lessons = raw
+        .where((e) {
+          final m = (e as Map).cast<String, dynamic>();
+          final dl = (m["difficulty_level"] ?? "").toString();
+          // Case-insensitive comparison is safer if there are minor mismatches
+          return dl.toLowerCase() == filterLevel.toLowerCase();
+        })
+        .map<_LessonItem>((e) {
+          final m = (e as Map).cast<String, dynamic>();
+          return _LessonItem(
+            id: (m["_id"] ?? "").toString(),
+            title: (m["title"] ?? "Untitled").toString(),
+            desc: (m["description"] ?? "").toString(),
+            progress: 0.0,
+            correctnessPercent: 0,
+          );
+        })
+        .toList();
 
-    // 2) For each lesson, call getCompletedByLessonAndUser()
-    //    If completed: use populated lesson_id fields + correctness_rate
+    // 4) For each filtered lesson, call getCompletedByLessonAndUser()
     final updated = await Future.wait(
       lessons.map((lesson) async {
         try {
@@ -96,7 +120,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
           if (data is List && data.isNotEmpty) {
             final latest = (data.first as Map).cast<String, dynamic>();
 
-            // ✅ correctness_rate comes as a number (in your example: 62.0047...)
             final cr = latest["correctness_rate"];
             int percent;
             if (cr is num) {
@@ -106,8 +129,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
             }
             percent = percent.clamp(0, 100);
 
-            // ✅ Use populated lesson_id object (complete lesson details)
-            // lesson_id could be a Map (populated) OR a string id
             final lessonObj = latest["lesson_id"];
             String title = lesson.title;
             String desc = lesson.desc;
@@ -128,10 +149,8 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
             );
           }
 
-          // Not completed => keep defaults
           return lesson;
         } catch (_) {
-          // If this lesson completion call fails, keep lesson card without breaking screen
           return lesson;
         }
       }),
