@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -56,10 +57,29 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
     });
 
     try {
+      // 0) Get skill level from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final skillLevel = prefs.getString("problem_solving_skill_level_value") ?? "new";
+
+      String targetDifficulty = "Beginner";
+      if (skillLevel == "new" || skillLevel == "some_common") {
+        targetDifficulty = "Beginner";
+      } else if (skillLevel == "basic") {
+        targetDifficulty = "Intermediate";
+      } else if (skillLevel == "most") {
+        targetDifficulty = "Advanced";
+      }
+
       // 1) load lessons
       final data = await ProblemSolvingLessonService.getAllLessons();
 
-      final mapped = data.map((e) {
+      final filtered = (data as List).where((e) {
+        final m = (e as Map<String, dynamic>);
+        final diff = (m["difficulty_level"] ?? "").toString();
+        return diff.toLowerCase() == targetDifficulty.toLowerCase();
+      }).toList();
+
+      final mapped = filtered.map((e) {
         final m = (e as Map<String, dynamic>);
         return _LessonItem(
           id: (m["_id"] ?? "").toString(),
@@ -176,7 +196,7 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
                     ),
                   ),
                   _CircleActionButton(
-                    icon: Icons.add,
+                    icon: Icons.close,
                     onTap: () => Navigator.pushNamed(context, '/skillSelection'),
                   ),
                 ],

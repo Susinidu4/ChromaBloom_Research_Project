@@ -157,11 +157,11 @@ class InsightChartCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Next 14 Days",
+                        "Predicted Progress History",
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF4A3B32),
+                          color: Color(0xFFBD9A6B),
                         ),
                       ),
                       Text(
@@ -297,11 +297,25 @@ class InsightChartCard extends StatelessWidget {
               children: [
                 const SizedBox(height: 60), // Offset from top
                 // 3 Dots indicator
-                _dot(),
-                const SizedBox(height: 4),
-                _dot(),
-                const SizedBox(height: 4),
-                _dot(),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/after_prediction_screen');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _dot(),
+                        const SizedBox(height: 4),
+                        _dot(),
+                        const SizedBox(height: 4),
+                        _dot(),
+                      ],
+                    ),
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(

@@ -609,18 +609,25 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               foregroundColor: Colors.white,
               elevation: 10,
             ),
-            child: Text(
-              childLoading
-                  ? "Loading child..."
-                  : (wellbeingLoading
-                      ? "Loading wellbeing..."
-                      : (stressAvgLoading
-                          ? "Loading stress..."
-                          : (loading ? "Predicting..." : "Predict Now"))),
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.add, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  childLoading
+                      ? "Loading child..."
+                      : (wellbeingLoading
+                          ? "Loading wellbeing..."
+                          : (stressAvgLoading
+                              ? "Loading stress..."
+                              : (loading ? "Predicting..." : "Predict Now"))),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -638,6 +645,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     );
   }
 
+  /*
   Widget _childSummaryCard() {
     final c = childData;
     if (c == null) return const SizedBox.shrink();
@@ -664,7 +672,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _wellbeingAvgCard() {
     final avg = avgScreenTimeMin;
 
@@ -690,7 +700,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _stressAvgCard() {
     final avg = avgStressProbability;
 
@@ -716,6 +728,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -734,23 +747,46 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _childSummaryCard(),
-                  if (childData != null) const SizedBox(height: 12),
+                  // _childSummaryCard(),
+                  // if (childData != null) const SizedBox(height: 12),
 
-                  _wellbeingAvgCard(),
-                  const SizedBox(height: 12),
+                  // _wellbeingAvgCard(),
+                  // const SizedBox(height: 12),
 
-                  _stressAvgCard(),
-                  const SizedBox(height: 12),
+                  // _stressAvgCard(),
+                  // const SizedBox(height: 12),
 
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Cognitive Progress Prediction",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   InsightChartCard(
                     loading: historyLoading,
                     history: history,
                     childId: childIdResolved,
                     onRefresh: _loadHistory,
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Latest Progress",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   _predictionSection(),
                   const SizedBox(height: 20),
                 ],
