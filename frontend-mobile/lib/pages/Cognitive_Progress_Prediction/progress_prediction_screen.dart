@@ -9,6 +9,7 @@ import '../../state/session_provider.dart';
 
 import '../others/header.dart';
 import '../others/navBar.dart';
+import '../../services/api_config.dart'; // ✅ Added import
 
 import './insight_chart_card.dart';
 
@@ -20,11 +21,8 @@ class ProgressPredictionScreen extends StatefulWidget {
 }
 
 class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
-  // ✅ IMPORTANT:
-  // Android Emulator: use http://10.0.2.2:5000
-  // Real device: use http://YOUR_PC_IP:5000
-  // Web: http://localhost:5000
-  final api = ProgressPredictionApi(baseUrl: "http://localhost:5000");
+  // ✅ Use shared config
+  final api = ProgressPredictionApi(baseUrl: ApiConfig.baseUrl);
 
   // ✅ Digital wellbeing service
   final wellbeingService = DigitalWellbeingService();
@@ -343,6 +341,16 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
 
       setState(() {
         history = (data["data"] as List?) ?? [];
+
+        // ✅ If we have history, auto-select the latest record to display its results
+        if (history.isNotEmpty) {
+          final latest = history.first;
+          predictedScore = (latest["progress_prediction"] as num?)?.toDouble() ??
+              (latest["predicted_score"] as num?)?.toDouble();
+
+          positive = latest["positive_factors"] ?? [];
+          negative = latest["negative_factors"] ?? [];
+        }
       });
     } catch (e) {
       setState(() => errorMsg = e.toString());
@@ -433,9 +441,22 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         negative = _filteredFactors(result["explainability"]?["top_negative_factors"] ?? []);
       });
 
+      // ✅ Map factors to backend-friendly format (List<Map<String, dynamic>>)
+      final posFactors = positive.map((f) => {
+        "feature": (f["feature"] ?? "").toString(),
+        "shap_value": ((f["shap_value"] as num?) ?? 0.0).toDouble(),
+      }).toList();
+
+      final negFactors = negative.map((f) => {
+        "feature": (f["feature"] ?? "").toString(),
+        "shap_value": ((f["shap_value"] as num?) ?? 0.0).toDouble(),
+      }).toList();
+
       await api.savePrediction(
         userId: childId,
         progressPrediction: score,
+        positiveFactors: posFactors,
+        negativeFactors: negFactors,
       );
 
       await _loadHistory();
@@ -588,18 +609,25 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               foregroundColor: Colors.white,
               elevation: 10,
             ),
-            child: Text(
-              childLoading
-                  ? "Loading child..."
-                  : (wellbeingLoading
-                      ? "Loading wellbeing..."
-                      : (stressAvgLoading
-                          ? "Loading stress..."
-                          : (loading ? "Predicting..." : "Predict Now"))),
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.add, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  childLoading
+                      ? "Loading child..."
+                      : (wellbeingLoading
+                          ? "Loading wellbeing..."
+                          : (stressAvgLoading
+                              ? "Loading stress..."
+                              : (loading ? "Predicting..." : "Predict Now"))),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -617,6 +645,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     );
   }
 
+  /*
   Widget _childSummaryCard() {
     final c = childData;
     if (c == null) return const SizedBox.shrink();
@@ -643,7 +672,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _wellbeingAvgCard() {
     final avg = avgScreenTimeMin;
 
@@ -669,7 +700,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _stressAvgCard() {
     final avg = avgStressProbability;
 
@@ -695,6 +728,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -713,23 +747,46 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _childSummaryCard(),
-                  if (childData != null) const SizedBox(height: 12),
+                  // _childSummaryCard(),
+                  // if (childData != null) const SizedBox(height: 12),
 
-                  _wellbeingAvgCard(),
-                  const SizedBox(height: 12),
+                  // _wellbeingAvgCard(),
+                  // const SizedBox(height: 12),
 
-                  _stressAvgCard(),
-                  const SizedBox(height: 12),
+                  // _stressAvgCard(),
+                  // const SizedBox(height: 12),
 
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Cognitive Progress Prediction",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   InsightChartCard(
                     loading: historyLoading,
                     history: history,
                     childId: childIdResolved,
                     onRefresh: _loadHistory,
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Latest Progress",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   _predictionSection(),
                   const SizedBox(height: 20),
                 ],

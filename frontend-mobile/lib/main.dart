@@ -32,6 +32,7 @@ import 'package:frontend/pages/profile_pages/ProfileSettingsPage.dart';
 import 'package:frontend/pages/profile_pages/profile_page.dart';
 
 import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction_screen.dart';
+import 'package:frontend/pages/Cognitive_Progress_Prediction/after_prediction_screen.dart';
 
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Drawing/drawing_predict_api_page.dart';
@@ -144,6 +145,7 @@ class MyApp extends StatelessWidget {
             ),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
+        '/after_prediction_screen': (context) => const AfterPredictionScreen(),
       },
     );
   }

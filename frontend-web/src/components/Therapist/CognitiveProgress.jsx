@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getProgressByUserId } from "../../services/Therapist/cognitiveProgressService";
+import { getProgressByUserId } from "../../services/Therapist/cognitiveProgressPredictionService";
 import children3 from "../../assets/Therapists/children3.png";
 export default function CognitiveProgress({ childId }) {
   const [progressData, setProgressData] = useState([]);
@@ -50,7 +50,7 @@ export default function CognitiveProgress({ childId }) {
       </div>
 
       <Card title="Top Positive Factors">
-        <Factors />
+        <Factors factors={progressData.length > 0 ? progressData[progressData.length - 1].positive_factors : []} />
       </Card>
     </div>
   );
@@ -277,30 +277,57 @@ function MiniLineChart({ data }) {
   );
 }
 
-function Factors() {
-  const rows = [
-    ["Memory Accuracy", 78],
-    ["Motor Skill Accuracy", 62],
-    ["Problem Solving Accuracy", 70],
-    ["Completion Rate", 55],
-    ["Average response time", 45],
-  ];
+function Factors({ factors = [] }) {
+  const formatLabel = (key) => {
+    const map = {
+      memory_accuracy: "Memory Accuracy",
+      motor_skills_accuracy: "Motor Skill Accuracy",
+      problem_solving_accuracy: "Problem Solving Accuracy",
+      completion_rate: "Completion Rate",
+      average_response_time: "Average Response Time",
+      attention_accuracy: "Attention Accuracy",
+      engagement_minutes: "Engagement Minutes",
+      sleep_hours: "Sleep Hours",
+      phone_screen_time_mins: "Phone Screen Time",
+      sentiment_score: "Sentiment Score",
+      stress_score_combined: "Stress Score",
+      caregiver_sentiment_score: "Caregiver Sentiment",
+      caregiver_stress_score_combined: "Caregiver Stress",
+    };
+    return map[key] || key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  if (!factors || factors.length === 0) {
+    return (
+      <div className="text-xs text-[#8A6B3E] italic opacity-60">
+        No specific positive factors identified for the latest prediction.
+      </div>
+    );
+  }
+
+  // Find max value for normalization so bars look good regardless of unit scale
+  const maxVal = Math.max(...factors.map(f => Math.abs(f.shap_value || 0)), 0.001);
 
   return (
     <div className="space-y-4">
-      {rows.map(([label, v]) => (
-        <div key={label} className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-3 items-center">
-          <div className="h-3 bg-[#D9D9D9] rounded-full overflow-hidden border border-[#D7C6AE]">
-            <div
-              className="h-full bg-[#B7A078]"
-              style={{ width: `${v}%` }}
-            />
+      {factors.map((f, idx) => {
+        const val = Math.abs(f.shap_value || 0);
+        const percentage = Math.max(5, (val / maxVal) * 100); // minimum 5% for visibility
+
+        return (
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-3 items-center">
+            <div className="h-3 bg-[#D9D9D9] rounded-full overflow-hidden border border-[#D7C6AE]">
+              <div
+                className="h-full bg-[#B7A078]"
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+            <div className="text-[10px] md:text-xs text-[#7A5E36] md:text-right">
+              {formatLabel(f.feature)}
+            </div>
           </div>
-          <div className="text-[10px] md:text-xs text-[#7A5E36] md:text-right">
-            {label}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
