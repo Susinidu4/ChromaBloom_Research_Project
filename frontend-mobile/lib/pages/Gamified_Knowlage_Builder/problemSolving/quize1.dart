@@ -346,15 +346,20 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
                           const SizedBox(height: 16),
 
-                          // Options = all answers below
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          // Options = all answers below in a 2x2 grid
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            childAspectRatio: 1.25,
                             children: quiz.answers.map((a) {
                               return _OptionTileNetwork(
                                 url: a.imgUrl,
                                 isSelected: _selectedImageNo == a.imageNo,
-                                onTap: () =>
-                                    setState(() => _selectedImageNo = a.imageNo),
+                                onTap: () => setState(
+                                    () => _selectedImageNo = a.imageNo),
                               );
                             }).toList(),
                           ),
@@ -545,43 +550,44 @@ class _OptionTileNetwork extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: 56,
-          height: 44,
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? const Color(0xFFB89A76) : border,
-              width: isSelected ? 1.6 : 1.1,
+              width: isSelected ? 2.2 : 1.2,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: _ProblemSolvingMatchPageState.optionShadow,
-                blurRadius: 6,
-                offset: Offset(0, 3),
+                color: isSelected
+                    ? const Color(0x33B89A76)
+                    : _ProblemSolvingMatchPageState.optionShadow,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           alignment: Alignment.center,
           child: Image.network(
             url,
-            width: 28,
-            height: 28,
             fit: BoxFit.contain,
             loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
-              return const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              return const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
               );
             },
             errorBuilder: (_, __, ___) => const Icon(
               Icons.image_not_supported_outlined,
-              size: 22,
+              size: 30,
               color: Colors.black45,
             ),
           ),

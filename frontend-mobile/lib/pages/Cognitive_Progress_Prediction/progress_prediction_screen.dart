@@ -9,6 +9,7 @@ import '../../state/session_provider.dart';
 
 import '../others/header.dart';
 import '../others/navBar.dart';
+import '../../services/api_config.dart'; // ✅ Added import
 
 import './insight_chart_card.dart';
 
@@ -20,11 +21,8 @@ class ProgressPredictionScreen extends StatefulWidget {
 }
 
 class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
-  // ✅ IMPORTANT:
-  // Android Emulator: use http://10.0.2.2:5000
-  // Real device: use http://YOUR_PC_IP:5000
-  // Web: http://localhost:5000
-  final api = ProgressPredictionApi(baseUrl: "http://localhost:5000");
+  // ✅ Use shared config
+  final api = ProgressPredictionApi(baseUrl: ApiConfig.baseUrl);
 
   // ✅ Digital wellbeing service
   final wellbeingService = DigitalWellbeingService();
@@ -343,6 +341,16 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
 
       setState(() {
         history = (data["data"] as List?) ?? [];
+
+        // ✅ If we have history, auto-select the latest record to display its results
+        if (history.isNotEmpty) {
+          final latest = history.first;
+          predictedScore = (latest["progress_prediction"] as num?)?.toDouble() ??
+              (latest["predicted_score"] as num?)?.toDouble();
+
+          positive = latest["positive_factors"] ?? [];
+          negative = latest["negative_factors"] ?? [];
+        }
       });
     } catch (e) {
       setState(() => errorMsg = e.toString());
@@ -433,9 +441,22 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         negative = _filteredFactors(result["explainability"]?["top_negative_factors"] ?? []);
       });
 
+      // ✅ Map factors to backend-friendly format (List<Map<String, dynamic>>)
+      final posFactors = positive.map((f) => {
+        "feature": (f["feature"] ?? "").toString(),
+        "shap_value": ((f["shap_value"] as num?) ?? 0.0).toDouble(),
+      }).toList();
+
+      final negFactors = negative.map((f) => {
+        "feature": (f["feature"] ?? "").toString(),
+        "shap_value": ((f["shap_value"] as num?) ?? 0.0).toDouble(),
+      }).toList();
+
       await api.savePrediction(
         userId: childId,
         progressPrediction: score,
+        positiveFactors: posFactors,
+        negativeFactors: negFactors,
       );
 
       await _loadHistory();

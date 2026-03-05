@@ -53,15 +53,6 @@ export default function QuizeView() {
 
         <div className="max-w-4xl mx-auto bg-[#FDFCFB] rounded-[30px] p-8 lg:p-12 shadow-[0_15px_50px_rgba(0,0,0,0.05)] border border-[#E8D8C3] relative">
 
-          {/* Action Buttons (Edit) */}
-          <div className="absolute top-8 right-8 flex gap-2">
-            <Link
-              to={`/quizes/edit/${id}`}
-              className="px-6 py-2 rounded-full bg-[#8C7355] text-white font-bold text-sm hover:bg-[#745F46] transition-colors no-underline"
-            >
-              Edit Quiz
-            </Link>
-          </div>
 
           {/* Alert */}
           {msg.text && (
@@ -135,8 +126,8 @@ export default function QuizeView() {
                     <div
                       key={idx}
                       className={`relative group p-4 rounded-[25px] transition-all duration-300 ${isCorrect
-                          ? "bg-[#E3F2E1] border-4 border-[#6BCB77] shadow-[0_8px_25px_rgba(107,203,119,0.2)]"
-                          : "bg-[#FDF7F0] border-2 border-transparent hover:border-[#E8D8C3] hover:shadow-lg"
+                        ? "bg-[#E3F2E1] border-4 border-[#6BCB77] shadow-[0_8px_25px_rgba(107,203,119,0.2)]"
+                        : "bg-[#FDF7F0] border-2 border-transparent hover:border-[#E8D8C3] hover:shadow-lg"
                         }`}
                     >
                       {a.img_url ? (
