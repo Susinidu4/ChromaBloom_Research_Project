@@ -8,6 +8,10 @@ import '../../../services/Gemified/drawing_lesson_service.dart';
 // ✅ Completed lesson service
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 
+// ✅ New session provider for real user ID
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+
 class DrawingUnit1Page extends StatefulWidget {
   const DrawingUnit1Page({super.key});
 
@@ -33,9 +37,8 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
-  // ✅ TODO: Replace with real logged-in caregiver/parent id
-  // In your example response: "user_id": "p-0001"
-  final String hardcodedUserId = "p-0001";
+  // ✅ Real caregiver ID will be fetched from SessionProvider
+  String? _caregiverId;
 
   @override
   void initState() {
@@ -54,10 +57,16 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
     // Completed lesson service baseUrl (global)
     CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
-    _futureLessons = _fetchLessons();
+    // ✅ Get real caregiver ID from SessionProvider
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    _caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
+            .toString();
+
+    _futureLessons = _fetchLessons(_caregiverId!);
   }
 
-  Future<List<_LessonItem>> _fetchLessons() async {
+  Future<List<_LessonItem>> _fetchLessons(String userId) async {
     // 1) Fetch all lessons first (to show all cards even if not completed)
     final raw = await _service.getAllLessons(); // List<dynamic>
 
@@ -79,7 +88,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
         try {
           final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
             lessonId: lesson.id,
-            userId: hardcodedUserId,
+            userId: userId,
           );
 
           final data = res["data"];
@@ -132,8 +141,13 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   }
 
   Future<void> _refresh() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    _caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
+            .toString();
+
     setState(() {
-      _futureLessons = _fetchLessons();
+      _futureLessons = _fetchLessons(_caregiverId!);
     });
     await _futureLessons;
   }
