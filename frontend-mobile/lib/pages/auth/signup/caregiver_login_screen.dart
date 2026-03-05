@@ -69,17 +69,6 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
           );
 
       if (!mounted) return;
-
-      await QuickAlert.show(
-        context: context,
-        type: QuickAlertType.success,
-        title: 'Login Successful',
-        text: result['message'] ?? 'Welcome back!',
-        confirmBtnText: 'OK',
-        confirmBtnColor: _gold,
-      );
-
-      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } catch (e) {
       if (!mounted) return;

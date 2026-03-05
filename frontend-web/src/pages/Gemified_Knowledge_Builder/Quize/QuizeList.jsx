@@ -1,6 +1,6 @@
 // src/pages/Gamified_Knowledge_Builder/Quize/QuizeList.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
 import { HiPencil, HiTrash } from "react-icons/hi";
 import Swal from "sweetalert2";
@@ -60,15 +60,6 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
   return (
     <div className="w-full">
       {/* Header / Actions - Removed Filter dropdown */}
-      <div className="flex justify-end mb-8">
-        <button
-          onClick={() => navigate("/quizes/create")}
-          className="bg-[#BD9A6B] text-white px-6 py-2.5 rounded-[10px] shadow-[0_6px_14px_rgba(0,0,0,0.15)] hover:brightness-95 transition font-semibold"
-        >
-          + Add New Quiz
-        </button>
-      </div>
-
       {filteredQuizes.length === 0 ? (
         <div className="text-center py-10 text-[#9C8577]">No quizzes found.</div>
       ) : (
@@ -76,7 +67,8 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
           {filteredQuizes.map((q) => (
             <div
               key={q._id}
-              className="bg-[#F5ECE9] rounded-[15px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-[#EACFC8] flex items-center overflow-hidden"
+              onClick={() => navigate(`/quizes/view/${q._id}`)}
+              className="bg-[#F5ECE9] rounded-[15px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-[#EACFC8] flex items-center overflow-hidden cursor-pointer hover:bg-[#F2E4E0] transition-colors"
             >
               {/* Left Accent Bar */}
               <div className="w-6 self-stretch bg-[#DFC7A7]/40 flex flex-col items-center justify-center gap-1.5 border-r border-[#EACFC8]/50">
@@ -102,14 +94,20 @@ export default function QuizeList({ searchTerm = "", difficultyFilter = "" }) {
                 {/* Actions */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => navigate(`/quizes/edit/${q._id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/quizes/edit/${q._id}`);
+                    }}
                     className="text-[#B79264] hover:scale-110 transition p-1"
                     title="Edit"
                   >
                     <HiPencil size={28} />
                   </button>
                   <button
-                    onClick={() => onDelete(q._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(q._id);
+                    }}
                     className="text-[#711A0C] hover:scale-110 transition p-1"
                     title="Delete"
                   >
