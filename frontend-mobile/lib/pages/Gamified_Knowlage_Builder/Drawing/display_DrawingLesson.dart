@@ -213,7 +213,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                     ),
                   ),
                   _CircleActionButton(
-                    icon: Icons.add,
+                    icon: Icons.close,
                     onTap: () {
                       Navigator.pushNamed(context, '/skillSelection');
                     },
