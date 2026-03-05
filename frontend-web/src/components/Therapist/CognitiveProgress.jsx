@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getProgressByUserId } from "../../services/Therapist/cognitiveProgressService";
+import { getProgressByUserId } from "../../services/Therapist/cognitiveProgressPredictionService";
 import children3 from "../../assets/Therapists/children3.png";
 export default function CognitiveProgress({ childId }) {
   const [progressData, setProgressData] = useState([]);

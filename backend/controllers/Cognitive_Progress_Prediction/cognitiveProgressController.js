@@ -4,14 +4,14 @@ import CognitiveProgress from "../../models/Cognitive_Progress_Prediction/Cognit
 const PYTHON_SERVICE_URL =
   process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
 
-const requiredFields = [
-  "child_id",
-  "age",
-  "height_cm",
-  "weight_kg",
+const REQUIRED_FEATURES = [
   "gender",
   "diagnosis_type",
+  "activity",
   "mood_label",
+  "caregiver_mood_label",
+  "age",
+  "time_duration_for_activity",
   "sentiment_score",
   "stress_score_combined",
   "phone_screen_time_mins",
@@ -25,48 +25,57 @@ const requiredFields = [
   "problem_solving_accuracy",
   "motor_skills_accuracy",
   "average_response_time",
+  "caregiver_sentiment_score",
+  "caregiver_stress_score_combined",
+  "caregiver_phone_screen_time_mins",
+  "caregiver_sleep_hours",
 ];
-
 
 // =======================================================
 // PREDICT
-// POST /chromabloom/cognitiveProgress/predict
+// POST /chromabloom/cognitiveProgress_2/predict-progress
 // =======================================================
 export const predictCognitiveProgress = async (req, res) => {
   try {
-    const input = req.body;
+    const { features, top_k } = req.body;
+
+    if (!features || typeof features !== "object") {
+      return res.status(400).json({
+        success: false,
+        message: "features object is required",
+      });
+    }
 
     // Validate required fields
-    for (const field of requiredFields) {
-      if (!(field in input)) {
-        return res.status(400).json({
-          success: false,
-          error: `Missing field: ${field}`,
-        });
+    const missing = [];
+    for (const field of REQUIRED_FEATURES) {
+      if (
+        features[field] === undefined ||
+        features[field] === null ||
+        features[field] === ""
+      ) {
+        missing.push(field);
       }
     }
 
+    if (missing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required feature fields",
+        missing,
+      });
+    }
+
     // Call Python ML service
-    const response = await axios.post(
-      `${PYTHON_SERVICE_URL}/predict`,
-      input
-    );
-
-    const predicted =
-      response.data?.cognitive_progress_score_next_14_days ??
-      response.data?.predicted_score;
-
-    const positive_factors =
-      response.data?.explainability?.top_positive_factors ?? [];
-
-    const negative_factors =
-      response.data?.explainability?.top_negative_factors ?? [];
+    const response = await axios.post(`${PYTHON_SERVICE_URL}/predict`, {
+      features,
+      top_k: top_k ?? 10,
+    });
 
     return res.json({
       success: true,
-      predicted_score: predicted,
-      positive_factors,
-      negative_factors,
+      message: "Prediction generated",
+      result: response.data,
     });
   } catch (err) {
     console.error("Prediction error:", err.message);
@@ -76,6 +85,7 @@ export const predictCognitiveProgress = async (req, res) => {
 
     return res.status(status).json({
       success: false,
+      message: "Prediction service failed",
       ...detail,
     });
   }

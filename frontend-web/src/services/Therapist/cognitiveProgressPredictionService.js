@@ -2,6 +2,37 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
+/**
+ * Feature set required by the Cognitive Progress Prediction ML model.
+ * Aligning with the backend route and controller definitions.
+ */
+export const COGNITIVE_PROGRESS_FEATURES = [
+  "gender",
+  "diagnosis_type",
+  "activity",
+  "mood_label",
+  "caregiver_mood_label",
+  "age",
+  "time_duration_for_activity",
+  "sentiment_score",
+  "stress_score_combined",
+  "phone_screen_time_mins",
+  "sleep_hours",
+  "total_tasks_assigned",
+  "total_tasks_completed",
+  "completion_rate",
+  "engagement_minutes",
+  "memory_accuracy",
+  "attention_accuracy",
+  "problem_solving_accuracy",
+  "motor_skills_accuracy",
+  "average_response_time",
+  "caregiver_sentiment_score",
+  "caregiver_stress_score_combined",
+  "caregiver_phone_screen_time_mins",
+  "caregiver_sleep_hours",
+];
+
 const cognitiveProgressApi = axios.create({
   baseURL: `${API_BASE_URL}/chromabloom/cognitiveProgress_2`,
   headers: {
@@ -10,10 +41,10 @@ const cognitiveProgressApi = axios.create({
   timeout: 10000,
 });
 
-// Request interceptor for auth tokens (if needed)
+// Request interceptor for auth tokens
 cognitiveProgressApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('therapist_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -44,7 +75,6 @@ export const getProgressByUserId = async (userId) => {
   if (!userId) {
     throw new Error('userId is required');
   }
-
   const response = await cognitiveProgressApi.get(`/user/${userId}`);
   return response.data;
 };
@@ -69,8 +99,8 @@ export const getProgressById = async (id) => {
 };
 
 /**
- * Create new progress prediction
- * @param {Object} payload - { userId: string, progress_prediction: number }
+ * Create new progress prediction record in DB
+ * @param {Object} payload - { userId, progress_prediction, positive_factors, negative_factors }
  * @returns {Promise<{success: boolean, data: Object}>}
  */
 export const createProgress = async (payload) => {
@@ -79,9 +109,9 @@ export const createProgress = async (payload) => {
 };
 
 /**
- * Update progress prediction
+ * Update progress prediction record
  * @param {string} id - The progress record ID
- * @param {Object} payload - { userId?: string, progress_prediction?: number }
+ * @param {Object} payload - Fields to update
  * @returns {Promise<{success: boolean, data: Object}>}
  */
 export const updateProgress = async (id, payload) => {
@@ -90,9 +120,8 @@ export const updateProgress = async (id, payload) => {
 };
 
 /**
- * Delete progress prediction
+ * Delete progress prediction record
  * @param {string} id - The progress record ID
- * @returns {Promise<{success: boolean, message: string, data: Object}>}
  */
 export const deleteProgress = async (id) => {
   const response = await cognitiveProgressApi.delete(`/${id}`);
@@ -100,9 +129,9 @@ export const deleteProgress = async (id) => {
 };
 
 /**
- * Get prediction from Python ML service (via Node proxy)
- * @param {Object} features - Required feature object
- * @param {number} [top_k=10] - Number of top factors to return
+ * Generate a prediction from Python ML service via Node proxy
+ * @param {Object} features - Object containing values for all required feature fields
+ * @param {number} [top_k=10] - Number of top factors to return for explainability
  * @returns {Promise<{message: string, result: Object}>}
  */
 export const predictProgress = async (features, top_k = 10) => {
@@ -114,6 +143,7 @@ export const predictProgress = async (features, top_k = 10) => {
 };
 
 export default {
+  COGNITIVE_PROGRESS_FEATURES,
   getProgressByUserId,
   getAllProgress,
   getProgressById,
