@@ -609,18 +609,25 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               foregroundColor: Colors.white,
               elevation: 10,
             ),
-            child: Text(
-              childLoading
-                  ? "Loading child..."
-                  : (wellbeingLoading
-                      ? "Loading wellbeing..."
-                      : (stressAvgLoading
-                          ? "Loading stress..."
-                          : (loading ? "Predicting..." : "Predict Now"))),
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.add, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  childLoading
+                      ? "Loading child..."
+                      : (wellbeingLoading
+                          ? "Loading wellbeing..."
+                          : (stressAvgLoading
+                              ? "Loading stress..."
+                              : (loading ? "Predicting..." : "Predict Now"))),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -756,7 +763,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF6D4C41),
+                        color: Color(0xFFBD9A6B),
                         fontFamily: 'Poppins',
                       ),
                     ),
@@ -767,8 +774,19 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                     childId: childIdResolved,
                     onRefresh: _loadHistory,
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Latest Progress",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFBD9A6B),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   _predictionSection(),
                   const SizedBox(height: 20),
                 ],
