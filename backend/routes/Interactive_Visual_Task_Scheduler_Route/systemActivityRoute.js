@@ -12,6 +12,7 @@ import {
   getSystemActivityById,
   updateSystemActivity,
   deleteSystemActivity,
+  getDailyRoutineRunsEnsureRecords,
 } from "../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js";
 import uploadVideo from "../../middlewares/uploadVideo.js";
 
@@ -62,6 +63,10 @@ router.post("/getOrCreateStarterSystemActivity", getOrCreateStarterPlan);
 // Update system activity progress for a routine run
 // POST /chromabloom/systemActivities/updateSystemActivityProgress
 router.post("/updateSystemActivityProgress", updateSystemActivityProgress);
+
+// Get routine run progress by planId and activityId
+// GET /chromabloom/systemActivities/routineRun/daily
+router.get("/routineRun/daily", getDailyRoutineRunsEnsureRecords);
 
 // Get routine run progress by planId and activityId
 // GET /chromabloom/systemActivities/getRoutineRunProgress/:planId/:activityId
