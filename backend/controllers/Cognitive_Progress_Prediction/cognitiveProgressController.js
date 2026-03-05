@@ -92,22 +92,31 @@ export const createProgress = async (req, res) => {
     const {
       userId,
       progress_prediction,
+      predicted_score,
       positive_factors,
       negative_factors,
+      top_positive_factors,
+      top_negative_factors,
+      explainability
     } = req.body;
 
-    if (!userId || progress_prediction === undefined) {
+    // Use flexible naming (handle both prediction output and DB input names)
+    const final_prediction = progress_prediction ?? predicted_score;
+    const final_positive = positive_factors || top_positive_factors || explainability?.top_positive_factors || [];
+    const final_negative = negative_factors || top_negative_factors || explainability?.top_negative_factors || [];
+
+    if (!userId || final_prediction === undefined) {
       return res.status(400).json({
         success: false,
-        message: "userId and progress_prediction are required",
+        message: "userId and progress_prediction/predicted_score are required",
       });
     }
 
     const doc = await CognitiveProgress.create({
       userId,
-      progress_prediction,
-      positive_factors: positive_factors || [],
-      negative_factors: negative_factors || [],
+      progress_prediction: final_prediction,
+      positive_factors: final_positive,
+      negative_factors: final_negative,
     });
 
     return res.status(201).json({
@@ -222,19 +231,30 @@ export const updateProgress = async (req, res) => {
     const {
       userId,
       progress_prediction,
+      predicted_score,
       positive_factors,
       negative_factors,
+      top_positive_factors,
+      top_negative_factors,
+      explainability
     } = req.body;
 
     const update = {};
 
     if (userId !== undefined) update.userId = userId;
-    if (progress_prediction !== undefined)
-      update.progress_prediction = progress_prediction;
-    if (positive_factors !== undefined)
-      update.positive_factors = positive_factors;
-    if (negative_factors !== undefined)
-      update.negative_factors = negative_factors;
+
+    // Support multiple naming conventions for prediction field
+    if (progress_prediction !== undefined) update.progress_prediction = progress_prediction;
+    else if (predicted_score !== undefined) update.progress_prediction = predicted_score;
+
+    // Support multiple naming conventions for factors
+    if (positive_factors !== undefined) update.positive_factors = positive_factors;
+    else if (top_positive_factors !== undefined) update.positive_factors = top_positive_factors;
+    else if (explainability?.top_positive_factors !== undefined) update.positive_factors = explainability.top_positive_factors;
+
+    if (negative_factors !== undefined) update.negative_factors = negative_factors;
+    else if (top_negative_factors !== undefined) update.negative_factors = top_negative_factors;
+    else if (explainability?.top_negative_factors !== undefined) update.negative_factors = explainability.top_negative_factors;
 
     const doc = await CognitiveProgress.findByIdAndUpdate(id, update, {
       new: true,

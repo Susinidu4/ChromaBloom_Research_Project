@@ -341,6 +341,16 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
 
       setState(() {
         history = (data["data"] as List?) ?? [];
+
+        // ✅ If we have history, auto-select the latest record to display its results
+        if (history.isNotEmpty) {
+          final latest = history.first;
+          predictedScore = (latest["progress_prediction"] as num?)?.toDouble() ??
+              (latest["predicted_score"] as num?)?.toDouble();
+
+          positive = latest["positive_factors"] ?? [];
+          negative = latest["negative_factors"] ?? [];
+        }
       });
     } catch (e) {
       setState(() => errorMsg = e.toString());
