@@ -638,6 +638,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     );
   }
 
+  /*
   Widget _childSummaryCard() {
     final c = childData;
     if (c == null) return const SizedBox.shrink();
@@ -664,7 +665,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _wellbeingAvgCard() {
     final avg = avgScreenTimeMin;
 
@@ -690,7 +693,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
+  /*
   Widget _stressAvgCard() {
     final avg = avgStressProbability;
 
@@ -716,6 +721,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       ),
     );
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -734,15 +740,27 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _childSummaryCard(),
-                  if (childData != null) const SizedBox(height: 12),
+                  // _childSummaryCard(),
+                  // if (childData != null) const SizedBox(height: 12),
 
-                  _wellbeingAvgCard(),
-                  const SizedBox(height: 12),
+                  // _wellbeingAvgCard(),
+                  // const SizedBox(height: 12),
 
-                  _stressAvgCard(),
-                  const SizedBox(height: 12),
+                  // _stressAvgCard(),
+                  // const SizedBox(height: 12),
 
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text(
+                      "Cognitive Progress Prediction",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6D4C41),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
                   InsightChartCard(
                     loading: historyLoading,
                     history: history,
