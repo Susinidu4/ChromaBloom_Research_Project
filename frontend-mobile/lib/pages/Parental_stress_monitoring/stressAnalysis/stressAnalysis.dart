@@ -185,6 +185,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                               stressProbability: stress.stressProbability,
                               consecutiveHighDays: stress.consecutiveHighDays,
                               escalationTriggered: stress.escalationTriggered,
+                              raw: stress.raw,
                             ),
                             const SizedBox(height: 14),
                             // _RecommendationCard(recommendation: rec),
@@ -388,6 +389,7 @@ class _LatestStressCard extends StatelessWidget {
 
   final int stressScore; // 0..3
   final double stressProbability;
+  final List<double>? raw;
   final int consecutiveHighDays;
   final bool escalationTriggered;
 
@@ -398,6 +400,7 @@ class _LatestStressCard extends StatelessWidget {
     required this.stressProbability,
     required this.consecutiveHighDays,
     required this.escalationTriggered,
+    this.raw,
   });
 
   static const Color gold = Color(0xFFBD9A6B);
@@ -533,17 +536,6 @@ class _LatestStressCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Detected: $stressLevel",
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: "Poppins",
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: gold,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -551,14 +543,108 @@ class _LatestStressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           // _MetaRow(label: "Stress score", value: "$stressScore / 3"),
-          _MetaRow(
-            label: "Probability:",
-            value: "${(stressProbability * 100).toStringAsFixed(1)}%",
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left side: Stress Analysis Details
+              Expanded(child: _stressDetailsBlock()),
+
+              // Right side: Detected + Confidence (as your screenshot)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "Detected   : $stressLevel",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Confidence : ${(stressProbability * 100).toStringAsFixed(1)}%",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
           // _MetaRow(label: "Escalation", value: escalationTriggered ? "Triggered" : "Not triggered"),
         ],
       ),
+    );
+  }
+
+  Widget _stressDetailsBlock() {
+    if (raw == null || raw!.isEmpty) return const SizedBox.shrink();
+
+    const labels = ["Low", "Medium", "High", "Critical"];
+    final count = raw!.length < 4 ? raw!.length : 4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Stress Analysis Details",
+          style: TextStyle(
+            fontFamily: "Poppins",
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: gold,
+            decoration: TextDecoration.underline,
+            decorationColor: Color(0xFFBD9A6B),
+            decorationThickness: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (int i = 0; i < count; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    labels[i],
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ),
+                const Text(
+                  ":",
+                  style: TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "${(raw![i] * 100).toStringAsFixed(1)}%",
+                  style: const TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
