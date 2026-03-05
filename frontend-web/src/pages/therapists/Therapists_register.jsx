@@ -105,10 +105,10 @@ export const Therapists_register = () => {
       </Link>
       {/* Left side: Form portion */}
       <div className="flex-[1.2] flex items-center justify-center p-6 md:p-12 z-20 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
-        <div className="w-full max-w-[90%] mt-[700px] overflow-y-auto bg-transparent border-[3px] border-[#C9A87C]/50 rounded-[3rem] p-10 md:p-16 my-8 relative shadow-[inset_0_0_50px_rgba(0,0,0,0.2)] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
-          <div className="flex justify-between items-start mb-10">
-            <div></div> {/* Spacer */}
-            <h1 className="text-5xl font-bold text-[#C9A87C] tracking-widest uppercase">
+        <div className="w-full ml-15 mt-10 max-w-[95%] md:max-w-[650px] border border-[#BD9A6B] bg-[#5E7890]/80 backdrop-blur-md
+                       shadow-[0_20px_40px_rgba(0,0,0,0.4)] rounded-[1.5rem] p-6 md:py-2 md:px-6 my-4 relative shadow-2xl overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
+          <div className="flex justify-end items-start mb-4">
+            <h1 className="text-3xl font-extrabold text-[#C9A87C] tracking-tight uppercase opacity-80">
               Sign Up
             </h1>
           </div>
@@ -119,10 +119,10 @@ export const Therapists_register = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 overflow-hidden">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <label className="md:w-32 text-sm font-bold text-[#C9A87C]/90">
                 Full Name
               </label>
               <input
@@ -131,92 +131,107 @@ export const Therapists_register = () => {
                 required
                 value={form.full_name}
                 onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
+                className="flex-1 -ml-8 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none focus:ring-2 focus:ring-[#C9A87C]/30 transition-all shadow-sm"
               />
             </div>
 
-            {/* DOB */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                name="dob"
-                value={form.dob}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg appearance-none"
-              />
+            {/* DOB & Gender */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="w-28 md:w-32 text-sm font-bold text-[#C9A87C]/90">
+                  Date of Birth
+                </label>
+                <div className="relative flex-1">
+                  <style>
+                    {`
+                      input[type="date"]::-webkit-calendar-picker-indicator {
+                        filter: invert(72%) sepia(17%) saturate(717%) hue-rotate(346deg) brightness(89%) contrast(87%);
+                        cursor: pointer;
+                      }
+                    `}
+                  </style>
+                  <input
+                    type="date"
+                    name="dob"
+                    value={form.dob}
+                    onChange={handleChange}
+                    className="w-full -ml-7 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none transition-all shadow-sm"
+                  />
+
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="w-20 text-sm font-bold text-[#C9A87C]/90">
+                  Gender
+                </label>
+                <div className="relative flex-1">
+                  <select
+                    name="gender"
+                    value={form.gender}
+                    onChange={handleChange}
+                    className="w-full border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none transition-all shadow-sm cursor-pointer appearance-none"
+                  >
+                    <option value="">Select</option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className="w-5 h-5 text-[#C9A87C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Gender */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Gender
-              </label>
-              <select
-                name="gender"
-                value={form.gender}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg cursor-pointer"
-              >
-                <option value="">Select</option>
-                <option value="female" className="bg-[#2C536A]">Female</option>
-                <option value="male" className="bg-[#2C536A]">Male</option>
-                <option value="other" className="bg-[#2C536A]">Other</option>
-              </select>
+            {/* Email & Password */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="w-28 md:w-32 text-sm font-bold text-[#C9A87C]/90">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  value={form.email}
+                  onChange={handleChange}
+                  className="flex-1 -ml-7 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="w-20 text-sm font-bold text-[#C9A87C]/90">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  value={form.password}
+                  onChange={handleChange}
+                  className="flex-1 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                />
+              </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={form.password}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
-              />
-            </div>
-
-            {/* Phone */}
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Phone Number
+            {/* Phone Number */}
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <label className="md:w-32 text-sm font-bold text-[#C9A87C]/90">
+                Phone No
               </label>
               <input
                 type="text"
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
+                className="w-full -ml-7 md:w-2/3 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
               />
             </div>
 
-            {/* Specialization */}
-            <div className="hidden md:block"></div> {/* Spacer */}
-
             {/* Address */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <label className="md:w-32 text-sm font-bold text-[#C9A87C]/90">
                 Address
               </label>
               <input
@@ -224,112 +239,118 @@ export const Therapists_register = () => {
                 name="address"
                 value={form.address}
                 onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
+                className="flex-1 -ml-7 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
               />
             </div>
 
-            {/* Specialization */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Specialization
-              </label>
-              <input
-                type="text"
-                name="specialization"
-                value={form.specialization}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
-              />
+            {/* Specialization & Start Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="w-28 md:w-32 text-sm font-bold text-[#C9A87C]/90">
+                  Specialization
+                </label>
+                <input
+                  type="text"
+                  name="specialization"
+                  value={form.specialization}
+                  onChange={handleChange}
+                  className="flex-1 -ml-7 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="w-20 text-sm font-bold text-[#C9A87C]/90">
+                  Start Date
+                </label>
+                <div className="relative flex-1">
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={form.start_date}
+                    onChange={handleChange}
+                    className="w-full border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                  />
+
+                </div>
+              </div>
             </div>
 
-            {/* Start Date */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="start_date"
-                value={form.start_date}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg appearance-none"
-              />
-            </div>
+            {/* License No & Workplace */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="w-28 md:w-32 text-sm font-bold text-[#C9A87C]/90">
+                  License No
+                </label>
+                <input
+                  type="text"
+                  name="licence_number"
+                  value={form.licence_number}
+                  onChange={handleChange}
+                  className="flex-1 -ml-7 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                />
+              </div>
 
-            {/* License Number */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                License Number
-              </label>
-              <input
-                type="text"
-                name="licence_number"
-                value={form.licence_number}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
-              />
-            </div>
-
-            {/* Workplace */}
-            <div>
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
-                Workplace
-              </label>
-              <input
-                type="text"
-                name="work_place"
-                value={form.work_place}
-                onChange={handleChange}
-                className="w-full bg-[#2C536A] border-2 border-[#C9A87C] rounded-[1.5rem] px-6 py-4 text-white focus:outline-none focus:ring-4 focus:ring-[#C9A87C]/20 transition-all shadow-lg"
-              />
+              <div className="flex items-center gap-3">
+                <label className="w-20 text-sm font-bold text-[#C9A87C]/90">
+                  Workplace
+                </label>
+                <input
+                  type="text"
+                  name="work_place"
+                  value={form.work_place}
+                  onChange={handleChange}
+                  className="flex-1 border border-[#C9A87C] rounded-md px-4 py-1.5 text-sm text-[#386884] focus:outline-none shadow-sm"
+                />
+              </div>
             </div>
 
             {/* Profile Picture */}
-            <div className="md:col-span-2 mt-2">
-              <label className="block text-sm font-medium text-[#C9A87C] mb-2 ml-1">
+            <div className="flex flex-col gap-1.5 mt-1">
+              <label className="text-sm font-bold text-[#C9A87C]/90">
                 Profile Picture (Optional)
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 ml-8">
+                <span className="text-xs text-[#C9A87C]">Choose File : No File Choosen</span>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleProfilePictureChange}
-                  className="w-full text-xs text-[#C9A87C] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#C9A87C]/20 file:text-[#C9A87C] hover:file:bg-[#C9A87C]/30 transition-all cursor-pointer"
+                  className="opacity-0 absolute w-40 cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Terms & Privacy */}
-            <div className="md:col-span-2 space-y-2 mt-4">
-              <label className="flex items-center text-sm text-[#C9A87C] gap-3 cursor-pointer group">
+            <div className="space-y-2 mt-4">
+              <label className="flex items-center text-sm font-bold text-[#C9A87C]/90 gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
                   name="terms_and_conditions"
                   checked={form.terms_and_conditions}
                   onChange={handleChange}
-                  className="h-5 w-5 rounded border-[#C9A87C] bg-[#2C536A] text-[#C9A87C] focus:ring-[#C9A87C]"
+                  className="h-5 w-5 border-2 border-[#C9A87C] rounded bg-transparent text-[#C9A87C] focus:ring-[#C9A87C]"
                 />
-                <span className="group-hover:text-white transition-colors underline decoration-[#C9A87C]/30">I agree to the Terms & Conditions</span>
+                <span>I agree to the Terms & Conditions</span>
               </label>
 
-              <label className="flex items-center text-sm text-[#C9A87C] gap-3 cursor-pointer group">
+              <label className="flex items-center text-sm font-bold text-[#C9A87C]/90 gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
                   name="privacy_policy"
                   checked={form.privacy_policy}
                   onChange={handleChange}
-                  className="h-5 w-5 rounded border-[#C9A87C] bg-[#2C536A] text-[#C9A87C] focus:ring-[#C9A87C]"
+                  className="h-5 w-5 border-2 border-[#C9A87C] rounded bg-transparent text-[#C9A87C] focus:ring-[#C9A87C]"
                 />
-                <span className="group-hover:text-white transition-colors underline decoration-[#C9A87C]/30">I have read and accept the Privacy Policy</span>
+                <span>I have read and accept the Privacy Policy</span>
               </label>
             </div>
 
             {/* Submit button */}
-            <div className="md:col-span-2 flex justify-end mt-4">
+            <div className="flex justify-end mt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-[#C9A87C] hover:bg-[#b08e62] text-white font-bold px-12 py-3 rounded-2xl shadow-xl transform transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed min-w-[160px]"
+                className="bg-[#C9A87C] hover:bg-[#b08e62] text-white font-bold px-10 py-2.5 rounded-[0.8rem] shadow-[0_6px_12px_rgba(201,168,124,0.3)] transform transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed text-base"
               >
                 {loading ? "Processing..." : "Sign Up"}
               </button>
