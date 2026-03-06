@@ -109,6 +109,16 @@ class CompleteProblemSolvingSessionService {
     return _decodeMap(res.body);
   }
 
+  static Future<Map<String, dynamic>> getCompletedSessionsByUser(String childId) async {
+    final uri = Uri.parse("$_base$_path/user/$childId");
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 20));
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw _err(res);
+    }
+    return _decodeMap(res.body);
+  }
+
   /// ✅ Helper: extract correctness_score safely from {count, data:[...]}
   static double extractCorrectnessScore(Map<String, dynamic> res) {
     try {
