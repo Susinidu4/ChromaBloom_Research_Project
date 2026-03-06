@@ -10,6 +10,7 @@ import '../../../services/user_services/child_api.dart';
 
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+import '../../../services/Gemified/problem_solving_level.dart';
 
 import './lessonDetails.dart';
 
@@ -57,20 +58,43 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
     });
 
     try {
-      // 0) Get skill level from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final skillLevel = prefs.getString("problem_solving_skill_level_value") ?? "new";
+      // 1) get caregiver & child
+      final session = context.read<SessionProvider>();
+      final caregiverId =
+          (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
 
-      String targetDifficulty = "Beginner";
-      if (skillLevel == "new" || skillLevel == "some_common") {
-        targetDifficulty = "Beginner";
-      } else if (skillLevel == "basic") {
-        targetDifficulty = "Intermediate";
-      } else if (skillLevel == "most") {
-        targetDifficulty = "Advanced";
+      if (caregiverId.isEmpty) {
+        throw Exception("Caregiver ID not found. Please log in again.");
       }
 
-      // 1) load lessons
+      final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        throw Exception("No children found for this caregiver.");
+      }
+
+      final childId =
+          ((children.first as Map<String, dynamic>)['_id'] ?? '').toString();
+      
+      // 2) Get skill level from backend
+      String targetDifficulty = "Beginner";
+      try {
+        final levelData = await ProblemSolvingLevelService.getLevelByUserId(childId);
+        targetDifficulty = (levelData['level'] ?? "Beginner").toString();
+      } catch (e) {
+        // Fallback to SharedPreferences if backend fetch fails
+        final prefs = await SharedPreferences.getInstance();
+        final skillLevel = prefs.getString("problem_solving_skill_level_value") ?? "Beginner";
+        
+        if (skillLevel == "new" || skillLevel == "some_common" || skillLevel == "Beginner") {
+          targetDifficulty = "Beginner";
+        } else if (skillLevel == "basic" || skillLevel == "Intermediate") {
+          targetDifficulty = "Intermediate";
+        } else if (skillLevel == "most" || skillLevel == "Advanced") {
+          targetDifficulty = "Advanced";
+        }
+      }
+
+      // 3) load all lessons and filter by difficulty
       final data = await ProblemSolvingLessonService.getAllLessons();
 
       final filtered = (data as List).where((e) {
@@ -92,38 +116,7 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
         lessons = mapped;
       });
 
-      // 2) get caregiverId from SessionProvider
-      final session = context.read<SessionProvider>();
-      final caregiverId =
-          (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
-
-      if (caregiverId.isEmpty) {
-        // still show lessons, but no progress
-        setState(() {
-          loading = false;
-        });
-        return;
-      }
-
-      // 3) get first child
-      final children = await ChildApi.getChildrenByCaregiver(caregiverId);
-      if (children.isEmpty) {
-        setState(() {
-          loading = false;
-        });
-        return;
-      }
-
-      final childId =
-          ((children.first as Map<String, dynamic>)['_id'] ?? '').toString();
-      if (childId.isEmpty) {
-        setState(() {
-          loading = false;
-        });
-        return;
-      }
-
-      // 4) load progress for each lesson (sequential to keep it simple)
+      // 4) load progress for each lesson
       for (final l in mapped) {
         double p = 0.0;
         try {
