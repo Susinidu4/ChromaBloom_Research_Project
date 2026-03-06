@@ -107,6 +107,7 @@ class StressDto {
   final String stressLevel; // "Low" | "Medium" | "High" | "Critical"
   final int stressScore; // 0..3
   final double stressProbability;
+  final List<double>? raw;
   final int consecutiveHighDays;
   final bool escalationTriggered;
   final DateTime? scoreDate;
@@ -120,6 +121,7 @@ class StressDto {
     required this.escalationTriggered,
     required this.scoreDate,
     required this.computedAt,
+    this.raw,
   });
 
   factory StressDto.fromJson(Map<String, dynamic> json) {
@@ -131,6 +133,7 @@ class StressDto {
       stressProbability: (json["stress_probability"] is num)
           ? (json["stress_probability"] as num).toDouble()
           : 0.0,
+      raw: (json['raw'] as List?)?.map((e) => (e as num).toDouble()).toList(),
       consecutiveHighDays: (json["consecutive_high_days"] is num)
           ? (json["consecutive_high_days"] as num).toInt()
           : 0,

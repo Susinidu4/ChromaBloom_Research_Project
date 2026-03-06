@@ -3,15 +3,15 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 // ✅ Existing lesson service
-import '../../../services/Gemified/drawing_lesson_service.dart';
-
-// ✅ Completed lesson service
-import '../../../services/Gemified/complete_drawing_lesson_service.dart';
-
-// ✅ New session provider for real user ID
 import 'package:provider/provider.dart';
-import '../../../state/session_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/Gemified/drawing_lesson_service.dart';
+import '../../../services/Gemified/complete_drawing_lesson_service.dart';
+import '../../../services/Gemified/drawing_level_service.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/api_config.dart';
 
 class DrawingUnit1Page extends StatefulWidget {
   const DrawingUnit1Page({super.key});
@@ -67,96 +67,118 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
     _futureLessons = _fetchLessons(_caregiverId!);
   }
 
-  Future<List<_LessonItem>> _fetchLessons(String userId) async {
-    // 1) Fetch user's knowledge level from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final levelValue = prefs.getString("drawing_skill_level_value") ?? "new";
+  Future<List<_LessonItem>> _fetchLessons(String caregiverId) async {
+    try {
+      // 1) Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) return [];
+      
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? '').toString();
+      if (childId.isEmpty) return [];
 
-    // Mapping selection to difficulty level
-    // beginner: "new" or "some_common"
-    // intermediate: "basic"
-    // advance: "most"
-    String filterLevel = "Beginner";
-    if (levelValue == "basic") {
-      filterLevel = "Intermediate";
-    } else if (levelValue == "most") {
-      filterLevel = "Advance";
-    }
+      // 2) Get drawing level from database
+      final drawingLevelService = DrawingLevelService(
+        baseUrl: "${ApiConfig.baseUrl}/chromabloom/drawing-levels",
+        token: Provider.of<SessionProvider>(context, listen: false).token,
+      );
 
-    // 2) Fetch all lessons
-    final raw = await _service.getAllLessons(); // List<dynamic>
-
-    // 3) Filter lessons by difficulty_level
-    final lessons = raw
-        .where((e) {
-          final m = (e as Map).cast<String, dynamic>();
-          final dl = (m["difficulty_level"] ?? "").toString();
-          // Case-insensitive comparison is safer if there are minor mismatches
-          return dl.toLowerCase() == filterLevel.toLowerCase();
-        })
-        .map<_LessonItem>((e) {
-          final m = (e as Map).cast<String, dynamic>();
-          return _LessonItem(
-            id: (m["_id"] ?? "").toString(),
-            title: (m["title"] ?? "Untitled").toString(),
-            desc: (m["description"] ?? "").toString(),
-            progress: 0.0,
-            correctnessPercent: 0,
-          );
-        })
-        .toList();
-
-    // 4) For each filtered lesson, call getCompletedByLessonAndUser()
-    final updated = await Future.wait(
-      lessons.map((lesson) async {
-        try {
-          final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
-            lessonId: lesson.id,
-            userId: userId,
-          );
-
-          final data = res["data"];
-
-          if (data is List && data.isNotEmpty) {
-            final latest = (data.first as Map).cast<String, dynamic>();
-
-            final cr = latest["correctness_rate"];
-            int percent;
-            if (cr is num) {
-              percent = cr.round();
-            } else {
-              percent = int.tryParse("$cr") ?? 0;
-            }
-            percent = percent.clamp(0, 100);
-
-            final lessonObj = latest["lesson_id"];
-            String title = lesson.title;
-            String desc = lesson.desc;
-
-            if (lessonObj is Map) {
-              final lm = lessonObj.cast<String, dynamic>();
-              title = (lm["title"] ?? title).toString();
-              desc = (lm["description"] ?? desc).toString();
-            }
-
-            final progress = (percent / 100.0).clamp(0.0, 1.0);
-
-            return lesson.copyWith(
-              title: title,
-              desc: desc,
-              progress: progress,
-              correctnessPercent: percent,
-            );
+      String filterLevel = "Beginner";
+      try {
+        final List<dynamic> levels = await drawingLevelService.getDrawingLevelByUserId(childId);
+        if (levels.isNotEmpty) {
+          filterLevel = (levels[0]['level'] ?? "Beginner").toString();
+        } else {
+          // Fallback to SharedPreferences if DB record doesn't exist
+          final prefs = await SharedPreferences.getInstance();
+          final levelValue = prefs.getString("drawing_skill_level_value") ?? "new";
+          if (levelValue == "basic") {
+            filterLevel = "Intermediate";
+          } else if (levelValue == "most") {
+            filterLevel = "Advanced";
           }
-
-          return lesson;
-        } catch (_) {
-          return lesson;
         }
-      }),
-    );
+      } catch (_) {
+        // Silent fallback to Beginner or SharedPreferences
+      }
 
-    return updated;
+      // 3) Fetch all lessons
+      final raw = await _service.getAllLessons(); // List<dynamic>
+
+      // 4) Filter lessons by difficulty_level
+      final lessons = raw
+          .where((e) {
+            final m = (e as Map).cast<String, dynamic>();
+            final dl = (m["difficulty_level"] ?? "").toString();
+            return dl.toLowerCase() == filterLevel.toLowerCase();
+          })
+          .map<_LessonItem>((e) {
+            final m = (e as Map).cast<String, dynamic>();
+            return _LessonItem(
+              id: (m["_id"] ?? "").toString(),
+              title: (m["title"] ?? "Untitled").toString(),
+              desc: (m["description"] ?? "").toString(),
+              progress: 0.0,
+              correctnessPercent: 0,
+            );
+          })
+          .toList();
+
+      // 5) For each filtered lesson, call getCompletedByLessonAndUser()
+      // Using childId for activity tracking
+      final updated = await Future.wait(
+        lessons.map((lesson) async {
+          try {
+            final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
+              lessonId: lesson.id,
+              userId: childId,
+            );
+
+            final data = res["data"];
+
+            if (data is List && data.isNotEmpty) {
+              final latest = (data.first as Map).cast<String, dynamic>();
+
+              final cr = latest["correctness_rate"];
+              int percent;
+              if (cr is num) {
+                percent = cr.round();
+              } else {
+                percent = int.tryParse("$cr") ?? 0;
+              }
+              percent = percent.clamp(0, 100);
+
+              final lessonObj = latest["lesson_id"];
+              String title = lesson.title;
+              String desc = lesson.desc;
+
+              if (lessonObj is Map) {
+                final lm = lessonObj.cast<String, dynamic>();
+                title = (lm["title"] ?? title).toString();
+                desc = (lm["description"] ?? desc).toString();
+              }
+
+              final progress = (percent / 100.0).clamp(0.0, 1.0);
+
+              return lesson.copyWith(
+                title: title,
+                desc: desc,
+                progress: progress,
+                correctnessPercent: percent,
+              );
+            }
+
+            return lesson;
+          } catch (_) {
+            return lesson;
+          }
+        }),
+      );
+
+      return updated;
+    } catch (e) {
+      debugPrint("Error fetching lessons: $e");
+      rethrow;
+    }
   }
 
   Future<void> _refresh() async {

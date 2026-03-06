@@ -81,6 +81,50 @@ class ChildRoutinePlanService {
     }
   }
 
+  static String _fmtYmd(DateTime d) {
+    final yyyy = d.year.toString().padLeft(4, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return "$yyyy-$mm-$dd";
+  }
+
+  // NEW: Ensure daily routineRun docs exist for all plan activities
+  // Backend: GET /chromabloom/systemActivities/routineRun/daily?caregiverId=...&childId=...&planId=...&run_date=YYYY-MM-DD
+  // NEW: Ensure daily routineRun docs exist for all plan activities
+  static Future<Map<String, dynamic>> ensureDailyRoutineRuns({
+    required String caregiverId,
+    required String childId,
+    required String planMongoId,
+    required DateTime runDate,
+  }) async {
+    final dateStr = _fmtYmd(runDate);
+
+    final uri =
+        Uri.parse(
+          "$_base/chromabloom/systemActivities/routineRun/daily",
+        ).replace(
+          queryParameters: {
+            "caregiverId": caregiverId,
+            "childId": childId,
+            "planId": planMongoId,
+            "run_date": dateStr,
+          },
+        );
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 20));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      try {
+        final parsed = jsonDecode(res.body);
+        throw Exception(parsed["error"] ?? parsed["message"] ?? res.body);
+      } catch (_) {
+        throw Exception(res.body);
+      }
+    }
+  }
+
   // GET routine run progress by planId and activityId
   static Future<Map<String, dynamic>?> getRoutineRunProgress({
     required String caregiverId,
@@ -148,17 +192,21 @@ class ChildRoutinePlanService {
   static Future<Map<String, dynamic>> getRoutineDashboard({
     required String caregiverId,
     String? childId,
-    String? planId, 
+    String? planId,
     String? cycleStart,
-    String? cycleEnd,   
+    String? cycleEnd,
   }) async {
-    final uri = Uri.parse("$_base/chromabloom/systemActivities/dashboard/$caregiverId")
-        .replace(queryParameters: {
-      
-      if (planId != null && planId.isNotEmpty) "planId": planId,
-      if (cycleStart != null && cycleStart.isNotEmpty) "cycleStart": cycleStart,
-      if (cycleEnd != null && cycleEnd.isNotEmpty) "cycleEnd": cycleEnd,
-    });
+    final uri =
+        Uri.parse(
+          "$_base/chromabloom/systemActivities/dashboard/$caregiverId",
+        ).replace(
+          queryParameters: {
+            if (planId != null && planId.isNotEmpty) "planId": planId,
+            if (cycleStart != null && cycleStart.isNotEmpty)
+              "cycleStart": cycleStart,
+            if (cycleEnd != null && cycleEnd.isNotEmpty) "cycleEnd": cycleEnd,
+          },
+        );
 
     final res = await http.get(uri).timeout(const Duration(seconds: 15));
     final body = jsonDecode(res.body);
@@ -169,5 +217,4 @@ class ChildRoutinePlanService {
       throw Exception(body["message"] ?? "Failed to load routine dashboard");
     }
   }
-
 }

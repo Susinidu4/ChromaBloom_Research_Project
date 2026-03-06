@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/Gemified/drawing_level_service.dart';
+import '../../../services/Gemified/complete_drawing_lesson_service.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/api_config.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -22,14 +29,99 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
 
   Future<void> _handleDrawingTap() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool levelSet = prefs.getBool(_prefKeyDrawingLevelSet) ?? false;
+    
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiverProps = session.caregiver;
+      if (caregiverProps == null) throw Exception("No caregiver session found");
 
-    if (!mounted) return;
+      final caregiverId = (caregiverProps['_id'] ?? caregiverProps['id'] ?? "").toString();
+      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found");
 
-    if (!levelSet) {
-      Navigator.pushNamed(context, '/skillKnowlageLevel');
-    } else {
+      // 1. Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+        return;
+      }
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? "").toString();
+
+      // 2. Fetch drawing level data
+      final drawingLevelService = DrawingLevelService(
+        baseUrl: "${ApiConfig.baseUrl}/chromabloom/drawing-levels",
+        token: session.token,
+      );
+      final List<dynamic> levels = await drawingLevelService.getDrawingLevelByUserId(childId);
+      
+      if (levels.isEmpty) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+        return;
+      }
+
+      final currentLevelData = levels[0];
+      final String currentLevel = (currentLevelData['level'] ?? "Beginner").toString();
+
+      // 3. Level progression logic
+      if (currentLevel != "Advanced") {
+        // Fetch completed lessons for average calculation
+        final res = await CompleteDrawingLessonService.getCompletedLessonsByUser(childId);
+        final data = res["data"];
+
+        if (data is List && data.isNotEmpty) {
+          // Take first 10 data
+          final lessonsToAverage = data.take(10).toList();
+          
+          if (lessonsToAverage.length == 10) {
+            double totalCorrectness = 0;
+            for (var lesson in lessonsToAverage) {
+              final rate = lesson['correctness_rate'] ?? 0.0;
+              totalCorrectness += (rate is num) ? rate.toDouble() : 0.0;
+            }
+
+            double average = (totalCorrectness / lessonsToAverage.length) * 100;
+
+            if (average >= 60) {
+              String nextLevel = "";
+              if (currentLevel == "Beginner") {
+                nextLevel = "Intermediate";
+              } else if (currentLevel == "Intermediate") {
+                nextLevel = "Advanced";
+              }
+
+              if (nextLevel.isNotEmpty) {
+                // Update the drawing level
+                await drawingLevelService.updateLevelByUserId(
+                  userId: childId,
+                  level: nextLevel,
+                );
+                
+                // Update local preferences
+                await prefs.setBool(_prefKeyDrawingLevelSet, true);
+                await prefs.setString("drawing_skill_level_value", nextLevel);
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Congratulations! Level upgraded to $nextLevel")),
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
       Navigator.pushNamed(context, '/drawingUnit1');
+
+    } catch (e) {
+      debugPrint("Error in handleDrawingTap: $e");
+      final bool levelSet = prefs.getBool(_prefKeyDrawingLevelSet) ?? false;
+      if (!mounted) return;
+      if (!levelSet) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+      } else {
+        Navigator.pushNamed(context, '/drawingUnit1');
+      }
     }
   }
 

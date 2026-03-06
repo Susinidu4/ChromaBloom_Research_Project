@@ -168,12 +168,13 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
   }
 
   // Handle date selection
-  void _onDateSelected(DateTime d) {
+  Future<void> _onDateSelected(DateTime d) async {
     setState(() => selectedDate = d);
 
     if (isSuggested) {
       if (_isWithinSuggestedCycle(selectedDate)) {
-        _refreshSuggestedProgressForDay();
+        await _ensureRunsForSelectedDay();
+        await _refreshSuggestedProgressForDay();
       } else {
         // outside cycle → show empty
         setState(() {
@@ -183,7 +184,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
         });
       }
     } else {
-      _fetchYourTasks();
+      await _fetchYourTasks();
     }
   }
 
@@ -376,6 +377,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       suggestedEnd = endStr.isEmpty ? null : DateTime.parse(endStr).toLocal();
 
       suggestedPlanMongoId = (plan["_id"] ?? "").toString();
+      await _ensureRunsForSelectedDay();
 
       // activities[] -> activityId populated object (Convert activities into UI task objects)
       final list = acts.map<Map<String, dynamic>>((a) {
@@ -385,11 +387,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
           "_id": activityObj["_id"],
           "title": (activityObj["title"] ?? "").toString(),
           "desc": (activityObj["description"] ?? "").toString(),
-          "img":
-              ((activityObj["media_links"] is List &&
-                  (activityObj["media_links"] as List).isNotEmpty)
-              ? (activityObj["media_links"][0]).toString()
-              : "assets/InteractiveVisualTaskScheduler/systemActivityDemo.png"),
+          "img": "assets/InteractiveVisualTaskScheduler/systemActivityDemo.png",
 
           "description": (activityObj["description"] ?? "").toString(),
           "steps": (activityObj["steps"] as List?) ?? [],
@@ -412,6 +410,23 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
       setState(() => suggestedError = e.toString());
     } finally {
       setState(() => loadingSuggested = false);
+    }
+  }
+
+  Future<void> _ensureRunsForSelectedDay() async {
+    if (caregiverId == null || childId == null) return;
+    if (suggestedPlanMongoId == null || suggestedPlanMongoId!.isEmpty) return;
+
+    try {
+      await ChildRoutinePlanService.ensureDailyRoutineRuns(
+        caregiverId: caregiverId!,
+        childId: childId!,
+        planMongoId: suggestedPlanMongoId!,
+        runDate: selectedDate,
+      );
+    } catch (e) {
+      // optional: show alert
+      // _alert(QuickAlertType.error, "Error", e.toString());
     }
   }
 
@@ -871,7 +886,7 @@ class _SearchBarWithBack extends StatelessWidget {
                       border: InputBorder.none,
                       hintText: "Search Routine",
                       hintStyle: TextStyle(color: Colors.black54, fontSize: 14),
-                      ),
+                    ),
                   ),
                 ),
                 const Icon(Icons.search, color: Colors.black54),
