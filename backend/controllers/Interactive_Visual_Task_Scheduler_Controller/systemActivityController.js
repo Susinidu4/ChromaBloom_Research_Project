@@ -412,7 +412,7 @@ function buildDifficultyMessage(previous, current) {
   );
 }
 
-// GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)
+// GET routine dashboard data for caregiver (and optional childId, planId, cycleStart, cycleEnd)(charts)
 export const getRoutineDashboard = async (req, res) => {
   try {
     const { caregiverId } = req.params;
