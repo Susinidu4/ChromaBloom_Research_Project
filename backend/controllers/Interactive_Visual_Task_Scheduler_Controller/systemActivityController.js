@@ -116,7 +116,7 @@ export const createSystemActivity = async (req, res) => {
           },
         );
 
-        stream.end(req.file.buffer); // ✅ IMPORTANT (buffer, not path)
+        stream.end(req.file.buffer);
       });
 
       uploadedVideoUrl = result.secure_url;
@@ -1266,7 +1266,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
 
     const now = new Date();
 
-    // ✅ Get child + ageGroup ONCE (no need inside loop)
+    // Get child + ageGroup ONCE (no need inside loop)
     const child = await Child.findOne({
       _id: childId, // if your childId is Mongo _id
       caregiver: caregiverId,
@@ -1283,7 +1283,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
       return res.status(400).json({ error: "Child age_group not found" });
     }
 
-    // ✅ Safety guard to avoid infinite loops (e.g., bad dates)
+    // Safety guard to avoid infinite loops (e.g., bad dates)
     const MAX_PLANS_TO_CREATE = 30;
 
     const createdPlans = [];
@@ -1377,7 +1377,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
         ended_plan_id: endedPlan._id,
       });
 
-      // ✅ LOOP continues:
+      // LOOP continues:
       // if this newly created plan is also already ended compared to "now",
       // the next while iteration will close it and create another one.
     }

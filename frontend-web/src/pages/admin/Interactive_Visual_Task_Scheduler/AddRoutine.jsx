@@ -16,7 +16,7 @@ import { MdClose } from "react-icons/md";
 export default function AddRoutine() {
   const navigate = useNavigate();
 
-  // ✅ form states
+  // form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [minutes, setMinutes] = useState(""); // UI small box
