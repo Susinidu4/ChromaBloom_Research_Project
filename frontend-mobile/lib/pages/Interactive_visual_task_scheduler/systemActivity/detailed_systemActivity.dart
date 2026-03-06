@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 import '../../../state/session_provider.dart';
 import '../../../services/user_services/child_api.dart';
@@ -118,11 +120,17 @@ class _DetailedSystemActivityScreenState
 
   int completedMinutes = 0;
 
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool loadingVideo = true;
+  String? videoError;
+
   @override
   void initState() {
     super.initState();
 
     TtsService.init();
+    _loadVideo();
 
     // 1) Build steps FIRST
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
@@ -140,7 +148,6 @@ class _DetailedSystemActivityScreenState
     // 3) Load saved progress from RoutineRun collection
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadCaregiverAndChild();
-      await _loadCaregiverAndChild();
       if (caregiverID != null && childID != null) {
         await _loadSavedProgress();
       } else {
@@ -152,6 +159,8 @@ class _DetailedSystemActivityScreenState
   @override
   void dispose() {
     TtsService.stop();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     completedCtrl.dispose();
     super.dispose();
   }
@@ -272,6 +281,63 @@ class _DetailedSystemActivityScreenState
     return widget.activity;
   }
 
+  Future<void> _loadVideo() async {
+    try {
+      final activity = _getActivityObj();
+      final mediaLinks = (activity["media_links"] as List?) ?? [];
+
+      if (mediaLinks.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          loadingVideo = false;
+          videoError = "No video found";
+        });
+        return;
+      }
+
+      final videoUrl = mediaLinks.first.toString().trim();
+
+      if (videoUrl.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          loadingVideo = false;
+          videoError = "Video URL is empty";
+        });
+        return;
+      }
+
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      await _videoController!.initialize();
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController!,
+        autoPlay: false,
+        looping: true,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        showControlsOnInitialize: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: stroke,
+          handleColor: stroke,
+          bufferedColor: Colors.white70,
+          backgroundColor: Colors.black26,
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        loadingVideo = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingVideo = false;
+        videoError = e.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loadingIdentity) {
@@ -297,23 +363,11 @@ class _DetailedSystemActivityScreenState
 
     final title = (widget.activity["title"] ?? "").toString();
     final description =
-        (widget.activity["description"] ?? widget.activity["desc"] ?? "")
+        (activity["description"] ?? widget.activity["desc"] ?? "")
             .toString();
 
     final est = (widget.activity["estimated_duration_minutes"] ?? 0);
     final percent = _calcPercent();
-
-    final img =
-        (widget.activity["img"] ??
-                (widget.activity["media_links"] is List &&
-                        (widget.activity["media_links"] as List).isNotEmpty
-                    ? widget.activity["media_links"][0]
-                    : "assets/brushing_teeth.png"))
-            .toString();
-
-    final bool isNetwork = img.startsWith("http");
-
-    final activityId = _getActivityMongoId();
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -479,13 +533,84 @@ class _DetailedSystemActivityScreenState
 
                           const SizedBox(height: 14),
 
-                          // Big image
-                          Center(
-                            child: SizedBox(
-                              height: 190,
-                              child: isNetwork
-                                  ? Image.network(img, fit: BoxFit.contain)
-                                  : Image.asset(img, fit: BoxFit.contain),
+                          // Video player container
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: stroke.withOpacity(0.25),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    color: Colors.black12,
+                                    child: loadingVideo
+                                        ? const SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          )
+                                        : videoError != null
+                                        ? SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                child: Text(
+                                                  videoError!,
+                                                  style: const TextStyle(
+                                                    color: Colors.red,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : (_chewieController != null &&
+                                              _videoController != null &&
+                                              _videoController!
+                                                  .value
+                                                  .isInitialized)
+                                        ? AspectRatio(
+                                            aspectRatio:
+                                                _videoController!
+                                                        .value
+                                                        .aspectRatio ==
+                                                    0
+                                                ? 16 / 9
+                                                : _videoController!
+                                                      .value
+                                                      .aspectRatio,
+                                            child: Chewie(
+                                              controller: _chewieController!,
+                                            ),
+                                          )
+                                        : const SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child: Text(
+                                                "No video available",
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
 

@@ -3,11 +3,13 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { IoChevronBack, IoChevronDown } from "react-icons/io5";
 import QuizeService from "../../../services/Gemified_Knowledge_Builder/quizeService.js";
+import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
 
 export default function QuizeView() {
   const { id } = useParams();
   const [quiz, setQuiz] = useState(null);
+  const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState({ type: "", text: "" });
 
@@ -17,7 +19,14 @@ export default function QuizeView() {
       setMsg({ type: "", text: "" });
       try {
         const res = await QuizeService.getById(id);
-        setQuiz(res?.data || null);
+        const quizData = Array.isArray(res?.data) ? res.data[0] : res?.data;
+        setQuiz(quizData || null);
+
+        if (quizData?.lesson_id) {
+          const lessonRes = await ProblemSolvingLessonService.getById(quizData.lesson_id);
+          const lessonData = Array.isArray(lessonRes?.data) ? lessonRes.data[0] : lessonRes?.data;
+          setLesson(lessonData || null);
+        }
       } catch (e) {
         setMsg({
           type: "error",
@@ -85,7 +94,7 @@ export default function QuizeView() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-lg uppercase tracking-wider">Lesson:</span>
-                  <span className="text-lg opacity-80">{quiz.lesson_name || "Drawing a circle"}</span>
+                  <span className="text-lg opacity-80">{lesson?.title || quiz?.lesson_id || "Loading lesson..."}</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-[#E8D8C3] pt-4 mt-4">
                   <div className="flex items-center gap-2">

@@ -59,6 +59,7 @@ dependencies:
   provider: ^6.1.5+1
   video_player: ^2.10.1
   video_player_web: ^2.3.2
+  chewie: ^1.8.5
   fl_chart: ^0.68.0
   
 dev_dependencies:

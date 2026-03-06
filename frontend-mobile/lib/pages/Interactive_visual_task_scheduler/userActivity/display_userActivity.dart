@@ -387,11 +387,7 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
           "_id": activityObj["_id"],
           "title": (activityObj["title"] ?? "").toString(),
           "desc": (activityObj["description"] ?? "").toString(),
-          "img":
-              ((activityObj["media_links"] is List &&
-                  (activityObj["media_links"] as List).isNotEmpty)
-              ? (activityObj["media_links"][0]).toString()
-              : "assets/InteractiveVisualTaskScheduler/systemActivityDemo.png"),
+          "img": "assets/InteractiveVisualTaskScheduler/systemActivityDemo.png",
 
           "description": (activityObj["description"] ?? "").toString(),
           "steps": (activityObj["steps"] as List?) ?? [],
