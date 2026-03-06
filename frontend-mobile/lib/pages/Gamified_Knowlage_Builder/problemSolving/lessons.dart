@@ -103,6 +103,15 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
         return diff.toLowerCase() == targetDifficulty.toLowerCase();
       }).toList();
 
+      // Sort by createdAt ascending (oldest first - 1st record first)
+      filtered.sort((a, b) {
+        final ma = (a as Map<String, dynamic>);
+        final mb = (b as Map<String, dynamic>);
+        final da = DateTime.tryParse(ma["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final db = DateTime.tryParse(mb["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return da.compareTo(db);
+      });
+
       final mapped = filtered.map((e) {
         final m = (e as Map<String, dynamic>);
         return _LessonItem(
@@ -499,21 +508,37 @@ class _ProgressPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 10,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: Stack(
-          children: [
-            Container(color: track),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(color: fill),
+    final int percentage = (progress * 100).round();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 10,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Stack(
+              children: [
+                Container(color: track),
+                FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(color: fill),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          "$percentage%",
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFB89A76),
+          ),
+        ),
+      ],
     );
   }
 }
