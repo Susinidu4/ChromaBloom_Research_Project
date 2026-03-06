@@ -64,3 +64,27 @@ export const getDrawingLevelByUserId = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Update a drawing level by user ID
+// @route   PUT /api/drawing-levels/user/update/:userId
+// @access  Public
+export const updateDrawingLevelByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { level } = req.body;
+
+        const updatedLevel = await Drawing_Level.findOneAndUpdate(
+            { user_id: userId },
+            { level },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedLevel) {
+            return res.status(404).json({ message: "Drawing level not found for this user" });
+        }
+
+        res.status(200).json(updatedLevel);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

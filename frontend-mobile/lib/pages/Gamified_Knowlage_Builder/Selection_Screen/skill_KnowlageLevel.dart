@@ -54,18 +54,14 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
         token: session.token,
       );
 
-      // Check if a record already exists
-      final List<dynamic> existingLevels = await drawingService.getDrawingLevelByUserId(childId);
-
-      if (existingLevels.isNotEmpty) {
-        // Update existing record
-        final existingRecordId = (existingLevels[0]['_id'] ?? existingLevels[0]['id'] ?? '').toString();
-        await drawingService.updateDrawingLevel(
-          id: existingRecordId,
+      try {
+        // Try to update existing level by user id
+        await drawingService.updateLevelByUserId(
+          userId: childId,
           level: dbLevel,
         );
-      } else {
-        // Create new record
+      } catch (e) {
+        // If update fails (e.g. record not found), create a new one
         await drawingService.createDrawingLevel(
           userId: childId,
           level: dbLevel,

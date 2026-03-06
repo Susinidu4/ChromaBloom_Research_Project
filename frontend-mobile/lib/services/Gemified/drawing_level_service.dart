@@ -94,6 +94,30 @@ class DrawingLevelService {
   }
 
   // ----------------------------
+  // UPDATE BY USER ID
+  // ----------------------------
+  Future<Map<String, dynamic>> updateLevelByUserId({
+    required String userId,
+    required String level,
+  }) async {
+    final body = jsonEncode({
+      "level": level,
+    });
+
+    final res = await http.put(
+      _u("user/update/$userId"),
+      headers: _headers(),
+      body: body,
+    );
+
+    final data = _decode(res);
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return data;
+    }
+    throw Exception(data["message"] ?? "Failed to update level by user ID");
+  }
+
+  // ----------------------------
   // Helpers
   // ----------------------------
   dynamic _decode(http.Response res) {

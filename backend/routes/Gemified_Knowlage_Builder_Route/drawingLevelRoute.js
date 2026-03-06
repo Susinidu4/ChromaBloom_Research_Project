@@ -3,6 +3,7 @@ import {
     createDrawingLevel,
     updateDrawingLevel,
     getDrawingLevelByUserId,
+    updateDrawingLevelByUserId,
 } from "../../controllers/Gemified_knowlage_Builder_Controller/drawingLevelController.js";
 
 const router = express.Router();
@@ -15,5 +16,8 @@ router.put("/update/:id", updateDrawingLevel);
 
 // Route to get drawing level(s) for a specific user ID
 router.get("/user/:userId", getDrawingLevelByUserId);
+
+// Route to update a drawing level by user ID
+router.put("/user/update/:userId", updateDrawingLevelByUserId);
 
 export default router;
