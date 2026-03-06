@@ -8,6 +8,10 @@ import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 import '../../../services/user_services/child_api.dart';
 import '../../../services/api_config.dart';
 
+import '../../../services/Gemified/problem_solving_level.dart';
+import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+import '../../../services/Gemified/problem_solving_lesson_service.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -125,19 +129,115 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
     }
   }
 
-  // ✅ NEW: Problem solving logic
+  // ✅ NEW: Problem solving logic with progression
   Future<void> _handleProblemSolvingTap() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
+    
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiverProps = session.caregiver;
+      if (caregiverProps == null) throw Exception("No caregiver session found");
 
-    if (!mounted) return;
+      final caregiverId = (caregiverProps['_id'] ?? caregiverProps['id'] ?? "").toString();
+      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found");
 
-    if (!levelSet) {
-      // new install / not set yet
-      Navigator.pushNamed(context, '/skillKnowlageLevel_2');
-    } else {
-      // already selected before
+      // 1. Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+        return;
+      }
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? "").toString();
+
+      // 2. Fetch problem solving level data
+      Map<String, dynamic> levelData;
+      try {
+        levelData = await ProblemSolvingLevelService.getLevelByUserId(childId);
+      } catch (e) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+        return;
+      }
+
+      final String currentLevel = (levelData['level'] ?? "Beginner").toString();
+
+      // 3. Level progression logic
+      if (currentLevel != "Advanced" && currentLevel != "Advance") {
+        // Fetch all sessions
+        final res = await CompleteProblemSolvingSessionService.getCompletedSessionsByUser(childId);
+        final data = res["data"];
+
+        if (data is List && data.isNotEmpty) {
+          // Filter by current level? 
+          // To filter by current level, we need to know the level of each lesson.
+          // Let's fetch all lessons first.
+          final allLessons = await ProblemSolvingLessonService.getAllLessons();
+          final Map<String, String> lessonDifficultyMap = {
+            for (var l in allLessons) (l['_id'] ?? l['id']).toString(): (l['difficulty_level'] ?? "").toString()
+          };
+
+          // Filter completed sessions to those matching current child level
+          final filteredSessions = data.where((session) {
+            final lessonId = (session['lessons'] is Map) 
+              ? (session['lessons']['_id'] ?? session['lessons']['id']).toString()
+              : session['lessons'].toString();
+            final lessonDiff = lessonDifficultyMap[lessonId] ?? "";
+            return lessonDiff.toLowerCase() == currentLevel.toLowerCase();
+          }).toList();
+
+          // Take first 10 data
+          final sessionsToAverage = filteredSessions.take(10).toList();
+          
+          if (sessionsToAverage.length == 10) {
+            double totalCorrectness = 0;
+            for (var session in sessionsToAverage) {
+              final rate = session['correctness_score'] ?? 0.0;
+              totalCorrectness += (rate is num) ? rate.toDouble() : 0.0;
+            }
+
+            double average = (totalCorrectness / sessionsToAverage.length) * 100;
+
+            if (average >= 60) {
+              String nextLevel = "";
+              if (currentLevel == "Beginner") {
+                nextLevel = "Intermediate";
+              } else if (currentLevel == "Intermediate") {
+                nextLevel = "Advanced";
+              }
+
+              if (nextLevel.isNotEmpty) {
+                // Update the problem solving level
+                await ProblemSolvingLevelService.updateLevelByUserId(
+                  userId: childId,
+                  level: nextLevel,
+                );
+                
+                // Update local preferences
+                await prefs.setBool(_prefKeyProblemLevelSet, true);
+                await prefs.setString("problem_solving_skill_level_value", nextLevel);
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Congratulations! Your problem solving level upgraded to $nextLevel")),
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
       Navigator.pushNamed(context, '/problemSolvingLessons');
+
+    } catch (e) {
+      debugPrint("Error in handleProblemSolvingTap: $e");
+      final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
+      if (!mounted) return;
+      if (!levelSet) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+      } else {
+        Navigator.pushNamed(context, '/problemSolvingLessons');
+      }
     }
   }
 
