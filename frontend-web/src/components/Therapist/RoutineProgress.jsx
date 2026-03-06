@@ -172,31 +172,19 @@ export default function RoutineProgress({ caregiverId, childId }) {
 
       {/* Top cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card
-          title="Routine Analysis"
-          rightSlot={
-            <DatePill label={loading ? "Loading..." : selectedLabel} />
-          }
-        >
-          <div className="flex gap-10 items-center">
-            {/* ✅ Solid PIE like your design */}
+        <Card title="Routine Analysis">
+          <div className="flex gap-5 items-center">
             <PieSliceChart completed={completedSteps} skipped={skippedSteps} />
 
-            <div className="text-[18px] text-[#BD9A6B] space-y-3">
+            <div className="text-[14px] text-[#BD9A6B] space-y-3">
               <LegendItem label="Completed Steps" boxColor="bg-[#F7EAD7]" />
               <LegendItem label="Skipped Steps" boxColor="bg-[#DFC7A7]" />
             </div>
           </div>
         </Card>
 
-        <Card
-          title="Routine Progress"
-          subtitle="* 14 days cycle wise"
-          rightSlot={
-            <DatePill label={loading ? "Loading..." : selectedLabel} />
-          }
-        >
-          {/* ✅ Grid + y-axis like design */}
+        <Card title="Routine Progress" subtitle="* 14 days cycle wise">
+          {/* Grid + y-axis like design */}
           <MiniBarChartWithGrid
             bars={barValues}
             labels={barIndexLabels}
@@ -239,7 +227,7 @@ function Card({ title, subtitle, rightSlot, className = "", children }) {
                   shadow-[0_6px_10px_rgba(0,0,0,0.10)]
                   p-6 ${className}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-1">
         <div>
           <div className="text-[22px] font-extrabold text-[#BD9A6B] underline underline-offset-4 decoration-[#BD9A6B]/50">
             {title}
@@ -279,57 +267,126 @@ function LegendItem({ label, boxColor = "bg-[#CBB79B]" }) {
 /* ---------- PIE slice chart (matches design) ---------- */
 
 function PieSliceChart({ completed = 0, skipped = 0 }) {
-  const total = Math.max(1, completed + skipped);
+  const total = completed + skipped;
+
+  if (total === 0) {
+    return <div className="text-[#BD9A6B] text-sm">No data available</div>;
+  }
+
+  const size = 260;
+  const cx = 110;
+  const cy = 110;
+  const r = 85;
+
+  // 🟢 CASE 1: No completed steps → show solid skipped circle
+  if (completed === 0) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 220 220">
+        <circle cx={cx} cy={cy} r={r} fill="#DFC7A7" />
+
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="20"
+          fontWeight="800"
+          fill="#8C6C4F"
+        >
+          {skipped}
+        </text>
+      </svg>
+    );
+  }
+
+  // 🟢 CASE 2: Normal chart (both exist)
+
   const completedPct = completed / total;
+  const skippedPct = skipped / total;
 
-  // wedge angle for skipped section
-  const startAngle = -90;
-  const endAngle = startAngle + completedPct * 360;
-
-  const cx = 70;
-  const cy = 70;
-  const r = 55;
-
-  const polar = (angleDeg) => {
+  const polar = (angleDeg, radius = r * 0.6) => {
     const rad = (Math.PI / 180) * angleDeg;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    return {
+      x: cx + radius * Math.cos(rad),
+      y: cy + radius * Math.sin(rad),
+    };
   };
 
-  const p1 = polar(startAngle);
-  const p2 = polar(endAngle);
-  const largeArc = completedPct > 0.5 ? 1 : 0;
+  const startAngle = -90;
+  const completedEnd = startAngle + completedPct * 360;
 
-  // completed wedge path
-  const wedge = `
+  const largeArcCompleted = completedPct > 0.5 ? 1 : 0;
+
+  const p1 = polar(startAngle, r);
+  const p2 = polar(completedEnd, r);
+
+  const completedPath = `
     M ${cx} ${cy}
     L ${p1.x} ${p1.y}
-    A ${r} ${r} 0 ${largeArc} 1 ${p2.x} ${p2.y}
+    A ${r} ${r} 0 ${largeArcCompleted} 1 ${p2.x} ${p2.y}
     Z
   `;
 
+  const skippedPath = `
+    M ${cx} ${cy}
+    L ${p2.x} ${p2.y}
+    A ${r} ${r} 0 ${skippedPct > 0.5 ? 1 : 0} 1 ${p1.x} ${p1.y}
+    Z
+  `;
+
+  const completedMid = startAngle + (completedPct * 360) / 2;
+  const skippedMid = completedEnd + (skippedPct * 360) / 2;
+
+  const completedLabelPos = polar(completedMid);
+  const skippedLabelPos = polar(skippedMid);
+
   return (
-    <svg width="180" height="180" viewBox="0 0 140 140">
-      {/* base circle */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="#DFC7A7"
-        opacity="0.55"
-        stroke="#BD9A6B"
-        strokeWidth="1.2"
-      />
+    <svg width={size} height={size} viewBox="0 0 220 220">
+      {completed > 0 && (
+        <path
+          d={completedPath}
+          fill="#F7EAD7"
+          stroke="#BD9A6B"
+          strokeWidth="1.5"
+        />
+      )}
 
-      {/* skipped wedge (lighter) */}
-      <path d={wedge} fill="#F7EAD7" stroke="#BD9A6B" strokeWidth="1.2" />
+      {skipped > 0 && (
+        <path
+          d={skippedPath}
+          fill="#DFC7A7"
+          stroke="#BD9A6B"
+          strokeWidth="1.5"
+        />
+      )}
 
-      {/* values */}
-      <text x="48" y="75" fontSize="16" fill="#ffffff" fontWeight="800">
-        {completed}
-      </text>
-      <text x="90" y="85" fontSize="16" fill="#B0896E" fontWeight="800">
-        {skipped}
-      </text>
+      {completed > 0 && (
+        <text
+          x={completedLabelPos.x}
+          y={completedLabelPos.y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="18"
+          fontWeight="800"
+          fill="#BD9A6B"
+        >
+          {completed}
+        </text>
+      )}
+
+      {skipped > 0 && (
+        <text
+          x={skippedLabelPos.x}
+          y={skippedLabelPos.y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="18"
+          fontWeight="800"
+          fill="#8C6C4F"
+        >
+          {skipped}
+        </text>
+      )}
     </svg>
   );
 }
@@ -341,18 +398,28 @@ function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
 
   return (
     <div className="p-4">
-      <div className="relative h-[190px]">
+      <div className="relative h-[230px]">
+        {/* Y AXIS TITLE */}
+        <div
+          className="absolute left-0 top-0 bottom-[26px] w-1 flex items-center justify-center"
+          style={{ transform: "rotate(-90deg)" }}
+        >
+          <span className="text-[12px] text-[#BD9A6B] font-medium">
+            Completion
+          </span>
+        </div>
+
         {/* grid lines */}
         {[0, 20, 40, 60, 80, 100].map((y) => (
           <div
             key={y}
-            className="absolute left-10 right-2 border-t border-[#DFC7A7]"
-            style={{ bottom: `${(y / 100) * 150 + 26}px` }}
+            className="absolute left-12 right-2 border-t border-[#DFC7A7]"
+            style={{ bottom: `${(y / 100) * 150 + 40}px` }}
           />
         ))}
 
         {/* y-axis labels */}
-        <div className="absolute left-0 bottom-[26px] top-[10px] w-10 flex flex-col justify-between text-[11px] text-[#BD9A6B]">
+        <div className="absolute left-6 bottom-[40px] top-[20px] w-10 flex flex-col justify-between text-[11px] text-[#BD9A6B]">
           <span>100</span>
           <span>80</span>
           <span>60</span>
@@ -362,7 +429,7 @@ function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
         </div>
 
         {/* bars */}
-        <div className="absolute left-10 right-2 bottom-[26px] h-[150px] flex items-end gap-3">
+        <div className="absolute left-12 right-2 bottom-[40px] h-[150px] flex items-end gap-3">
           {safeBars.map((v, i) => (
             <div
               key={i}
@@ -378,7 +445,7 @@ function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
         </div>
 
         {/* x labels */}
-        <div className="absolute left-10 right-2 bottom-0 h-[26px] flex items-end gap-3">
+        <div className="absolute left-12 right-2 bottom-[14px] h-[26px] flex items-end gap-3">
           {safeBars.map((_, i) => (
             <div
               key={i}
@@ -387,6 +454,13 @@ function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
               {labels[i] ?? i}
             </div>
           ))}
+        </div>
+
+        {/* X AXIS TITLE */}
+        <div className="absolute left-12 right-2 bottom-[-8px] flex justify-center">
+          <span className="text-[12px] text-[#BD9A6B] font-medium">
+            Day of Cycle
+          </span>
         </div>
       </div>
 
@@ -405,7 +479,7 @@ function MiniLineChart({ values = [], labels = [], loading }) {
   const safe = values.length ? values : [3, 2, 3, 2, 1, 2, 1, 3, 3, 1];
 
   const w = 720;
-  const h = 220;
+  const h = 250;
   const padL = 85;
   const pad = 22;
 
@@ -415,7 +489,7 @@ function MiniLineChart({ values = [], labels = [], loading }) {
   const leftW = 90; // fixed y-label column width
   const plotW = safe.length * 70; // scroll width (70px per plan)
   const plotH = 220;
-  
+
   const toX = (i) => padL + (i * (w - padL - pad)) / (safe.length - 1);
   const toY = (v) => {
     const t = (v - minY) / (maxY - minY);
@@ -436,8 +510,8 @@ function MiniLineChart({ values = [], labels = [], loading }) {
   }, [safe.length]);
 
   return (
-    <div className="p-2 overflow-visible">
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-[220px]">
+    <div className="p-1 overflow-visible">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height: h }}>
         {/* x-axis tick labels (version) */}
         {safe.map((_, i) => (
           <text
@@ -485,9 +559,10 @@ function MiniLineChart({ values = [], labels = [], loading }) {
 
         <text
           x={(padL + (w - pad)) / 2}
-          y={h - 2}
+          y={h - 2 + 20}
           textAnchor="middle"
-          fontSize="12"
+          fontSize="14"
+          fontWeight="700"
           fill="#BD9A6B"
         >
           Plan no
@@ -497,7 +572,8 @@ function MiniLineChart({ values = [], labels = [], loading }) {
           x="16"
           y={h / 2}
           textAnchor="middle"
-          fontSize="13"
+          fontSize="14"
+          fontWeight="700"
           fill="#BD9A6B"
           transform={`rotate(-90 10 ${h / 2})`}
         >

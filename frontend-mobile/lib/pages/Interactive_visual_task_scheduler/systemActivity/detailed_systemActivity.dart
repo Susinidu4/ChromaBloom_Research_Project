@@ -50,6 +50,12 @@ class _DetailedSystemActivityScreenState
         .toString();
   }
 
+  bool get _isToday {
+    final d = widget.selectedDate;
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
   Future<void> _loadCaregiverAndChild() async {
     try {
       final caregiverID = _getCaregiverIdFromSession();
@@ -598,13 +604,14 @@ class _DetailedSystemActivityScreenState
                                       ),
                                       child: Checkbox(
                                         value: stepDone[i],
-                                        onChanged: (v) async {
-                                          await TtsService.stop();
-                                          setState(() {
-                                            stepDone[i] = v ?? false;
-                                          });
-                                        },
-
+                                        onChanged: _isToday
+                                            ? (v) async {
+                                                await TtsService.stop();
+                                                setState(() {
+                                                  stepDone[i] = v ?? false;
+                                                });
+                                              }
+                                            : null, // ✅ disables for past/future
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
                                       ),
@@ -652,6 +659,8 @@ class _DetailedSystemActivityScreenState
                                 ),
                                 child: TextFormField(
                                   controller: completedCtrl,
+                                  enabled: _isToday,
+                                  readOnly: !_isToday,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
                                   inputFormatters: [
@@ -695,7 +704,7 @@ class _DetailedSystemActivityScreenState
                                   children: [
                                     Expanded(
                                       child: InkWell(
-                                        onTap: onIncCompleted,
+                                        onTap: _isToday ? onIncCompleted : null,
                                         borderRadius:
                                             const BorderRadius.vertical(
                                               top: Radius.circular(10),
@@ -710,7 +719,7 @@ class _DetailedSystemActivityScreenState
 
                                     Expanded(
                                       child: InkWell(
-                                        onTap: onDecCompleted,
+                                        onTap: _isToday ? onDecCompleted : null,
                                         borderRadius:
                                             const BorderRadius.vertical(
                                               bottom: Radius.circular(10),
@@ -747,103 +756,108 @@ class _DetailedSystemActivityScreenState
                               width: 160,
                               height: 44,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  final caregiverId = caregiverID;
-                                  final childId = childID;
+                                onPressed: _isToday
+                                    ? () async {
+                                        final caregiverId = caregiverID;
+                                        final childId = childID;
 
-                                  if (caregiverId == null || childId == null) {
-                                    await showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Session Error",
-                                      text:
-                                          "Missing caregiver or child. Please login again.",
-                                    );
-                                    return;
-                                  }
-                                  final planId = widget.planMongoId;
-                                  final activityId = _getActivityMongoId();
+                                        if (caregiverId == null ||
+                                            childId == null) {
+                                          await showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Session Error",
+                                            text:
+                                                "Missing caregiver or child. Please login again.",
+                                          );
+                                          return;
+                                        }
+                                        final planId = widget.planMongoId;
+                                        final activityId =
+                                            _getActivityMongoId();
 
-                                  // ❌ missing ids
-                                  if (planId.isEmpty || activityId.isEmpty) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Error",
-                                      text:
-                                          "Missing plan or activity information.",
-                                    );
-                                    return;
-                                  }
+                                        // ❌ missing ids
+                                        if (planId.isEmpty ||
+                                            activityId.isEmpty) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Error",
+                                            text:
+                                                "Missing plan or activity information.",
+                                          );
+                                          return;
+                                        }
 
-                                  // ❌ completed duration REQUIRED
-                                  if (completedMinutes <= 0) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Duration Required",
-                                      text:
-                                          "Please enter completed duration (1–60 minutes).",
-                                    );
-                                    return;
-                                  }
+                                        // ❌ completed duration REQUIRED
+                                        if (completedMinutes <= 0) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Duration Required",
+                                            text:
+                                                "Please enter completed duration (1–60 minutes).",
+                                          );
+                                          return;
+                                        }
 
-                                  // ❌ at least one step checkbox REQUIRED
-                                  final anyChecked = stepDone.any(
-                                    (x) => x == true,
-                                  );
-                                  if (!anyChecked) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Steps Required",
-                                      text:
-                                          "Please tick at least one step before saving.",
-                                    );
-                                    return;
-                                  }
+                                        // ❌ at least one step checkbox REQUIRED
+                                        final anyChecked = stepDone.any(
+                                          (x) => x == true,
+                                        );
+                                        if (!anyChecked) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Steps Required",
+                                            text:
+                                                "Please tick at least one step before saving.",
+                                          );
+                                          return;
+                                        }
 
-                                  final stepsProgress = List.generate(
-                                    stepDone.length,
-                                    (i) {
-                                      return {
-                                        "step_number": i + 1,
-                                        "status": stepDone[i],
-                                      };
-                                    },
-                                  );
-
-                                  try {
-                                    final res =
-                                        await ChildRoutinePlanService.saveRoutineRun(
-                                          caregiverId: caregiverId,
-                                          childId: childId,
-                                          planMongoId: planId,
-                                          activityMongoId: activityId,
-                                          runDate: widget.selectedDate,
-                                          stepsProgress: stepsProgress,
-                                          completedDurationMinutes:
-                                              completedMinutes,
+                                        final stepsProgress = List.generate(
+                                          stepDone.length,
+                                          (i) {
+                                            return {
+                                              "step_number": i + 1,
+                                              "status": stepDone[i],
+                                            };
+                                          },
                                         );
 
-                                    if (!mounted) return;
+                                        try {
+                                          final res =
+                                              await ChildRoutinePlanService.saveRoutineRun(
+                                                caregiverId: caregiverId,
+                                                childId: childId,
+                                                planMongoId: planId,
+                                                activityMongoId: activityId,
+                                                runDate: widget.selectedDate,
+                                                stepsProgress: stepsProgress,
+                                                completedDurationMinutes:
+                                                    completedMinutes,
+                                              );
 
-                                    await showThemedAlert(
-                                      type: QuickAlertType.success,
-                                      title: "Saved",
-                                      text:
-                                          res["message"] ??
-                                          "Progress saved successfully.",
-                                    );
+                                          if (!mounted) return;
 
-                                    if (!mounted) return;
-                                    Navigator.pop(context, true);
-                                  } catch (e) {
-                                    if (!mounted) return;
+                                          await showThemedAlert(
+                                            type: QuickAlertType.success,
+                                            title: "Saved",
+                                            text:
+                                                res["message"] ??
+                                                "Progress saved successfully.",
+                                          );
 
-                                    await showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Save Failed",
-                                      text: e.toString(),
-                                    );
-                                  }
-                                },
+                                          if (!mounted) return;
+                                          Navigator.pop(context, true);
+                                        } catch (e) {
+                                          if (!mounted) return;
+
+                                          await showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Save Failed",
+                                            text: e.toString(),
+                                          );
+                                        }
+                                      }
+                                    : null,
 
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB79C6B),

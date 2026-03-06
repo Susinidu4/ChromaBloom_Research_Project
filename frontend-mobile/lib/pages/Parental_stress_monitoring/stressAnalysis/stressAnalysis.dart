@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
 
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Parental_stress_monitoring/stress_analysis_service.dart';
@@ -23,35 +22,34 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
   // Replace with your logged-in caregiver id
   //final String caregiverId = "p-0001";
 
-String? caregiverId;
+  String? caregiverId;
 
   late Future<StressComputeResponse> _future;
 
   late Future<StressHistoryResponse> _historyFuture;
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  // Delay until context is available
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final session = context.read<SessionProvider>();
-    final id =
-        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '').toString();
+    // Delay until context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final session = context.read<SessionProvider>();
+      final id = (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+          .toString();
 
-    if (id.isEmpty) return;
+      if (id.isEmpty) return;
 
-    setState(() {
-      caregiverId = id;
-      _future = StressAnalysisService.compute(caregiverId: caregiverId!);
-      _historyFuture = StressAnalysisService.getHistory(
-        caregiverId: caregiverId!,
-        limit: 10,
-      );
+      setState(() {
+        caregiverId = id;
+        _future = StressAnalysisService.compute(caregiverId: caregiverId!);
+        _historyFuture = StressAnalysisService.getHistory(
+          caregiverId: caregiverId!,
+          limit: 10,
+        );
+      });
     });
-  });
-}
-
+  }
 
   void _reload() {
     setState(() {
@@ -61,6 +59,34 @@ void initState() {
         limit: 10,
       );
     });
+  }
+
+  String friendlyErrorMessage(Object? err) {
+    final msg = err.toString().toLowerCase();
+
+    if (msg.contains("socketexception") ||
+        msg.contains("failed host lookup") ||
+        msg.contains("connection")) {
+      return "No internet connection.\nPlease check Wi-Fi/mobile data and try again.";
+    }
+
+    if (msg.contains("timeout")) {
+      return "The server is taking too long.\nPlease try again in a moment.";
+    }
+
+    if (msg.contains("401") || msg.contains("unauthorized")) {
+      return "Your session expired.\nPlease login again.";
+    }
+
+    if (msg.contains("404")) {
+      return "Stress analysis not found yet.\nPlease try again later.";
+    }
+
+    if (msg.contains("500") || msg.contains("server")) {
+      return "Server error occurred.\nPlease try again later.";
+    }
+
+    return "Something went wrong.\nPlease try again.";
   }
 
   @override
@@ -131,12 +157,17 @@ void initState() {
                         }
                         if (snap.hasError) {
                           return _ErrorCard(
-                            message: snap.error.toString(),
+                            message: friendlyErrorMessage(snap.error),
                             onRetry: _reload,
                           );
                         }
 
-                        final data = snap.data!;
+                        final data = snap.data;
+
+                        if (data == null || data.stress == null) {
+                          return _EmptyStressCard();
+                        }
+
                         final stress = data.stress;
                         final rec = data.recommendation;
 
@@ -154,6 +185,7 @@ void initState() {
                               stressProbability: stress.stressProbability,
                               consecutiveHighDays: stress.consecutiveHighDays,
                               escalationTriggered: stress.escalationTriggered,
+                              raw: stress.raw,
                             ),
                             const SizedBox(height: 14),
                             // _RecommendationCard(recommendation: rec),
@@ -280,9 +312,23 @@ class _ErrorCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            message,
-            style: const TextStyle(fontFamily: "Poppins", fontSize: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFFBD9A6B)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    color: Color(0xFF8B6B44),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Align(
@@ -298,12 +344,52 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
+class _EmptyStressCard extends StatelessWidget {
+  const _EmptyStressCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBD9A6B), width: 1.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            "Latest stress level",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFBD9A6B),
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            "No stress analysis available yet.\n"
+            "Please complete your daily inputs to generate analysis.",
+            style: TextStyle(
+              fontFamily: "Poppins",
+              fontSize: 12,
+              color: Color(0xFF8B6B44),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LatestStressCard extends StatelessWidget {
   final String stressLevel;
   final DateTime date;
 
   final int stressScore; // 0..3
   final double stressProbability;
+  final List<double>? raw;
   final int consecutiveHighDays;
   final bool escalationTriggered;
 
@@ -314,6 +400,7 @@ class _LatestStressCard extends StatelessWidget {
     required this.stressProbability,
     required this.consecutiveHighDays,
     required this.escalationTriggered,
+    this.raw,
   });
 
   static const Color gold = Color(0xFFBD9A6B);
@@ -449,32 +536,115 @@ class _LatestStressCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Detected: $stressLevel",
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: "Poppins",
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: gold,
-                      ),
-                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          _MetaRow(label: "Stress score", value: "$stressScore / 3"),
-          _MetaRow(
-            label: "Probability",
-            value: "${(stressProbability * 100).toStringAsFixed(1)}%",
+          // _MetaRow(label: "Stress score", value: "$stressScore / 3"),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left side: Stress Analysis Details
+              Expanded(child: _stressDetailsBlock()),
+
+              // Right side: Detected + Confidence (as your screenshot)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "Detected   : $stressLevel",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Confidence : ${(stressProbability * 100).toStringAsFixed(1)}%",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
           // _MetaRow(label: "Escalation", value: escalationTriggered ? "Triggered" : "Not triggered"),
         ],
       ),
+    );
+  }
+
+  Widget _stressDetailsBlock() {
+    if (raw == null || raw!.isEmpty) return const SizedBox.shrink();
+
+    const labels = ["Low", "Medium", "High", "Critical"];
+    final count = raw!.length < 4 ? raw!.length : 4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Stress Analysis Details",
+          style: TextStyle(
+            fontFamily: "Poppins",
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: gold,
+            decoration: TextDecoration.underline,
+            decorationColor: Color(0xFFBD9A6B),
+            decorationThickness: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (int i = 0; i < count; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    labels[i],
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ),
+                const Text(
+                  ":",
+                  style: TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "${(raw![i] * 100).toStringAsFixed(1)}%",
+                  style: const TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
@@ -490,23 +660,25 @@ class _MetaRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end, // <-- RIGHT ALIGN
         children: [
           Text(
             label,
             style: const TextStyle(
               fontFamily: "Poppins",
               fontSize: 12,
-              color: Color(0xFF8B6B44),
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFBD9A6B),
             ),
           ),
+          const SizedBox(width: 6), // spacing between label & value
           Text(
             value,
             style: const TextStyle(
               fontFamily: "Poppins",
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF8B6B44),
+              color: Color(0xFFBD9A6B),
             ),
           ),
         ],

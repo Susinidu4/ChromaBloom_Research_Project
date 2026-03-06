@@ -105,4 +105,23 @@ class SessionProvider extends ChangeNotifier {
 
     return result;
   }
+
+  Future<void> deleteAccount() async {
+    if (_caregiver == null) {
+      throw Exception("No caregiver session found");
+    }
+
+    final caregiverId = (_caregiver!['_id'] ?? _caregiver!['id'] ?? '').toString();
+    if (caregiverId.isEmpty) {
+      throw Exception("Caregiver ID not found in session");
+    }
+
+    await CaregiverApi.deleteCaregiver(
+      caregiverId: caregiverId,
+      token: _token,
+    );
+
+    // If successful, log out locally
+    await logout();
+  }
 }

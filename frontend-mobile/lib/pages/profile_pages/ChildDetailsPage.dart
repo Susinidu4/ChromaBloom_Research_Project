@@ -275,13 +275,13 @@ class _ChildDetailsPageState extends State<ChildDetailsPage> {
         ),
         const SizedBox(height: 12),
 
-        _YesNoTextRow(label: "Heart Issues", value: heart),
-        const SizedBox(height: 8),
-        _YesNoTextRow(label: "Thyroid", value: thyroid),
-        const SizedBox(height: 8),
-        _YesNoTextRow(label: "Hearing Problems", value: hearing),
-        const SizedBox(height: 8),
-        _YesNoTextRow(label: "Vision Problems", value: vision),
+        _YesNoRadioRow(label: "Heart Issues", value: heart),
+        const SizedBox(height: 10),
+        _YesNoRadioRow(label: "Thyroid", value: thyroid),
+        const SizedBox(height: 10),
+        _YesNoRadioRow(label: "Hearing Problems", value: hearing),
+        const SizedBox(height: 10),
+        _YesNoRadioRow(label: "Vision Problems", value: vision),
       ],
     );
   }
@@ -517,21 +517,50 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ===================== YES/NO TEXT ROW =====================
+// ===================== YES/NO RADIO ROW =====================
 
-class _YesNoTextRow extends StatelessWidget {
+class _YesNoRadioRow extends StatelessWidget {
   final String label;
   final bool value;
 
-  const _YesNoTextRow({required this.label, required this.value});
+  const _YesNoRadioRow({required this.label, required this.value});
 
   static const Color textGold = Color(0xFFC6A36C);
-  static const Color valueText = Color(0xFFB88F55);
+  static const Color radioFill = Color(0xFFC6A36C);
+  static const Color radioBorder = Color(0xFFC6A36C);
+
+  Widget _radioCircle(bool selected) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? radioFill : Colors.transparent,
+        border: Border.all(
+          color: radioBorder,
+          width: selected ? 0 : 1.8,
+        ),
+      ),
+      child: selected
+          ? Center(
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        // Label
         Expanded(
           child: Text(
             label,
@@ -542,12 +571,27 @@ class _YesNoTextRow extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          value ? "Yes" : "No",
-          style: const TextStyle(
-            color: valueText,
+        // Yes radio
+        _radioCircle(value),
+        const SizedBox(width: 6),
+        const Text(
+          "Yes",
+          style: TextStyle(
+            color: textGold,
             fontSize: 13,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 14),
+        // No radio
+        _radioCircle(!value),
+        const SizedBox(width: 6),
+        const Text(
+          "No",
+          style: TextStyle(
+            color: textGold,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],

@@ -248,12 +248,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (!mounted) return;
 
-      final msg = childResult['message'] ?? "Sign up completed successfully";
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
-      // ✅ Navigate after success (update route to your app)
-      // Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/caregiver_login');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
