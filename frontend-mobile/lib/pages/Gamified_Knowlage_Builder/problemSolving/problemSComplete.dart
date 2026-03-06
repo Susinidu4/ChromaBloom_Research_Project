@@ -188,31 +188,31 @@ class _ProblemSolvingLessonCompletePageState
 
       final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
 
-      // 1) fetch existing records (before save) - optional but useful
+      // 1) fetch existing records (before save)
+      double prevScore = 0.0;
       try {
-        await CompleteProblemSolvingSessionService.getByChildAndLesson(
+        final res = await CompleteProblemSolvingSessionService.getByChildAndLesson(
           childId: childId,
           lessonId: widget.lessonId,
         );
+        final existingRecords = _extractDataList(res);
+        if (existingRecords.isNotEmpty) {
+          final sorted = _sortRecordsSmart(existingRecords);
+          prevScore = _readScore(sorted.last);
+        }
       } catch (_) {
         // ignore (might be 404)
       }
 
-      // 2) ALWAYS create a new record so "last two records" can exist
-      await CompleteProblemSolvingSessionService.create(
+      // 2) Upsert the session (update existing if it exists, otherwise create)
+      await CompleteProblemSolvingSessionService.upsert(
         childId: childId,
         lessonId: widget.lessonId,
         correctnessScore: correctnessClamped,
       );
 
-      // 3) fetch again and compute improvement from last two
-      final after = await CompleteProblemSolvingSessionService.getByChildAndLesson(
-        childId: childId,
-        lessonId: widget.lessonId,
-      );
-
-      final records = _extractDataList(after);
-      final computed = _computeImprovementFromLastTwo(records);
+      // 3) improvement as positive delta (0..1)
+      final computed = (correctnessClamped - prevScore).clamp(0.0, 1.0);
 
       if (!mounted) return;
       setState(() {
@@ -220,7 +220,7 @@ class _ProblemSolvingLessonCompletePageState
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Lesson completion saved")),
+        const SnackBar(content: Text("✅ Lesson record updated")),
       );
     } catch (e) {
       if (!mounted) return;

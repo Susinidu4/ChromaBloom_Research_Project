@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../api_config.dart';
 
 /// Problem Solving Level Service
 /// Matches backend:
@@ -11,7 +12,6 @@ import 'package:http/http.dart' as http;
 class ProblemSolvingLevelService {
   ProblemSolvingLevelService._();
 
-  static const String _baseUrl = "http://localhost:5000"; 
   static const String _path = "/chromabloom/problem-solving-levels";
 
   static Map<String, String> _headers() => const {
@@ -40,7 +40,7 @@ class ProblemSolvingLevelService {
     required String userId,
     required String level,
   }) async {
-    final uri = Uri.parse("$_baseUrl$_path");
+    final uri = Uri.parse("${ApiConfig.baseUrl}$_path");
 
     final payload = {
       "userId": userId,
@@ -59,7 +59,7 @@ class ProblemSolvingLevelService {
 
   /// Get all problem solving levels
   static Future<List<dynamic>> getAllLevels() async {
-    final uri = Uri.parse("$_baseUrl$_path");
+    final uri = Uri.parse("${ApiConfig.baseUrl}$_path");
 
     final res = await http
         .get(uri, headers: _headers())
@@ -73,7 +73,7 @@ class ProblemSolvingLevelService {
 
   /// Get problem solving level by user ID
   static Future<Map<String, dynamic>> getLevelByUserId(String userId) async {
-    final uri = Uri.parse("$_baseUrl$_path/user/$userId");
+    final uri = Uri.parse("${ApiConfig.baseUrl}$_path/user/$userId");
 
     final res = await http
         .get(uri, headers: _headers())
@@ -82,6 +82,8 @@ class ProblemSolvingLevelService {
     if (res.statusCode >= 200 && res.statusCode < 300) {
       return jsonDecode(res.body) as Map<String, dynamic>;
     }
+    
+    // Handle 404 gracefully if needed or let it throw
     throw _errFromResponse(res);
   }
 
@@ -90,7 +92,7 @@ class ProblemSolvingLevelService {
     required String id,
     required String level,
   }) async {
-    final uri = Uri.parse("$_baseUrl$_path/$id");
+    final uri = Uri.parse("${ApiConfig.baseUrl}$_path/$id");
 
     final payload = {
       "level": level,
@@ -111,7 +113,7 @@ class ProblemSolvingLevelService {
     required String userId,
     required String level,
   }) async {
-    final uri = Uri.parse("$_baseUrl$_path/user/$userId");
+    final uri = Uri.parse("${ApiConfig.baseUrl}$_path/user/$userId");
 
     final payload = {
       "level": level,
