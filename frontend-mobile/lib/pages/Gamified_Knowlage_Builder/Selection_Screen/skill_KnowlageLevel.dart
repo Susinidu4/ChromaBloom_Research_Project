@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
+import '../../../state/session_provider.dart';
+import '../../../services/Gemified/drawing_level_service.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/api_config.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -12,15 +17,76 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
   static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
   static const String _prefKeyDrawingLevelValue = "drawing_skill_level_value";
 
-  Future<void> _saveLevelAndGo(BuildContext context, String level) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKeyDrawingLevelSet, true);
-    await prefs.setString(_prefKeyDrawingLevelValue, level);
+  Future<void> _saveLevelAndGo(BuildContext context, String inputLevel) async {
+    // 1. Map inputLevel -> dbLevel
+    String dbLevel;
+    if (inputLevel == "new" || inputLevel == "some_common") {
+      dbLevel = "Beginner";
+    } else if (inputLevel == "basic") {
+      dbLevel = "Intermediate";
+    } else if (inputLevel == "most") {
+      dbLevel = "Advanced";
+    } else {
+      dbLevel = "Beginner"; // Default fallback
+    }
 
-    if (!context.mounted) return;
+    try {
+      // 2. Access session
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiver = session.caregiver;
+      if (caregiver == null) throw Exception("No active session found.");
 
-    // ✅ Go to Unit Start page after selecting level
-    Navigator.pushReplacementNamed(context, '/unitStart');
+      final caregiverId = (caregiver['_id'] ?? caregiver['id'] ?? '').toString();
+      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found.");
+
+      // 3. Get first child information
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        throw Exception("No children found for this caregiver. Please register a child first.");
+      }
+
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? '').toString();
+      if (childId.isEmpty) throw Exception("Child ID not found.");
+
+      // 4. Save to database using service
+      final drawingService = DrawingLevelService(
+        baseUrl: "${ApiConfig.baseUrl}/chromabloom/drawing-levels",
+        token: session.token,
+      );
+
+      // Check if a record already exists
+      final List<dynamic> existingLevels = await drawingService.getDrawingLevelByUserId(childId);
+
+      if (existingLevels.isNotEmpty) {
+        // Update existing record
+        final existingRecordId = (existingLevels[0]['_id'] ?? existingLevels[0]['id'] ?? '').toString();
+        await drawingService.updateDrawingLevel(
+          id: existingRecordId,
+          level: dbLevel,
+        );
+      } else {
+        // Create new record
+        await drawingService.createDrawingLevel(
+          userId: childId,
+          level: dbLevel,
+        );
+      }
+
+      // 5. Local storage (existing logic)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyDrawingLevelSet, true);
+      await prefs.setString(_prefKeyDrawingLevelValue, dbLevel);
+
+      if (!context.mounted) return;
+
+      // 6. Navigation
+      Navigator.pushReplacementNamed(context, '/unitStart');
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    }
   }
 
   @override

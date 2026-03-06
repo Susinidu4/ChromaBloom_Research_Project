@@ -5,7 +5,6 @@ const Drawing_Level_Schema = new mongoose.Schema(
     _id: { type: String },
     user_id: { type: String },
     level: { type: String, enum: ['Beginner', 'Intermediate', 'Advanced'] },
-    description: { type: String },
   },
   { timestamps: true }
 );

@@ -5,7 +5,7 @@ import Drawing_Level from "../../models/Gamified_Knowlage_Builder_Model/Drawing_
 // @access  Public
 export const createDrawingLevel = async (req, res) => {
     try {
-        const { user_id, level, description } = req.body;
+        const { user_id, level } = req.body;
 
         if (!user_id || !level) {
             return res.status(400).json({ message: "User ID and level are required" });
@@ -14,7 +14,6 @@ export const createDrawingLevel = async (req, res) => {
         const newDrawingLevel = new Drawing_Level({
             user_id,
             level,
-            description,
         });
 
         const savedLevel = await newDrawingLevel.save();
@@ -30,11 +29,11 @@ export const createDrawingLevel = async (req, res) => {
 export const updateDrawingLevel = async (req, res) => {
     try {
         const { id } = req.params;
-        const { level, description } = req.body;
+        const { level } = req.body;
 
         const updatedLevel = await Drawing_Level.findByIdAndUpdate(
             id,
-            { level, description },
+            { level },
             { new: true, runValidators: true }
         );
 

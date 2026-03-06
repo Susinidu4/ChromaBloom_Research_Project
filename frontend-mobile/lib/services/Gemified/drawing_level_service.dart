@@ -28,12 +28,10 @@ class DrawingLevelService {
   Future<Map<String, dynamic>> createDrawingLevel({
     required String userId,
     required String level,
-    String? description,
   }) async {
     final body = jsonEncode({
       "user_id": userId,
       "level": level,
-      "description": description,
     });
 
     final res = await http.post(
@@ -55,11 +53,9 @@ class DrawingLevelService {
   Future<Map<String, dynamic>> updateDrawingLevel({
     required String id,
     required String level,
-    String? description,
   }) async {
     final body = jsonEncode({
       "level": level,
-      "description": description,
     });
 
     final res = await http.put(
