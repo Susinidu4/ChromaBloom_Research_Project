@@ -52,9 +52,7 @@ export default function SelectedRoutine() {
           difficulty: a?.difficulty_level || "",
           devArea: a?.development_area || "",
           steps: (a?.steps || []).map((s) => s.instruction),
-          imageUrl:
-            (a?.media_links && a.media_links[0]) ||
-            "https://images.emojiterra.com/google/noto-emoji/unicode-15.1/color/512px/1f466.png",
+          videoUrl: (a?.media_links && a.media_links[0]) || "",
         };
 
         setRoutine(mapped);
@@ -69,7 +67,6 @@ export default function SelectedRoutine() {
 
     fetchOne();
   }, [id]);
-
 
   const onBack = () => navigate("/routine_list");
   const onEdit = () => navigate(`/routine_edit/${id}`);
@@ -102,46 +99,45 @@ export default function SelectedRoutine() {
 
       navigate("/routine_list");
     } catch (e) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Delete failed";
+      const msg = e?.response?.data?.message || e?.message || "Delete failed";
       alertError(msg);
     }
   };
 
-
   return (
     <AdminLayout>
-      <div className="w-full h-full bg-[#F3E8E8]">
-        <div className="px-10 py-10">
-          <div className="relative min-h-[640px] rounded-[14px] px-10 py-10">
-            {/* Back */}
+      <div className="w-full min-h-screen bg-[#F3E8E8]">
+        {/* Responsive padding */}
+        <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10">
+          <div className="relative rounded-[14px]">
+            {/* Back Button (top-left on desktop, normal flow on mobile) */}
             <button
               onClick={onBack}
-              className="absolute left-10 top-10 h-10 w-10 rounded-full bg-white/70
-                         shadow-[0_10px_18px_rgba(0,0,0,0.18)]
-                         grid place-items-center hover:brightness-95 active:scale-[0.98]"
+              className="mb-6 sm:absolute sm:left-0 sm:top-0 h-10 w-10 rounded-full bg-white/70
+                       shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+                       grid place-items-center hover:brightness-95 active:scale-[0.98]"
               title="Back"
             >
               <FaArrowLeft className="text-[#BD9A6B]" />
             </button>
 
-            {/* Loading / Error */}
+            {/* Loading */}
             {loading && (
-              <div className="mx-auto w-[680px] max-w-[92%] text-center text-[#BD9A6B] py-20">
+              <div className="mx-auto max-w-xl text-center text-[#BD9A6B] py-20">
                 Loading...
               </div>
             )}
 
-            {/* Card */}
             {!loading && routine && (
               <div
-                className="mx-auto w-[680px] max-w-[92%] bg-[#E9DDCC] rounded-[14px]
-                            shadow-[0_10px_18px_rgba(0,0,0,0.18)] px-10 py-10"
+                className="mx-auto w-full max-w-2xl bg-[#E9DDCC] rounded-[14px]
+                         shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+                         px-5 sm:px-8 lg:px-10 py-8 sm:py-10"
               >
-                {/* Title + icons */}
-                <div className="flex items-start justify-between">
+                {/* Title + icons (stack on mobile) */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>
-                    <h2 className="text-[22px] font-semibold text-[#BD9A6B]">
+                    <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#BD9A6B]">
                       {routine.title}
                     </h2>
 
@@ -156,7 +152,7 @@ export default function SelectedRoutine() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <button
                       onClick={onEdit}
                       className="text-[#BD9A6B] hover:brightness-90"
@@ -176,24 +172,31 @@ export default function SelectedRoutine() {
                   </div>
                 </div>
 
-                {/* Image */}
+                {/* Video (responsive height) */}
                 <div className="mt-8 flex justify-center">
-                  <img
-                    src={routine.imageUrl}
-                    alt="routine"
-                    className="h-[220px] w-auto object-contain"
-                  />
+                  {routine.videoUrl ? (
+                    <video
+                      src={routine.videoUrl}
+                      controls
+                      className="w-full max-w-md h-[200px] sm:h-[240px] md:h-[280px]
+                               rounded-[12px] border border-[#BD9A6B]/40 object-contain"
+                    />
+                  ) : (
+                    <p className="text-sm text-[#BD9A6B] opacity-80">
+                      No video uploaded.
+                    </p>
+                  )}
                 </div>
 
                 {/* Description */}
-                <p className="mt-10 text-[13px] leading-6 text-[#B79A6A] opacity-90">
+                <p className="mt-8 sm:mt-10 text-[13px] leading-6 text-[#B79A6A] opacity-90">
                   {routine.description}
                 </p>
 
                 {/* Steps */}
                 <div className="mt-8">
                   <p className="text-sm font-semibold text-[#BD9A6B]">STEPS:</p>
-                  <ol className="mt-3 list-decimal pl-6 text-[13px] text-[#B79A6A] space-y-2">
+                  <ol className="mt-3 list-decimal pl-5 text-[13px] text-[#B79A6A] space-y-2">
                     {routine.steps?.length ? (
                       routine.steps.map((s, idx) => <li key={idx}>{s}</li>)
                     ) : (
@@ -202,17 +205,15 @@ export default function SelectedRoutine() {
                   </ol>
                 </div>
 
-                {/* Bottom meta */}
+                {/* Bottom Meta */}
                 <div className="mt-10 space-y-3 text-[13px] text-[#BD9A6B]">
-                  <div className="flex gap-3">
-                    <span className="font-semibold">DIFFICULTY LEVEL</span>
-                    <span>:</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="font-semibold">DIFFICULTY LEVEL:</span>
                     <span className="text-[#B79A6A]">{routine.difficulty}</span>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="font-semibold">DEVELOPMENT AREA</span>
-                    <span>:</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="font-semibold">DEVELOPMENT AREA:</span>
                     <span className="text-[#B79A6A]">{routine.devArea}</span>
                   </div>
                 </div>

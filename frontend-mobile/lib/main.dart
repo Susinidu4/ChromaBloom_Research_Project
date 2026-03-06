@@ -3,6 +3,8 @@ import 'package:frontend/pages/others/SplashScreen.dart';
 import 'package:frontend/pages/others/home.dart';
 import 'package:frontend/pages/others/welcome_screen.dart';
 import 'package:frontend/pages/others/first_time_options.dart';
+import 'package:frontend/pages/profile_pages/login_recover.dart';
+import 'package:frontend/pages/profile_pages/term_of_use.dart';
 import 'package:provider/provider.dart';
 import 'state/session_provider.dart';
 
@@ -30,6 +32,7 @@ import 'package:frontend/pages/profile_pages/ProfileSettingsPage.dart';
 import 'package:frontend/pages/profile_pages/profile_page.dart';
 
 import 'package:frontend/pages/Cognitive_Progress_Prediction/progress_prediction_screen.dart';
+import 'package:frontend/pages/Cognitive_Progress_Prediction/after_prediction_screen.dart';
 
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Selection_Screen/startG.dart';
 import 'package:frontend/pages/Gamified_Knowlage_Builder/Drawing/drawing_predict_api_page.dart';
@@ -104,6 +107,8 @@ class MyApp extends StatelessWidget {
         '/profile_page': (context) => const ProfilePage(),
         '/profile_settings': (context) => const ProfileSettingsPage(),
         '/child_details': (context) => const ChildDetailsPage(),
+        '/login_recovery': (context) => const LoginRecoverPage(),
+        '/terms_of_use': (context) => const TermsOfUsePage(),
 
         '/taskSchedulerHome': (context) => const RoutineHomeScreen(),
         '/createUserActivity': (context) => const CreateUserActivityScreen(),
@@ -140,6 +145,7 @@ class MyApp extends StatelessWidget {
             ),
 
         '/progress_prediction': (context) => const ProgressPredictionScreen(),
+        '/after_prediction_screen': (context) => const AfterPredictionScreen(),
       },
     );
   }

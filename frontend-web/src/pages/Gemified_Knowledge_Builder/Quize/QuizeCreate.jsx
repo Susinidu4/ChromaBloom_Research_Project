@@ -118,7 +118,7 @@ export default function QuizeCreate() {
     try {
       setSubmitting(true);
       await QuizeService.create(payload, { useMultipart: true });
-      navigate("/wellness_module");
+      navigate("/learning_module");
     } catch (error) {
       setMsg({ type: "error", text: error?.message || "Failed to create quiz" });
     } finally {

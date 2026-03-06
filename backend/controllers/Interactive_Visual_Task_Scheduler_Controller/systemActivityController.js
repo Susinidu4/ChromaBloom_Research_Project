@@ -12,19 +12,17 @@ import cloudinary from "../../config/cloudinary.js";
 // ------------------------- Admin ------------------------- //
 
 // helper: upload buffer to Cloudinary using upload_stream
-const uploadBufferToCloudinary = (buffer, folder) => {
-  return new Promise((resolve, reject) => {
+const uploadBufferToCloudinary = (buffer, folder) =>
+  new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      // create upload stream from Cloudinary
-      { folder },
+      { folder, resource_type: "video", timeout: 180000 },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
       },
     );
-    stream.end(buffer); // send buffer
+    stream.end(buffer);
   });
-};
 
 // Controller to create a new system routine
 export const createSystemActivity = async (req, res) => {
@@ -96,22 +94,38 @@ export const createSystemActivity = async (req, res) => {
     }
 
     // ---------------- CLOUDINARY UPLOAD ----------------
-    let uploadedImageUrl = null;
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Video file is required (field name: video)" });
+    }
 
-    if (req.file) {
-      try {
-        const result = await uploadBufferToCloudinary(
-          req.file.buffer,
-          "chromabloom/system_activities",
+    let uploadedVideoUrl = null;
+
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "chromabloom/system_activities/videos",
+            resource_type: "video",
+            timeout: 180000,
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          },
         );
-        uploadedImageUrl = result.secure_url;
-      } catch (error) {
-        console.error("Cloudinary Upload Error:", error);
-        return res.status(500).json({
-          error: "Image upload failed",
-          details: error.message,
-        });
-      }
+
+        stream.end(req.file.buffer); // ✅ IMPORTANT (buffer, not path)
+      });
+
+      uploadedVideoUrl = result.secure_url;
+    } catch (error) {
+      console.error("Cloudinary Upload Error:", error);
+      return res.status(500).json({
+        error: "Video upload failed",
+        details: error.message,
+      });
     }
 
     // CREATE system activity
@@ -123,7 +137,7 @@ export const createSystemActivity = async (req, res) => {
       steps: parsedSteps,
       estimated_duration_minutes,
       difficulty_level,
-      media_links: uploadedImageUrl ? [uploadedImageUrl] : [],
+      media_links: uploadedVideoUrl ? [uploadedVideoUrl] : [],
     });
 
     return res.status(201).json({
@@ -224,19 +238,27 @@ export const updateSystemActivity = async (req, res) => {
       activity.estimated_duration_minutes = dur;
     }
 
+    let parsedSteps = steps;
+
+    if (typeof steps === "string") {
+      try {
+        parsedSteps = JSON.parse(steps);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid steps JSON format" });
+      }
+    }
+
     // Steps: accept either [{instruction}] or [{step_number,instruction}]
-    if (steps !== undefined) {
-      if (!Array.isArray(steps) || steps.length === 0) {
+    if (parsedSteps !== undefined) {
+      if (!Array.isArray(parsedSteps) || parsedSteps.length === 0) {
         return res
           .status(400)
           .json({ message: "Routine must contain at least one step" });
       }
 
-      const cleanedSteps = steps
+      const cleanedSteps = parsedSteps
         .map((s) => (typeof s === "string" ? { instruction: s } : s))
-        .map((s) => ({
-          instruction: String(s.instruction || "").trim(),
-        }))
+        .map((s) => ({ instruction: String(s.instruction || "").trim() }))
         .filter((s) => s.instruction.length > 0)
         .map((s, idx) => ({
           step_number: idx + 1,
@@ -252,16 +274,20 @@ export const updateSystemActivity = async (req, res) => {
       activity.steps = cleanedSteps;
     }
 
-    // media_links: replace whole array if provided
-    if (media_links !== undefined) {
-      if (!Array.isArray(media_links)) {
-        return res
-          .status(400)
-          .json({ message: "media_links must be an array" });
+    // if new video is uploaded, replace media_links with new URL
+    if (req.file) {
+      try {
+        const result = await uploadBufferToCloudinary(
+          req.file.buffer,
+          "chromabloom/system_activities/videos",
+        );
+        activity.media_links = [result.secure_url];
+      } catch (error) {
+        return res.status(500).json({
+          message: "Video upload failed",
+          error: error.message,
+        });
       }
-      activity.media_links = media_links
-        .map((x) => String(x).trim())
-        .filter(Boolean);
     }
 
     await activity.save();
@@ -791,6 +817,138 @@ export const updateSystemActivityProgress = async (req, res) => {
   }
 };
 
+// Ensure daily RoutineRuns exist for ALL activities in plan, then return them(automatically creates missing runs with default progress = not started)
+export const getDailyRoutineRunsEnsureRecords = async (req, res) => {
+  try {
+    const { caregiverId, childId, planId, run_date } = req.query;
+
+    if (!caregiverId || !childId || !planId || !run_date) {
+      return res.status(400).json({
+        error: "caregiverId, childId, planId, run_date required",
+      });
+    }
+
+    // normalize date (YYYY-MM-DD) -> UTC midnight
+    const [y, m, d] = run_date.split("-").map(Number);
+    if (!y || !m || !d) {
+      return res.status(400).json({ error: "run_date must be YYYY-MM-DD" });
+    }
+    const runDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+
+    // 1) Get the plan (must exist and belong to caregiver/child)
+    const plan = await ChildRoutinePlan.findOne({
+      _id: planId,
+      caregiverId,
+      childId,
+      is_active: true, // optional: remove if you want to allow old plans too
+    }).lean();
+
+    if (!plan) {
+      return res.status(404).json({ error: "Plan not found (or not active)" });
+    }
+
+    const planActivityIds = (plan.activities || []).map((a) =>
+      String(a.activityId),
+    );
+
+    if (planActivityIds.length === 0) {
+      return res.status(200).json({
+        message: "No activities in plan",
+        data: [],
+      });
+    }
+
+    // 2) Find existing runs for this day for the plan activities
+    const existingRuns = await RoutineRunModel.find({
+      caregiverId,
+      childId,
+      planId,
+      run_date: runDate,
+      activityId: { $in: planActivityIds },
+    }).lean();
+
+    const existingSet = new Set(existingRuns.map((r) => String(r.activityId)));
+    const missingActivityIds = planActivityIds.filter(
+      (id) => !existingSet.has(String(id)),
+    );
+
+    // 3) If missing runs exist, create them with default progress
+    if (missingActivityIds.length > 0) {
+      // Fetch activities to get steps length
+      const activities = await SystemActivity.find(
+        { _id: { $in: missingActivityIds } },
+        { steps: 1 },
+      ).lean();
+
+      const stepLenMap = new Map(
+        activities.map((a) => [
+          String(a._id),
+          Array.isArray(a.steps) ? a.steps.length : 0,
+        ]),
+      );
+
+      const docsToInsert = missingActivityIds.map((actId) => {
+        const total_steps = stepLenMap.get(String(actId)) ?? 0;
+
+        const steps_progress = Array.from({ length: total_steps }, (_, i) => ({
+          step_number: i + 1,
+          status: false,
+        }));
+
+        return {
+          caregiverId,
+          childId,
+          planId,
+          activityId: actId,
+          run_date: runDate,
+          steps_progress,
+          total_steps,
+          completed_steps: 0,
+          skipped_steps: total_steps, // not done = skipped (your current model)
+          completed_duration_minutes: 0,
+        };
+      });
+
+      // Insert missing docs (ignore duplicates if two requests happen at same time)
+      try {
+        await RoutineRunModel.insertMany(docsToInsert, { ordered: false });
+      } catch (err) {
+        // If duplicates happen due to race condition, ignore duplicate key errors
+        if (err?.code !== 11000) throw err;
+      }
+    }
+
+    // 4) Return full runs for this day (now complete)
+    const finalRuns = await RoutineRunModel.find({
+      caregiverId,
+      childId,
+      planId,
+      run_date: runDate,
+      activityId: { $in: planActivityIds },
+    })
+      .populate({ path: "activityId", model: "SystemActivity" })
+      .lean();
+
+    // Sort by plan order (optional but nice)
+    const orderMap = new Map(
+      (plan.activities || []).map((a) => [String(a.activityId), a.order]),
+    );
+    finalRuns.sort(
+      (a, b) =>
+        (orderMap.get(String(a.activityId)) || 999) -
+        (orderMap.get(String(b.activityId)) || 999),
+    );
+
+    return res.status(200).json({
+      message: "Daily runs ensured and fetched",
+      missing_created: missingActivityIds.length,
+      data: finalRuns,
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error", error: e.message });
+  }
+};
+
 // Display routine run progress for a specific planId + activityId + caregiverId + childId (READ)
 export const getRoutineRunProgress = async (req, res) => {
   try {
@@ -916,8 +1074,186 @@ async function callMlForNextDifficulty(payload) {
 
 // Real production flow
 
-// This function closes the ended plan, sends features to ML, gets next level,
-// picks new activities, and creates the next 14-day plan.
+// // This function closes the ended plan, sends features to ML, gets next level,
+// // picks new activities, and creates the next 14-day plan.
+// export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
+//   try {
+//     const { caregiverId, childId } = req.body;
+
+//     if (!caregiverId || !childId) {
+//       return res
+//         .status(400)
+//         .json({ error: "caregiverId and childId required" });
+//     }
+
+//     const now = new Date();
+
+//     // 1) Find ended active plan
+//     const endedPlan = await ChildRoutinePlan.findOne({
+//       caregiverId,
+//       childId,
+//       is_active: true,
+//       cycle_end_date: { $lte: now },
+//     }).lean();
+
+//     if (!endedPlan) {
+//       return res.status(404).json({
+//         error: "No ended active plan found (cycle not finished yet)",
+//       });
+//     }
+
+//     // 2) Compute features + call ML (you already have these functions)
+//     const features = await computeCycleFeatures({
+//       caregiverId,
+//       childId,
+//       planId: endedPlan._id,
+//       cycleStart: endedPlan.cycle_start_date,
+//       cycleEnd: endedPlan.cycle_end_date,
+//       currentDifficultyLevel: endedPlan.current_difficulty_level,
+//     });
+
+//     const mlResult = await callMlForNextDifficulty(features);
+//     const nextLevel = mlResult?.next_difficulty_level;
+
+//     if (!nextLevel) {
+//       return res.status(500).json({
+//         error: "ML response missing next_difficulty_level",
+//         ml_result: mlResult,
+//       });
+//     }
+
+//     // 3) Get child's age_group via logged-in caregiver + childId
+//     // (This ensures caregiver owns this child)
+//     const child = await Child.findOne({
+//       _id: childId, // if your childId is Mongo _id
+//       caregiver: caregiverId,
+//     }).lean();
+
+//     if (!child) {
+//       return res
+//         .status(404)
+//         .json({ error: "Child not found for this caregiver" });
+//     }
+
+//     // If you store age_group directly:
+//     // const ageGroup = child.age_group; // e.g. "age_6"
+//     const ageGroup = getAgeGroupFromDOB(child.dateOfBirth);
+
+//     // DEBUG LOGS (temporary)
+//     // console.log("DOB:", child.dateOfBirth);
+//     // console.log("Computed age_group:", ageGroup);
+
+//     if (!ageGroup) {
+//       return res.status(400).json({ error: "Child age_group not found" });
+//     }
+
+//     // 4) Pick 5 random activities for ageGroup + nextLevel
+//     const picked = await SystemActivity.aggregate([
+//       { $match: { age_group: ageGroup, difficulty_level: nextLevel } },
+//       { $sample: { size: 5 } },
+//       { $project: { _id: 1 } },
+//     ]);
+
+//     if (!picked || picked.length < 5) {
+//       return res.status(404).json({
+//         error: `Not enough activities for age_group=${ageGroup} difficulty_level=${nextLevel}`,
+//       });
+//     }
+
+//     // 5) Deactivate old plan
+//     await ChildRoutinePlan.updateOne(
+//       { _id: endedPlan._id },
+//       { $set: { is_active: false } },
+//     );
+
+//     // 6) Next version number
+//     const lastPlan = await ChildRoutinePlan.findOne({ caregiverId, childId })
+//       .sort({ created_at: -1 })
+//       .lean();
+
+//     const nextVersion = (lastPlan?.version || 0) + 1;
+
+//     // 7) Create new 14-day plan (new cycle)
+//     const { start, end } = computeNextCycleDatesFromEndedPlan(endedPlan.cycle_end_date);
+
+//     // create new plan
+//     const newPlan = await ChildRoutinePlan.create({
+//       caregiverId,
+//       childId,
+//       current_difficulty_level: nextLevel,
+//       activities: picked.map((p, idx) => ({
+//         activityId: p._id,
+//         order: idx + 1,
+//       })),
+//       cycle_start_date: start,
+//       cycle_end_date: end,
+//       version: nextVersion,
+//       is_active: true,
+//     });
+
+//     // 8) Return populated plan
+//     const populated = await ChildRoutinePlan.findById(newPlan._id).populate({
+//       path: "activities.activityId",
+//       model: "SystemActivity",
+//     });
+
+//     return res.status(201).json({
+//       message: "Next 14-day plan created successfully",
+//       ended_plan_id: endedPlan._id,
+//       features_sent: features,
+//       ml_result: mlResult,
+//       new_plan: populated,
+//     });
+//   } catch (e) {
+//     return res.status(500).json({ message: "Server error", error: e.message });
+//   }
+// };
+
+// // Continuous cycle dates: next cycle starts immediately after the previous cycle ends
+// function computeNextCycleDatesFromEndedPlan(prevCycleEndDate) {
+//   const prevEnd = new Date(prevCycleEndDate);
+
+//   // next start = next day at 00:00:00.000
+//   const start = new Date(prevEnd);
+//   start.setDate(start.getDate() + 1);
+//   start.setHours(0, 0, 0, 0);
+
+//   // next end = start + 13 days at 23:59:59.999
+//   const end = new Date(start);
+//   end.setDate(end.getDate() + 13);
+//   end.setHours(23, 59, 59, 999);
+
+//   return { start, end };
+// }
+
+// // Helper to get age group from date of birth
+// function getAgeGroupFromDOB(dateOfBirth) {
+//   // child’s date of birth
+//   const dob = new Date(dateOfBirth);
+//   const today = new Date();
+
+//   // calculate age
+//   let age = today.getFullYear() - dob.getFullYear();
+//   const m = today.getMonth() - dob.getMonth();
+
+//   // adjust if birthday hasn't occurred yet this year
+//   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+//     age--;
+//   }
+//   // map age to age_group string
+//   if (age <= 2) return "2";
+//   if (age === 3) return "3";
+//   if (age === 4) return "4";
+//   if (age === 5) return "5";
+//   if (age === 6) return "6";
+//   if (age === 7) return "7";
+//   if (age === 8) return "8";
+//   if (age === 9) return "9";
+//   return "10";
+// }
+
+// UPDATED CONTROLLER: auto-catches up ALL missing 14-day plans in ONE call
+// It will keep creating plans until the active plan's cycle_end_date is AFTER "now".
 export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
   try {
     const { caregiverId, childId } = req.body;
@@ -930,42 +1266,7 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
 
     const now = new Date();
 
-    // 1) Find ended active plan
-    const endedPlan = await ChildRoutinePlan.findOne({
-      caregiverId,
-      childId,
-      is_active: true,
-      cycle_end_date: { $lte: now },
-    }).lean();
-
-    if (!endedPlan) {
-      return res.status(404).json({
-        error: "No ended active plan found (cycle not finished yet)",
-      });
-    }
-
-    // 2) Compute features + call ML (you already have these functions)
-    const features = await computeCycleFeatures({
-      caregiverId,
-      childId,
-      planId: endedPlan._id,
-      cycleStart: endedPlan.cycle_start_date,
-      cycleEnd: endedPlan.cycle_end_date,
-      currentDifficultyLevel: endedPlan.current_difficulty_level,
-    });
-
-    const mlResult = await callMlForNextDifficulty(features);
-    const nextLevel = mlResult?.next_difficulty_level;
-
-    if (!nextLevel) {
-      return res.status(500).json({
-        error: "ML response missing next_difficulty_level",
-        ml_result: mlResult,
-      });
-    }
-
-    // 3) Get child's age_group via logged-in caregiver + childId
-    // (This ensures caregiver owns this child)
+    // ✅ Get child + ageGroup ONCE (no need inside loop)
     const child = await Child.findOne({
       _id: childId, // if your childId is Mongo _id
       caregiver: caregiverId,
@@ -977,91 +1278,150 @@ export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
         .json({ error: "Child not found for this caregiver" });
     }
 
-    // If you store age_group directly:
-    // const ageGroup = child.age_group; // e.g. "age_6"
     const ageGroup = getAgeGroupFromDOB(child.dateOfBirth);
-
-    // 🔍 DEBUG LOGS (temporary)
-    // console.log("DOB:", child.dateOfBirth);
-    // console.log("Computed age_group:", ageGroup);
-
     if (!ageGroup) {
       return res.status(400).json({ error: "Child age_group not found" });
     }
 
-    // 4) Pick 5 random activities for ageGroup + nextLevel
-    const picked = await SystemActivity.aggregate([
-      { $match: { age_group: ageGroup, difficulty_level: nextLevel } },
-      { $sample: { size: 5 } },
-      { $project: { _id: 1 } },
-    ]);
+    // ✅ Safety guard to avoid infinite loops (e.g., bad dates)
+    const MAX_PLANS_TO_CREATE = 30;
 
-    if (!picked || picked.length < 5) {
-      return res.status(404).json({
-        error: `Not enough activities for age_group=${ageGroup} difficulty_level=${nextLevel}`,
+    const createdPlans = [];
+    let loops = 0;
+
+    while (loops < MAX_PLANS_TO_CREATE) {
+      loops++;
+
+      // 1) Find ended active plan
+      const endedPlan = await ChildRoutinePlan.findOne({
+        caregiverId,
+        childId,
+        is_active: true,
+        cycle_end_date: { $lte: now },
+      }).lean();
+
+      // If there is no ended active plan -> we are already caught up
+      if (!endedPlan) break;
+
+      // 2) Compute features + call ML (based on ended plan)
+      const features = await computeCycleFeatures({
+        caregiverId,
+        childId,
+        planId: endedPlan._id,
+        cycleStart: endedPlan.cycle_start_date,
+        cycleEnd: endedPlan.cycle_end_date,
+        currentDifficultyLevel: endedPlan.current_difficulty_level,
+      });
+
+      const mlResult = await callMlForNextDifficulty(features);
+      const nextLevel = mlResult?.next_difficulty_level;
+
+      if (!nextLevel) {
+        return res.status(500).json({
+          error: "ML response missing next_difficulty_level",
+          ml_result: mlResult,
+        });
+      }
+
+      // 3) Pick 5 random activities for ageGroup + nextLevel
+      const picked = await SystemActivity.aggregate([
+        { $match: { age_group: ageGroup, difficulty_level: nextLevel } },
+        { $sample: { size: 5 } },
+        { $project: { _id: 1 } },
+      ]);
+
+      if (!picked || picked.length < 5) {
+        return res.status(404).json({
+          error: `Not enough activities for age_group=${ageGroup} difficulty_level=${nextLevel}`,
+        });
+      }
+
+      // 4) Deactivate old plan
+      await ChildRoutinePlan.updateOne(
+        { _id: endedPlan._id },
+        { $set: { is_active: false } },
+      );
+
+      // 5) Next version number (based on latest plan in DB)
+      const lastPlan = await ChildRoutinePlan.findOne({ caregiverId, childId })
+        .sort({ created_at: -1 })
+        .lean();
+
+      const nextVersion = (lastPlan?.version || 0) + 1;
+
+      // 6) Create next 14-day plan
+      const { start, end } = computeNextCycleDatesFromEndedPlan(
+        endedPlan.cycle_end_date,
+      );
+
+      const newPlan = await ChildRoutinePlan.create({
+        caregiverId,
+        childId,
+        current_difficulty_level: nextLevel,
+        activities: picked.map((p, idx) => ({
+          activityId: p._id,
+          order: idx + 1,
+        })),
+        cycle_start_date: start,
+        cycle_end_date: end,
+        version: nextVersion,
+        is_active: true,
+      });
+
+      createdPlans.push({
+        created_plan_id: newPlan._id,
+        version: newPlan.version,
+        level: newPlan.current_difficulty_level,
+        start: newPlan.cycle_start_date,
+        end: newPlan.cycle_end_date,
+        ended_plan_id: endedPlan._id,
+      });
+
+      // ✅ LOOP continues:
+      // if this newly created plan is also already ended compared to "now",
+      // the next while iteration will close it and create another one.
+    }
+
+    if (createdPlans.length === 0) {
+      return res.status(200).json({
+        message: "No ended active plan found (already up to date)",
+        created_count: 0,
+        created_plans: [],
       });
     }
 
-    // 5) Deactivate old plan
-    await ChildRoutinePlan.updateOne(
-      { _id: endedPlan._id },
-      { $set: { is_active: false } },
-    );
+    // Return the LAST created plan populated (nice for frontend)
+    const lastCreatedId = createdPlans[createdPlans.length - 1].created_plan_id;
 
-    // 6) Next version number
-    const lastPlan = await ChildRoutinePlan.findOne({ caregiverId, childId })
-      .sort({ created_at: -1 })
-      .lean();
-
-    const nextVersion = (lastPlan?.version || 0) + 1;
-
-    // 7) Create new 14-day plan (new cycle)
-    const { start, end } = computeNextCycleDates();
-
-    // create new plan
-    const newPlan = await ChildRoutinePlan.create({
-      caregiverId,
-      childId,
-      current_difficulty_level: nextLevel,
-      activities: picked.map((p, idx) => ({
-        activityId: p._id,
-        order: idx + 1,
-      })),
-      cycle_start_date: start,
-      cycle_end_date: end,
-      version: nextVersion,
-      is_active: true,
-    });
-
-    // 8) Return populated plan
-    const populated = await ChildRoutinePlan.findById(newPlan._id).populate({
+    const populatedLast = await ChildRoutinePlan.findById(
+      lastCreatedId,
+    ).populate({
       path: "activities.activityId",
       model: "SystemActivity",
     });
 
     return res.status(201).json({
-      message: "Next 14-day plan created successfully",
-      ended_plan_id: endedPlan._id,
-      features_sent: features,
-      ml_result: mlResult,
-      new_plan: populated,
+      message: "Missing 14-day plans generated until up-to-date",
+      created_count: createdPlans.length,
+      created_plans: createdPlans,
+      last_active_plan: populatedLast,
+      safety_stop: createdPlans.length >= MAX_PLANS_TO_CREATE,
     });
   } catch (e) {
     return res.status(500).json({ message: "Server error", error: e.message });
   }
 };
 
-// Helper to compute next cycle dates (tomorrow 00:00 to +13 days end-of-day)
-function computeNextCycleDates() {
-  // current date-time
-  const now = new Date();
+// Continuous cycle dates: next cycle starts immediately after the previous cycle ends
+function computeNextCycleDatesFromEndedPlan(prevCycleEndDate) {
+  const prevEnd = new Date(prevCycleEndDate);
 
-  // create start date tomorrow 00:00
-  const start = new Date(now);
+  // next start = next day at 00:00:00.000
+  const start = new Date(prevEnd);
   start.setDate(start.getDate() + 1);
   start.setHours(0, 0, 0, 0);
 
-  // create the end date -> start + 13 days
+  // next end = start + 13 days at 23:59:59.999
   const end = new Date(start);
   end.setDate(end.getDate() + 13);
   end.setHours(23, 59, 59, 999);
@@ -1071,19 +1431,14 @@ function computeNextCycleDates() {
 
 // Helper to get age group from date of birth
 function getAgeGroupFromDOB(dateOfBirth) {
-  // child’s date of birth
   const dob = new Date(dateOfBirth);
   const today = new Date();
 
-  // calculate age
   let age = today.getFullYear() - dob.getFullYear();
   const m = today.getMonth() - dob.getMonth();
 
-  // adjust if birthday hasn't occurred yet this year
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-  // map age to age_group string
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
   if (age <= 2) return "2";
   if (age === 3) return "3";
   if (age === 4) return "4";

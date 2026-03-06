@@ -223,7 +223,7 @@ export default function LessonForm({ mode, initialValue, saving, onSubmit }) {
             disabled={saving}
             className="bg-[#A47C5B] text-white px-10 py-3 rounded-[10px] font-bold shadow-lg hover:brightness-95 transition disabled:opacity-50"
           >
-            {saving ? "Creating..." : "Create Lesson"}
+            {saving ? (mode === "create" ? "Creating..." : "Updating...") : (mode === "create" ? "Create lesson" : "Update lesson")}
           </button>
         </div>
       </form>

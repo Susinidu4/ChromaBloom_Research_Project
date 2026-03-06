@@ -16,8 +16,8 @@ export const adminLogin = async ({ email, password }) => {
 };
 
 // CREATE ADMIN (POST /chromabloom/admins)
-export const createAdmin = async ({ full_name, email, password }) => {
-  const res = await api.post(`${ADMIN_BASE}`, { full_name, email, password });
+export const createAdmin = async ({ full_name, email, password, phone }) => {
+  const res = await api.post(`${ADMIN_BASE}`, { full_name, email, password, phone });
   return res.data;
 };
 
@@ -55,5 +55,10 @@ export const uploadAdminProfilePicture = async (id, file) => {
       "Content-Type": "multipart/form-data",
     },
   });
+  return res.data;
+};
+// DELETE ADMIN (DELETE /chromabloom/admins/:id)
+export const deleteAdmin = async (id) => {
+  const res = await api.delete(`${ADMIN_BASE}/${id}`);
   return res.data;
 };

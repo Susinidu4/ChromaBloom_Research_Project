@@ -122,6 +122,7 @@ export const computeStressAndRecommendation = async (req, res) => {
     const stress_score = Number(ml.stress_score); // 0..3
     const stress_level = ml.stress_level; // "Low" | "Medium" | "High" | "Critical"
     const stress_probability = Number(ml.stress_probability ?? 0);
+    const raw = Array.isArray(ml.raw) ? ml.raw.map(Number).filter(Number.isFinite) : [];
 
     // Validate ML outputs
     if (![0, 1, 2, 3].includes(stress_score) || !stress_level) {
@@ -161,6 +162,7 @@ export const computeStressAndRecommendation = async (req, res) => {
         stress_score,
         stress_level,
         stress_probability,
+        raw,
         consecutive_high_days,
         escalation_triggered,
       },

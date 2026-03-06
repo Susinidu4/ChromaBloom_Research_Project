@@ -96,7 +96,7 @@ export default function ProblemSolvingLessonCreate() {
     try {
       setSubmitting(true);
       await ProblemSolvingLessonService.create(payload);
-      navigate("/wellness_module");
+      navigate("/learning_module");
     } catch (error) {
       const apiMsg =
         error?.response?.data?.message ||
