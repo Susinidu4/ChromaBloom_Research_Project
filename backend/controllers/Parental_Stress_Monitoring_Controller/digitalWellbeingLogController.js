@@ -58,7 +58,6 @@ export const createDigitalWellbeingLog = async (req, res) => {
 };
 
 
-
 //get digital wellbeing logs by caregiverId
 export const getDigitalWellbeingLogsByCaregiverId = async (req, res) => {
   try {
