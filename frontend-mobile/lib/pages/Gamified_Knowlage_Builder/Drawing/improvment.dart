@@ -357,16 +357,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                               children: [
                                 const Icon(Icons.verified_rounded, size: 22),
                                 const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    _predictedLabel,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: LessonCompletePage.topRowBlue,
-                                    ),
-                                  ),
-                                ),
+                                const Spacer(),
                                 Text(
                                   "${_confidencePercent.toStringAsFixed(1)}%",
                                   style: const TextStyle(
@@ -391,11 +382,11 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 18),
 
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        "Improvement",
-                        style: TextStyle(
+                        "${(_improvement * 100).toStringAsFixed(0)}%",
+                        style: const TextStyle(
                           color: LessonCompletePage.labelColor,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
@@ -422,11 +413,11 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 14),
 
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        "Correctness",
-                        style: TextStyle(
+                        "${(_correctness * 100).toStringAsFixed(0)}%",
+                        style: const TextStyle(
                           color: LessonCompletePage.labelColor,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,

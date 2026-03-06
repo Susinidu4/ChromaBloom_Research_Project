@@ -144,39 +144,41 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
       // 1. Get child ID
       final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
       if (children.isEmpty) {
+        // No child found, fallback to initial selection screen
         Navigator.pushNamed(context, '/skillKnowlageLevel_2');
         return;
       }
       final childId = (children[0]['_id'] ?? children[0]['id'] ?? "").toString();
 
-      // 2. Fetch problem solving level data
+      // 2. Fetch current problem solving level from backend
       Map<String, dynamic> levelData;
       try {
         levelData = await ProblemSolvingLevelService.getLevelByUserId(childId);
       } catch (e) {
+        // If level entry doesn't exist, go to selection screen
         Navigator.pushNamed(context, '/skillKnowlageLevel_2');
         return;
       }
 
       final String currentLevel = (levelData['level'] ?? "Beginner").toString();
 
-      // 3. Level progression logic
-      if (currentLevel != "Advanced" && currentLevel != "Advance") {
-        // Fetch all sessions
+      // 3. Level progression logic (Only if not already Advanced)
+      if (currentLevel.toLowerCase() != "advanced" && currentLevel.toLowerCase() != "advance") {
+        
+        // Fetch all completed problem solving sessions for this child
         final res = await CompleteProblemSolvingSessionService.getCompletedSessionsByUser(childId);
-        final data = res["data"];
+        final List<dynamic> allCompletedSessions = res["data"] ?? [];
 
-        if (data is List && data.isNotEmpty) {
-          // Filter by current level? 
-          // To filter by current level, we need to know the level of each lesson.
-          // Let's fetch all lessons first.
-          final allLessons = await ProblemSolvingLessonService.getAllLessons();
+        if (allCompletedSessions.isNotEmpty) {
+          // We need to know the difficulty of each lesson to filter sessions by current level
+          final List<dynamic> allLessons = await ProblemSolvingLessonService.getAllLessons();
           final Map<String, String> lessonDifficultyMap = {
-            for (var l in allLessons) (l['_id'] ?? l['id']).toString(): (l['difficulty_level'] ?? "").toString()
+            for (var l in allLessons) 
+              (l['_id'] ?? l['id']).toString(): (l['difficulty_level'] ?? "").toString()
           };
 
-          // Filter completed sessions to those matching current child level
-          final filteredSessions = data.where((session) {
+          // Filter sessions: Only those that match the child's CURRENT level
+          final List<dynamic> sessionsAtCurrentLevel = allCompletedSessions.where((session) {
             final lessonId = (session['lessons'] is Map) 
               ? (session['lessons']['_id'] ?? session['lessons']['id']).toString()
               : session['lessons'].toString();
@@ -184,40 +186,46 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
             return lessonDiff.toLowerCase() == currentLevel.toLowerCase();
           }).toList();
 
-          // Take first 10 data
-          final sessionsToAverage = filteredSessions.take(10).toList();
+          // REQUIREMENT: Must have completed at least 10 lessons (sessions) at this level
+          // The backend returns sessions sorted by newest first, so we take the 10 most recent.
+          final sessionsToAnalyze = sessionsAtCurrentLevel.take(10).toList();
           
-          if (sessionsToAverage.length == 10) {
+          if (sessionsToAnalyze.length == 10) {
             double totalCorrectness = 0;
-            for (var session in sessionsToAverage) {
-              final rate = session['correctness_score'] ?? 0.0;
-              totalCorrectness += (rate is num) ? rate.toDouble() : 0.0;
+            for (var session in sessionsToAnalyze) {
+              final score = session['correctness_score'] ?? 0.0;
+              totalCorrectness += (score is num) ? score.toDouble() : 0.0;
             }
 
-            double average = (totalCorrectness / sessionsToAverage.length) * 100;
+            // Calculate percentage average (assuming score is 0..1 scale)
+            double averagePercent = (totalCorrectness / sessionsToAnalyze.length) * 100;
 
-            if (average >= 60) {
+            // REQUIREMENT: Average correctness must be >= 60%
+            if (averagePercent >= 60) {
               String nextLevel = "";
-              if (currentLevel == "Beginner") {
+              if (currentLevel.toLowerCase() == "beginner") {
                 nextLevel = "Intermediate";
-              } else if (currentLevel == "Intermediate") {
+              } else if (currentLevel.toLowerCase() == "intermediate") {
                 nextLevel = "Advanced";
               }
 
               if (nextLevel.isNotEmpty) {
-                // Update the problem solving level
+                // Update the problem solving level in backend
                 await ProblemSolvingLevelService.updateLevelByUserId(
                   userId: childId,
                   level: nextLevel,
                 );
                 
-                // Update local preferences
+                // Keep local preference in sync
                 await prefs.setBool(_prefKeyProblemLevelSet, true);
                 await prefs.setString("problem_solving_skill_level_value", nextLevel);
                 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Congratulations! Your problem solving level upgraded to $nextLevel")),
+                    SnackBar(
+                      content: Text("Congratulations! Level Up: $currentLevel ➔ $nextLevel"),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 }
               }
@@ -227,10 +235,12 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
       }
 
       if (!mounted) return;
+      // Navigate to the lessons page (will now show lessons for the potentially updated level)
       Navigator.pushNamed(context, '/problemSolvingLessons');
 
     } catch (e) {
       debugPrint("Error in handleProblemSolvingTap: $e");
+      // Fallback navigate to lessons if preferences exist, otherwise to level selection
       final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
       if (!mounted) return;
       if (!levelSet) {
