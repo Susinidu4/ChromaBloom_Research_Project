@@ -109,6 +109,16 @@ class CompleteProblemSolvingSessionService {
     return _decodeMap(res.body);
   }
 
+  static Future<Map<String, dynamic>> getCompletedSessionsByUser(String childId) async {
+    final uri = Uri.parse("$_base$_path/user/$childId");
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 20));
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw _err(res);
+    }
+    return _decodeMap(res.body);
+  }
+
   /// ✅ Helper: extract correctness_score safely from {count, data:[...]}
   static double extractCorrectnessScore(Map<String, dynamic> res) {
     try {
@@ -120,6 +130,38 @@ class CompleteProblemSolvingSessionService {
       return double.tryParse(v.toString()) ?? 0.0;
     } catch (_) {
       return 0.0;
+    }
+  }
+
+  static Future<Map<String, dynamic>> upsert({
+    required String childId,
+    required String lessonId,
+    required num correctnessScore,
+  }) async {
+    // 1. check if exists
+    List<dynamic> list = [];
+    try {
+      final check = await getByChildAndLesson(childId: childId, lessonId: lessonId);
+      list = (check["data"] as List<dynamic>? ?? []);
+    } catch (_) {
+      // ignore, proceed as "not found"
+    }
+
+    if (list.isNotEmpty) {
+      // 2. update existing
+      final first = list.first as Map<String, dynamic>;
+      final id = (first["_id"] ?? first["id"]).toString();
+      return await update(
+        id: id,
+        correctnessScore: correctnessScore,
+      );
+    } else {
+      // 3. create new
+      return await create(
+        childId: childId,
+        lessonId: lessonId,
+        correctnessScore: correctnessScore,
+      );
     }
   }
 }
