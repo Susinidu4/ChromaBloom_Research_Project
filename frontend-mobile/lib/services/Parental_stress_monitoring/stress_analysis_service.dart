@@ -4,13 +4,15 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 
 class StressAnalysisService {
-    static final String _base = ApiConfig.baseUrl;
+  static final String _base = ApiConfig.baseUrl;
 
-// Compute stress and recommendation for a caregiver
+  // Compute stress and recommendation for a caregiver
   static Future<StressComputeResponse> compute({
     required String caregiverId,
   }) async {
-    final uri = Uri.parse("$_base/chromabloom/stressAnalysis/compute/$caregiverId");
+    final uri = Uri.parse(
+      "$_base/chromabloom/stressAnalysis/compute/$caregiverId",
+    );
 
     final res = await http.get(uri).timeout(const Duration(seconds: 20));
 
@@ -22,18 +24,15 @@ class StressAnalysisService {
     return StressComputeResponse.fromJson(data);
   }
 
-
-// get stress history by caregiverId
- static Future<List<StressDto>> getHistoryByCaregiver({
+  // get stress history by caregiverId
+  static Future<List<StressDto>> getHistoryByCaregiver({
     required String caregiverId,
   }) async {
     final uri = Uri.parse("$_base/chromabloom/stressAnalysis/$caregiverId");
 
-
     final res = await http.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-
       throw Exception("Get history failed (${res.statusCode}): ${res.body}");
     }
 
@@ -58,17 +57,16 @@ class StressAnalysisService {
     throw Exception("Unexpected stress history response shape: ${res.body}");
   }
 
-  
-  // -----------------------------
   // Get last N stress score history (default 10)
-  // -----------------------------
+
   static Future<StressHistoryResponse> getHistory({
     required String caregiverId,
     int limit = 10,
   }) async {
-    final uri = Uri.parse("$_base/chromabloom/stressAnalysis/history/$caregiverId")
-        .replace(queryParameters: {"limit": "$limit"});
-  final res = await http.get(uri).timeout(const Duration(seconds: 20));
+    final uri = Uri.parse(
+      "$_base/chromabloom/stressAnalysis/history/$caregiverId",
+    ).replace(queryParameters: {"limit": "$limit"});
+    final res = await http.get(uri).timeout(const Duration(seconds: 20));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception("History failed (${res.statusCode}): ${res.body}");
@@ -77,23 +75,19 @@ class StressAnalysisService {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StressHistoryResponse.fromJson(data);
   }
-
-
 }
-
 
 class StressComputeResponse {
   final StressDto stress;
   final RecommendationDto? recommendation;
 
-  StressComputeResponse({
-    required this.stress,
-    required this.recommendation,
-  });
+  StressComputeResponse({required this.stress, required this.recommendation});
 
   factory StressComputeResponse.fromJson(Map<String, dynamic> json) {
     return StressComputeResponse(
-      stress: StressDto.fromJson((json["stress"] ?? {}) as Map<String, dynamic>),
+      stress: StressDto.fromJson(
+        (json["stress"] ?? {}) as Map<String, dynamic>,
+      ),
       recommendation: json["recommendation"] == null
           ? null
           : RecommendationDto.fromJson(
@@ -125,11 +119,14 @@ class StressDto {
   });
 
   factory StressDto.fromJson(Map<String, dynamic> json) {
-    DateTime? tryParse(String? s) => (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
+    DateTime? tryParse(String? s) =>
+        (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
 
     return StressDto(
       stressLevel: (json["stress_level"] ?? "Low").toString(),
-      stressScore: (json["stress_score"] is num) ? (json["stress_score"] as num).toInt() : 0,
+      stressScore: (json["stress_score"] is num)
+          ? (json["stress_score"] as num).toInt()
+          : 0,
       stressProbability: (json["stress_probability"] is num)
           ? (json["stress_probability"] as num).toDouble()
           : 0.0,
@@ -169,8 +166,6 @@ class RecommendationDto {
     );
   }
 }
-
-
 
 /* ===================== HISTORY DTOs ===================== */
 

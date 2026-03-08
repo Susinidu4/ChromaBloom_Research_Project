@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
+
 import { HiPlus } from "react-icons/hi";
 import { FiSearch } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import { HiDotsHorizontal } from "react-icons/hi";
-import AdminLayout from "../Admin_Management/AdminLayout";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
+
+import AdminLayout from "../Admin_Management/AdminLayout";
 
 import {
   getAllSystemActivitiesService,
@@ -15,9 +17,13 @@ import {
 export default function RoutineList() {
   const navigate = useNavigate();
 
+  // for search input
   const [search, setSearch] = useState("");
 
+  // all routines fetched from backend
   const [rows, setRows] = useState([]);
+
+  // loading state while fetching data
   const [loading, setLoading] = useState(true);
 
   // what user is selecting right now (not applied yet)
@@ -30,6 +36,7 @@ export default function RoutineList() {
   const [appliedDevArea, setAppliedDevArea] = useState("");
   const [appliedAgeGroup, setAppliedAgeGroup] = useState("");
 
+  // common alert for errors
   const alertError = (msg) =>
     Swal.fire({
       icon: "error",
@@ -38,6 +45,7 @@ export default function RoutineList() {
       confirmButtonColor: "#BD9A6B",
     });
 
+  // common alert for success messages
   const alertSuccess = (msg) =>
     Swal.fire({
       icon: "success",
@@ -51,6 +59,7 @@ export default function RoutineList() {
       try {
         setLoading(true);
 
+        // fetch all routines from backend
         const res = await getAllSystemActivitiesService();
 
         const mapped = (res.data || []).map((a) => ({
@@ -75,12 +84,12 @@ export default function RoutineList() {
     fetchActivities();
   }, []);
 
+  // filter + search logic, useMemo to avoid unnecessary recalculations
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     return rows.filter((r) => {
       const matchSearch = !q || r.title.toLowerCase().includes(q);
-
       const matchDiff =
         !appliedDifficulty || r.difficulty === appliedDifficulty;
       const matchDev = !appliedDevArea || r.dev === appliedDevArea;
@@ -90,8 +99,10 @@ export default function RoutineList() {
     });
   }, [rows, search, appliedDifficulty, appliedDevArea, appliedAgeGroup]);
 
+  // Navigate to create page
   const onAddNew = () => navigate("/routine_create");
 
+  // Delete routine with confirmation
   const onDelete = async (id) => {
     const result = await Swal.fire({
       title: "Delete routine?",
@@ -120,12 +131,14 @@ export default function RoutineList() {
   // Navigate to detail page
   const onMore = (id) => navigate(`/routine_detail/${id}`);
 
+  // Apply filters to the table
   const onFilter = () => {
     setAppliedDifficulty(pendingDifficulty);
     setAppliedDevArea(pendingDevArea);
     setAppliedAgeGroup(pendingAgeGroup);
   };
 
+  // Clear filters and reset pending/applied states
   const onClearFilter = () => {
     setPendingDifficulty("");
     setPendingDevArea("");
@@ -146,6 +159,7 @@ export default function RoutineList() {
               Routine List
             </h1>
 
+            {/* Add New button */}
             <button
               onClick={onAddNew}
               className="flex items-center justify-center gap-2 rounded-[10px] bg-[#BD9A6B] px-4 py-2 text-white
@@ -191,8 +205,8 @@ export default function RoutineList() {
               />
             </div>
 
-            {/* buttons */}
             <div className="flex gap-3 w-full sm:w-auto">
+              {/* Filter button */}
               <button
                 onClick={onFilter}
                 className="flex-1 sm:flex-none rounded-[10px] bg-[#B79A6A] px-8 py-2 text-sm font-semibold text-white
@@ -201,6 +215,7 @@ export default function RoutineList() {
                 Filter
               </button>
 
+              {/* Filter clear button */}
               <button
                 onClick={onClearFilter}
                 className="flex-1 sm:flex-none rounded-[10px] px-8 py-2 text-sm font-semibold text-[#BD9A6B]
@@ -213,7 +228,7 @@ export default function RoutineList() {
             </div>
           </div>
 
-          {/* Search (full width on mobile) */}
+          {/* Search */}
           <div className="mt-4">
             <div className="relative w-full sm:w-[320px]">
               <input
@@ -231,7 +246,7 @@ export default function RoutineList() {
 
           {/* Table container */}
           <div className="bg-[#EFE6E3] rounded-[14px] px-4 sm:px-6 lg:px-10 py-4 shadow-[0_12px_22px_rgba(0,0,0,0.12)] mt-6">
-            {/* ✅ horizontal scroll for small screens */}
+            {/* horizontal scroll for small screens */}
             <div className="overflow-x-auto">
               <div className="min-w-[820px]">
                 {/* Header */}
@@ -258,6 +273,8 @@ export default function RoutineList() {
                   {!loading &&
                     filtered.map((r) => (
                       <div key={r.id} className="px-1 py-2">
+
+                        {/* Body */}
                         <div className="grid grid-cols-[1.6fr_0.7fr_1fr_1.2fr_1.2fr_56px_56px] gap-1 text-[13px] text-[#BD9A6B]">
                           <div className="truncate">{r.title}</div>
                           <div className="text-center">{r.age}</div>
@@ -266,6 +283,7 @@ export default function RoutineList() {
                           <div className="text-center">{r.duration}</div>
 
                           <div className="flex justify-center">
+                            {/* Delete button */}
                             <button
                               onClick={() => onDelete(r.id)}
                               className="h-8 w-8 rounded-[10px] bg-[#6B3B30] text-white
@@ -278,6 +296,7 @@ export default function RoutineList() {
                           </div>
 
                           <div className="flex justify-center">
+                            {/* More button */}
                             <button
                               onClick={() => onMore(r.id)}
                               className="h-8 w-8 rounded-[10px] bg-[#BD9A6B] text-white
@@ -320,6 +339,7 @@ export default function RoutineList() {
   );
 }
 
+// Reusable select box component
 function SelectBox({ value, onChange, placeholder, options }) {
   return (
     <div className="relative w-full sm:w-[200px]">

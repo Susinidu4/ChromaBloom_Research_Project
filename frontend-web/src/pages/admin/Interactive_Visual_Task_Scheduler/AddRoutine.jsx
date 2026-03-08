@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 
 import AdminLayout from "../Admin_Management/AdminLayout";
 import { createSystemActivityService } from "../../../services/Admin/Interactive_Visual_Task_Scheduler/adminRoutineService";
-import createRoutineImg from "../../../assets/Interactive_Visual_Task_Scheduler/admin_create_routine.png";
 
 import { IoIosArrowDown } from "react-icons/io";
 import { IoIosArrowUp } from "react-icons/io";
@@ -19,18 +18,18 @@ export default function AddRoutine() {
   // form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [minutes, setMinutes] = useState(""); // UI small box
-  const [difficulty, setDifficulty] = useState(""); // easy/medium/hard
-  const [devArea, setDevArea] = useState(""); // self-care/motor/language/cognitive/social/emotional
-  const [ageGroup, setAgeGroup] = useState(""); // "1".."10"
+  const [minutes, setMinutes] = useState("");
+  const [difficulty, setDifficulty] = useState("");
+  const [devArea, setDevArea] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
+  const [steps, setSteps] = useState(["", ""]);
+  const [videoFile, setVideoFile] = useState(null); // video file object
+  const [videoPreview, setVideoPreview] = useState(""); // local preview URL for the selected video file
 
-  const [steps, setSteps] = useState(["", ""]); // UI has at least 2 lines
-  const [videoFile, setVideoFile] = useState(null);
-  const [videoPreview, setVideoPreview] = useState("");
-
-  // ✅ UX states
+  // submission state
   const [submitting, setSubmitting] = useState(false);
 
+  // Handle back navigation with confirmation
   const onBack = () => {
     Swal.fire({
       title: "Discard changes?",
@@ -47,21 +46,25 @@ export default function AddRoutine() {
     });
   };
 
+  // Step management functions
   const addStep = () => setSteps((prev) => [...prev, ""]);
   const removeStep = (index) =>
     setSteps((prev) => prev.filter((_, i) => i !== index));
-
   const updateStep = (index, value) =>
     setSteps((prev) => prev.map((s, i) => (i === index ? value : s)));
 
+  // Convert duration input to a number of minutes, treating invalid input as 0
   const durationToMinutes = () => {
     const m = Number(minutes || 0);
     return Number.isNaN(m) ? 0 : m;
   };
 
+  // Validate form inputs and return an error message if invalid, or empty string if valid
   const validate = () => {
     const t = title.trim();
     const d = description.trim();
+    const dur = durationToMinutes();
+    const cleanSteps = steps.map((x) => x.trim()).filter(Boolean);
 
     if (!t) return "Title is required";
     if (t.length > 50) return "Title cannot exceed 50 characters";
@@ -69,24 +72,20 @@ export default function AddRoutine() {
     if (!d) return "Description is required";
     if (d.length > 150) return "Description cannot exceed 150 characters";
 
-    const dur = durationToMinutes();
     if (!dur || dur <= 0) return "Duration is required";
-
     if (!difficulty) return "Difficulty level is required";
     if (!devArea) return "Development area is required";
     if (!ageGroup) return "Age group is required";
-
-    const cleanSteps = steps.map((x) => x.trim()).filter(Boolean);
     if (cleanSteps.length < 1) return "At least one step is required";
-
-    // ✅ image not required → no validation for imageFile
 
     return "";
   };
 
+  // Handle form submission
   const onSubmit = async (e) => {
     e.preventDefault();
 
+    // Run validation
     const v = validate();
     if (v) {
       Swal.fire({
@@ -106,6 +105,7 @@ export default function AddRoutine() {
         instruction,
       }));
 
+    // Prepare payload for API
     const payload = {
       title: title.trim(),
       description: description.trim(),
@@ -119,6 +119,7 @@ export default function AddRoutine() {
 
     try {
       setSubmitting(true);
+      // Call the service to create the routine
       const res = await createSystemActivityService(payload);
 
       Swal.fire({
@@ -158,6 +159,7 @@ export default function AddRoutine() {
     return () => URL.revokeObjectURL(url);
   }, [videoFile]);
 
+  // Clamp a number between 0 and 60
   const clamp60 = (v) => Math.max(0, Math.min(60, v));
 
   const setMinutesClamped = (raw) => {
@@ -170,6 +172,7 @@ export default function AddRoutine() {
     setMinutes(String(clamp60(num)));
   };
 
+  // Increment/decrement functions for the duration input
   const incMinutes = () =>
     setMinutes((prev) => String(clamp60((Number(prev) || 0) + 1)));
   const decMinutes = () =>
@@ -227,7 +230,7 @@ export default function AddRoutine() {
                  outline-none py-2 pr-12 text-sm text-[#8F6F4C]"
                   />
 
-                  {/* Counter */}
+                  {/* Title Counter */}
                   <span
                     className="absolute right-0 bottom-0 text-[11px]
                      text-[#BD9A6B] opacity-80"
@@ -255,7 +258,7 @@ export default function AddRoutine() {
                  shadow-[0_6px_10px_rgba(0,0,0,0.12)]"
                   />
 
-                  {/* Counter */}
+                  {/* Description Counter */}
                   <span
                     className="absolute right-3 bottom-2 text-[11px]
                      text-[#BD9A6B] opacity-80"
@@ -351,6 +354,7 @@ export default function AddRoutine() {
                     <HiPlus className="text-[#BD9A6B]" size={18} />
                   </button>
 
+                  {/* Step List */}
                   <div className="space-y-4 mt-10">
                     {steps.map((s, idx) => (
                       <div key={idx} className="flex items-center gap-4">

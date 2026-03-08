@@ -17,6 +17,7 @@ export default function RecommendationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Show error alert if there's an error
   useEffect(() => {
     if (!error) return;
 
@@ -28,11 +29,14 @@ export default function RecommendationDetail() {
     });
   }, [error]);
 
+  // Handlers for back, edit, delete actions
   const onBack = () => navigate("/stress_recommendation_list");
+  // Edit navigates to the edit page for this recommendation
   const onEdit = () => {
     navigate(`/stress_recommendation_edit/${id}`);
   };
 
+  // Delete shows a confirmation dialog, then calls the delete service, and shows success/error alerts accordingly
   const onDelete = async () => {
     if (!rec?.id) return;
 
@@ -58,6 +62,7 @@ export default function RecommendationDetail() {
     }
 
     try {
+      // call the delete service with the recommendation id
       await deleteRecommendationByIdService(rec.id);
 
       await Swal.fire({
@@ -67,6 +72,7 @@ export default function RecommendationDetail() {
         confirmButtonColor: "#BD9A6B",
       });
 
+      // after deletion,
       navigate("/stress_recommendation_list");
     } catch (e) {
       const msg =
@@ -84,6 +90,7 @@ export default function RecommendationDetail() {
     }
   };
 
+  // fetch the recommendation details by id when component mounts or id changes.
   useEffect(() => {
     let alive = true;
 
@@ -92,9 +99,11 @@ export default function RecommendationDetail() {
         setLoading(true);
         setError("");
 
+        // call the getRecommendationByIdService with the id from URL params.
         const res = await getRecommendationByIdService(id);
         const r = res?.data?.data;
 
+        // map the response to the format needed for display, with fallbacks for missing fields
         const mapped = {
           id: r?.recommendationId || r?._id,
           title: r?.title || "Untitled",
@@ -132,7 +141,7 @@ export default function RecommendationDetail() {
       <div className="w-full min-h-screen bg-[#F3E8E8]">
         <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 lg:px-10">
           <div className="relative min-h-[630px] rounded-[14px] px-0 py-4 sm:px-4 sm:py-6 md:px-8 lg:px-10">
-            {/* Back */}
+            {/* Back button */}
             <button
               onClick={onBack}
               className="absolute left-0 top-0 h-10 w-10 rounded-full bg-white/70
@@ -163,6 +172,7 @@ export default function RecommendationDetail() {
                   </h2>
 
                   <div className="mt-2 flex items-center gap-3 self-start">
+                    {/* Edit button */}
                     <button
                       onClick={onEdit}
                       className="text-[#BD9A6B] hover:brightness-90"
@@ -171,6 +181,7 @@ export default function RecommendationDetail() {
                       <FaRegEdit size={20} />
                     </button>
 
+                    {/* Delete button */}
                     <button
                       onClick={onDelete}
                       disabled={loading}
@@ -204,6 +215,7 @@ export default function RecommendationDetail() {
                     </span>
                   </div>
 
+                  {/* Category row */}
                   <div className="flex flex-wrap gap-2 sm:gap-3">
                     <span className="w-[120px] font-semibold">CATEGORY</span>
                     <span>:</span>
@@ -212,6 +224,7 @@ export default function RecommendationDetail() {
                     </span>
                   </div>
 
+                  {/* Duration row */}
                   <div className="flex flex-wrap gap-2 sm:gap-3">
                     <span className="w-[120px] font-semibold">DURATION</span>
                     <span>:</span>

@@ -19,6 +19,8 @@ class CreateJournalEntryScreen extends StatefulWidget {
 
 class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
+
+  // Helper to show themed QuickAlert dialogs for errors, warnings, and success messages
   void showThemedAlert({
     required QuickAlertType type,
     required String title,
@@ -37,7 +39,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     );
   }
 
-  
+  // Today's date to display in the header of the journal entry form
   final DateTime _today = DateTime.now();
 
   // service instance
@@ -74,6 +76,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
+// Handler for the Save button - validates input and calls the service to create a journal entry
   Future<void> _onSave() async {
     final session = context.read<SessionProvider>();
 
@@ -111,13 +114,14 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
       return;
     }
 
-    final label = _selectedMood!["label"]!; // e.g. "Happy"
-    final emoji = _selectedMood!["emoji"]!; // e.g. "😃"
+    final label = _selectedMood!["label"]!; 
+    final emoji = _selectedMood!["emoji"]!; 
     final moodEnum = _labelToMoodEnum[label] ?? "neutral";
 
     setState(() => _saving = true);
 
     try {
+      // Call the service to create a new journal entry with the caregiver ID, mood, emoji, and text note
       await _journalService.createJournalEntry(
         caregiverId: caregiverId,
         mood: moodEnum,
@@ -144,7 +148,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
       Navigator.of(
         context,
         rootNavigator: true,
-      ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false);
+      ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false); // Go back to home after saving
     } catch (e) {
       if (!mounted) return;
       showThemedAlert(
@@ -163,6 +167,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     super.dispose();
   }
 
+// Main build method for the Create Journal Entry screen, which includes a header, form fields for mood and notes, and a save button
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,7 +208,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min, // ✅ important
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 // date + close
                                 Row(
@@ -334,7 +339,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
                                 const SizedBox(
                                   height: 18,
-                                ), // ✅ instead of Spacer()
+                                ), 
 
                                 Align(
                                   alignment: Alignment.centerRight,
@@ -382,6 +387,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
 /* ===================== WIDGETS ===================== */
 
+// Custom styled chip to display the current date in the journal entry form header
 class _DateChip extends StatelessWidget {
   final String text;
   const _DateChip({required this.text});
@@ -425,6 +431,7 @@ class _DateChip extends StatelessWidget {
   }
 }
 
+// Circular button with a close icon, used to exit the journal entry form and return to the home screen
 class _CloseCircle extends StatelessWidget {
   final VoidCallback onTap;
   const _CloseCircle({required this.onTap});
@@ -458,6 +465,7 @@ class _CloseCircle extends StatelessWidget {
   }
 }
 
+// Custom dropdown widget for selecting the user's mood, displaying both an emoji and a label for each option
 class _MoodDropdown extends StatelessWidget {
   final List<Map<String, String>> moods;
   final Map<String, String>? value;
