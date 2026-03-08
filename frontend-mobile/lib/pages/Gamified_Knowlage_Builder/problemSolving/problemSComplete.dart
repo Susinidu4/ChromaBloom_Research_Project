@@ -222,6 +222,7 @@ class _ProblemSolvingLessonCompletePageState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Lesson record updated")),
       );
+
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

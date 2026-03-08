@@ -103,11 +103,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 await prefs.setBool(_prefKeyDrawingLevelSet, true);
                 await prefs.setString("drawing_skill_level_value", nextLevel);
                 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Congratulations! Level upgraded to $nextLevel")),
-                  );
-                }
+
               }
             }
           }
@@ -220,19 +216,13 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 await prefs.setBool(_prefKeyProblemLevelSet, true);
                 await prefs.setString("problem_solving_skill_level_value", nextLevel);
                 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Congratulations! Level Up: $currentLevel ➔ $nextLevel"),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+
               }
             }
           }
         }
       }
+
 
       if (!mounted) return;
       // Navigate to the lessons page (will now show lessons for the potentially updated level)
