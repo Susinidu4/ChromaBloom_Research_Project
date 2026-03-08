@@ -1,10 +1,18 @@
 import mongoose from "mongoose";
 
+const factorSchema = new mongoose.Schema({
+  feature: String,
+  shap_value: Number,
+},
+{ _id: false });
+
 const CognitiveProgressSchema = new mongoose.Schema(
   {
     _id: { type: String },
     userId: { type: String },
     progress_prediction: { type: Number },
+    positive_factors: [factorSchema],
+    negative_factors: [factorSchema],
   },
   { timestamps: true }
 );

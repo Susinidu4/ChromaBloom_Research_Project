@@ -136,6 +136,10 @@ export const loginTherapist = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    if (therapist.account_status !== "active") {
+      return res.status(403).json({ message: `Your account is ${therapist.account_status}. Please contact the administrator.` });
+    }
+
     const token = generateToken(therapist);
 
     res.json({
@@ -251,6 +255,38 @@ export const deleteTherapist = async (req, res) => {
     res.json({ message: "Therapist deleted successfully" });
   } catch (err) {
     console.error("deleteTherapist error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// =========================
+// UPDATE ACCOUNT STATUS
+// =========================
+export const updateAccountStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "inactive", "disabled"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const therapist = await Therapist.findByIdAndUpdate(
+      id,
+      { account_status: status },
+      { new: true }
+    );
+
+    if (!therapist) {
+      return res.status(404).json({ message: "Therapist not found" });
+    }
+
+    res.status(200).json({
+      message: "Account status updated",
+      therapist,
+    });
+  } catch (err) {
+    console.error("updateAccountStatus error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

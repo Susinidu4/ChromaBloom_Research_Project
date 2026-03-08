@@ -7,16 +7,17 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
 
 class UpdateUserActivityScreen extends StatefulWidget {
-  const UpdateUserActivityScreen({
-    super.key,
-    required this.activity, // pass the selected activity map
-  });
+  const UpdateUserActivityScreen({super.key, required this.activity});
 
   final Map<String, dynamic> activity;
 
@@ -26,7 +27,7 @@ class UpdateUserActivityScreen extends StatefulWidget {
 }
 
 class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
-  // ===== Theme colors (same as your design) =====
+  // Theme colors
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
@@ -34,6 +35,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   static const Color shadow = Color(0x33000000);
   static const Color btn = Color(0xFFBD9A6B);
 
+  // Quick alert
   void showThemedAlert({
     required QuickAlertType type,
     required String title,
@@ -49,16 +51,15 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     );
   }
 
-  // ===== Form =====
+  // TEMP caregiver
+  // static const String hardcodedCaregiverId = "p-0001";
+
+  // Form key
   final _formKey = GlobalKey<FormState>();
 
   DateTime selectedDate = DateTime.now();
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
-
-  // Duration UI (same idea as your create page)
-  int durationA = 0; // hours
-  int durationB = 0; // minutes
 
   // Steps (dynamic)
   final List<TextEditingController> stepCtrls = [];
@@ -71,44 +72,105 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
   // Image
   File? selectedImageFile;
   String imageLabel = "";
-  String? existingImageUrl; // from backend media_links
+  String? existingImageUrl;
 
   bool saving = false;
 
-  // TEMP caregiver (you said hard-code ok for now)
-  static const String hardcodedCaregiverId = "p-0001";
-
+  // Text field + value that you send to backend (0–60)
   final completedCtrl = TextEditingController();
   int completedMinutes = 0;
 
+  // Format date to display in UI
+  String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  // Convert duration to minutes to send backend
+  int _estimatedDurationMinutes() => completedMinutes;
+
+  // Add a new empty step field
+  void _addStep() => setState(() => stepCtrls.add(TextEditingController()));
+
+  // Get logged caregiver id
+  String _getCaregiverId() {
+    final session = context.read<SessionProvider>();
+    return (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+        .toString();
+  }
+
+  // Calculate child age using date of birth
+  int calculateAgeFromDob(String dob) {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+
+    int age = today.year - birthDate.year;
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  // Get logged caregiver child age of the logged caregiver
+  Future<int?> _getLoggedCaregiverChildAge() async {
+    final caregiverId = _getCaregiverId();
+    if (caregiverId.isEmpty) return null;
+
+    final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+    if (children.isEmpty) return null;
+
+    // take first child
+    final child = children.first;
+    final dob = child['dateOfBirth'];
+    if (dob == null) return null;
+
+    return calculateAgeFromDob(dob.toString());
+  }
+
+  // Init state
   @override
   void initState() {
     super.initState();
     _prefillFromActivity(widget.activity);
+    _loadAgeGroupFromChild();
   }
 
+  // Load age group from logged caregiver child
+  Future<void> _loadAgeGroupFromChild() async {
+    final age = await _getLoggedCaregiverChildAge();
+    if (!mounted) return;
+
+    if (age == null) {
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "No Child Found",
+        text: "Please add a child profile first.",
+      );
+      return;
+    }
+
+    setState(() {
+      ageGroup = age.toString();
+    });
+  }
+
+  // Fill UI fields using existing activity data (Prefill form)
   void _prefillFromActivity(Map<String, dynamic> a) {
     titleCtrl.text = (a["title"] ?? "").toString();
     descCtrl.text = (a["description"] ?? "").toString();
-
-    ageGroup = (a["age_group"] ?? "1").toString();
     developmentArea = (a["development_area"] ?? "motor").toString();
     difficulty = (a["difficulty_level"] ?? "easy").toString();
 
-    // date
+    // Parse scheduled date
     final dateStr = (a["scheduled_date"] ?? "").toString();
     final parsedDate = DateTime.tryParse(dateStr);
     if (parsedDate != null) selectedDate = parsedDate;
 
-    // duration (minutes from backend)
+    // Load estimated duration (minutes)
     final mins =
         int.tryParse((a["estimated_duration_minutes"] ?? "0").toString()) ?? 0;
-
-    // ✅ set completed minutes (0–60)
     completedMinutes = mins.clamp(0, 60);
     completedCtrl.text = completedMinutes.toString();
 
-    // steps
+    // Load Steps
     stepCtrls.clear();
     final steps = (a["steps"] as List?) ?? [];
     for (final s in steps) {
@@ -118,7 +180,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     }
     if (stepCtrls.isEmpty) stepCtrls.add(TextEditingController());
 
-    // existing image
+    // Load existing image
     final links = (a["media_links"] as List?) ?? [];
     if (links.isNotEmpty) {
       existingImageUrl = links.first.toString();
@@ -126,6 +188,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     }
   }
 
+  // Dispose controllers -> Clean controllers to avoid memory leaks
   @override
   void dispose() {
     titleCtrl.dispose();
@@ -136,13 +199,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     super.dispose();
   }
 
-  // ===== Helpers =====
-  String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
-
-  int _estimatedDurationMinutes() => completedMinutes;
-
-  void _addStep() => setState(() => stepCtrls.add(TextEditingController()));
-
+  // Remove one step
   void _removeStep(int index) {
     if (stepCtrls.length <= 1) return;
     setState(() {
@@ -151,11 +208,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     });
   }
 
-  void _incHours() => setState(() => durationA = (durationA + 1).clamp(0, 99));
-  void _decHours() => setState(() => durationA = (durationA - 1).clamp(0, 99));
-  void _incMins() => setState(() => durationB = (durationB + 1).clamp(0, 59));
-  void _decMins() => setState(() => durationB = (durationB - 1).clamp(0, 59));
-
+  // Date picker
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -181,6 +234,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     if (picked != null) setState(() => selectedDate = picked);
   }
 
+  // Image picker
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
@@ -193,6 +247,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     }
   }
 
+  // Convert image file to base64 data URI to send backend
   Future<String?> _fileToBase64DataUri(File? f) async {
     if (f == null) return null;
     final bytes = await f.readAsBytes();
@@ -207,8 +262,11 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     return "data:$mime;base64,$b64";
   }
 
+  // Update activity
   Future<void> _submitUpdate() async {
     final mongoId = (widget.activity["_id"] ?? "").toString();
+
+    // Check activity ID
     if (mongoId.isEmpty) {
       QuickAlert.show(
         context: context,
@@ -226,7 +284,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       return {"step_number": i + 1, "instruction": stepCtrls[i].text.trim()};
     });
 
-    // Required checks using QuickAlert
+    // Development area required
     if (developmentArea.trim().isEmpty) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -236,6 +294,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       return;
     }
 
+    // Title required
     if (titleCtrl.text.trim().isEmpty) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -245,6 +304,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       return;
     }
 
+    // Description required
     if (descCtrl.text.trim().isEmpty) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -254,6 +314,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       return;
     }
 
+    // Duration required
     if (completedMinutes <= 0) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -275,6 +336,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       }
     }
 
+    // Difficulty required
     if (difficulty.trim().isEmpty) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -289,9 +351,21 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     try {
       final imgBase64 = await _fileToBase64DataUri(selectedImageFile);
 
+      final caregiverId = _getCaregiverId();
+
+      if (caregiverId.isEmpty) {
+        showThemedAlert(
+          type: QuickAlertType.error,
+          title: "Session Error",
+          text: "Please login again.",
+        );
+        return;
+      }
+
+      // Call backend update API
       final res = await UserActivityService.updateUserActivity(
         activityId: mongoId,
-        createdBy: hardcodedCaregiverId,
+        createdBy: caregiverId,
         title: titleCtrl.text.trim(),
         description: descCtrl.text.trim(),
         ageGroup: ageGroup,
@@ -313,8 +387,8 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
         confirmBtnText: "OK",
         confirmBtnColor: btn,
         onConfirmBtnTap: () {
-          Navigator.of(context, rootNavigator: true).pop(); // close alert only
-          Navigator.pop(context, true); // go back + refresh
+          Navigator.of(context, rootNavigator: true).pop();
+          Navigator.pop(context, true);
         },
       );
     } catch (e) {
@@ -329,6 +403,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     }
   }
 
+  // Build UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -336,11 +411,13 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
               notificationCount: 0,
             ),
+            // Body
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -358,12 +435,15 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
           ],
         ),
       ),
+      // Navigation Bar
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
     );
   }
 
+  // Form card
   Widget _buildFormCard(BuildContext context) {
     return Container(
+      // Card style
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(18),
@@ -372,6 +452,8 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
         ],
       ),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+
+      // Form
       child: Form(
         key: _formKey,
         child: Column(
@@ -392,6 +474,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     ),
                   ),
                 ),
+                // Close
                 _circleIconButton(
                   icon: Icons.close,
                   onTap: () => Navigator.pop(context),
@@ -400,10 +483,10 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
             ),
             const SizedBox(height: 18),
 
-            // image (same vibe as your create screen)
+            // Top image
             Center(
               child: Image.asset(
-                "assets/create_user_activity.png",
+                "assets/InteractiveVisualTaskScheduler/create_user_activity.png",
                 width: 180,
                 height: 160,
                 fit: BoxFit.contain,
@@ -412,6 +495,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 18),
 
+            // Date picker
             _label("Date :"),
             const SizedBox(height: 6),
             GestureDetector(
@@ -436,32 +520,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
-            _label("Age Group :"),
-            const SizedBox(height: 6),
-            _inputLike(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: ageGroup,
-                  isExpanded: true,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: textSoft,
-                  ),
-                  items: List.generate(10, (i) {
-                    final v = "${i + 1}";
-                    return DropdownMenuItem(value: v, child: Text(v));
-                  }),
-                  onChanged: (v) => setState(() => ageGroup = v ?? "1"),
-                  style: const TextStyle(
-                    color: textSoft,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
+            // Development area dropdown
             _label("Development Area :"),
             const SizedBox(height: 6),
             _inputLike(
@@ -494,7 +553,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
                     ),
                   ],
                   onChanged: (v) =>
-                      setState(() => developmentArea = v ?? "motor"),
+                      setState(() => developmentArea = v ?? "self-care"),
                   style: const TextStyle(
                     color: textSoft,
                     fontWeight: FontWeight.w700,
@@ -505,6 +564,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
+            // Title
             _label("Title :"),
             const SizedBox(height: 6),
             _underlineField(
@@ -516,6 +576,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
+            // Description
             _label("Description :"),
             const SizedBox(height: 6),
             Container(
@@ -540,7 +601,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
-            // Duration (same look)
+            // Duration
             Row(
               children: [
                 const Text(
@@ -595,7 +656,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
                 const SizedBox(width: 6),
 
-                // arrows
+                // Up/down arrows
                 Container(
                   width: 26,
                   height: 40,
@@ -702,6 +763,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 6),
 
+            // Difficulty level dropdown
             _label("Difficulty Level :"),
             const SizedBox(height: 6),
             _inputLike(
@@ -729,6 +791,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 16),
 
+            // Image picker
             _label("Images :"),
             const SizedBox(height: 6),
 
@@ -787,6 +850,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
 
             const SizedBox(height: 16),
 
+            // Submit button
             Center(
               child: SizedBox(
                 width: 160,
@@ -824,8 +888,9 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     );
   }
 
-  // ===== UI helpers (same as your create page style) =====
+  // ================== Helpers ================== //
 
+  // Label widget
   Widget _label(String t) => Text(
     t,
     style: const TextStyle(
@@ -835,6 +900,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     ),
   );
 
+  // Input-like container
   Widget _inputLike({required Widget child}) => Container(
     height: 42,
     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -850,6 +916,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     child: child,
   );
 
+  // Underline text field
   Widget _underlineField({
     required TextEditingController controller,
     required String hint,
@@ -875,6 +942,7 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
     ),
   );
 
+  // Circle icon button (add/close buttons)
   Widget _circleIconButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -894,66 +962,4 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
       child: Icon(icon, color: textSoft),
     ),
   );
-
-  Widget _smallBoxNumber(String text) => Container(
-    width: 46,
-    height: 38,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: const Color(0xFFF0E8DA),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: stroke, width: 1.2),
-      boxShadow: const [
-        BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
-      ],
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(
-        color: textSoft,
-        fontWeight: FontWeight.w800,
-        fontSize: 14,
-      ),
-    ),
-  );
-
-  Widget _upDown({required VoidCallback onUp, required VoidCallback onDown}) =>
-      Container(
-        width: 26,
-        height: 41,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0E8DA),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: stroke, width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: shadow, blurRadius: 8, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: onUp,
-              child: const SizedBox(
-                height: 19,
-                child: Icon(
-                  Icons.keyboard_arrow_up_rounded,
-                  color: textSoft,
-                  size: 18,
-                ),
-              ),
-            ),
-            InkWell(
-              onTap: onDown,
-              child: const SizedBox(
-                height: 19,
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: textSoft,
-                  size: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
 }

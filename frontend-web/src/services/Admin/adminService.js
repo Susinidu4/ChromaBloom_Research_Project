@@ -16,13 +16,49 @@ export const adminLogin = async ({ email, password }) => {
 };
 
 // CREATE ADMIN (POST /chromabloom/admins)
-export const createAdmin = async ({ full_name, email, password }) => {
-  const res = await api.post(`${ADMIN_BASE}`, { full_name, email, password });
+export const createAdmin = async ({ full_name, email, password, phone }) => {
+  const res = await api.post(`${ADMIN_BASE}`, { full_name, email, password, phone });
   return res.data;
 };
 
 // optional helper
 export const getAdmins = async () => {
   const res = await api.get(`${ADMIN_BASE}`);
+  return res.data;
+};
+
+// UPDATE ADMIN (PUT /chromabloom/admins/:id)
+export const updateAdmin = async (id, data) => {
+  const res = await api.put(`${ADMIN_BASE}/${id}`, data);
+  return res.data;
+};
+
+// GET ADMIN BY ID (GET /chromabloom/admins/:id)
+export const getAdminById = async (id) => {
+  const res = await api.get(`${ADMIN_BASE}/${id}`);
+  return res.data;
+};
+
+// UPDATE ACCOUNT STATUS (PATCH /chromabloom/admins/:id/status)
+export const updateAccountStatus = async (id, status) => {
+  const res = await api.patch(`${ADMIN_BASE}/${id}/status`, { status });
+  return res.data;
+};
+
+// UPLOAD PROFILE PICTURE (PATCH /chromabloom/admins/:id/profile-picture)
+export const uploadAdminProfilePicture = async (id, file) => {
+  const formData = new FormData();
+  formData.append("profile_picture", file);
+
+  const res = await api.patch(`${ADMIN_BASE}/${id}/profile-picture`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+// DELETE ADMIN (DELETE /chromabloom/admins/:id)
+export const deleteAdmin = async (id) => {
+  const res = await api.delete(`${ADMIN_BASE}/${id}`);
   return res.data;
 };

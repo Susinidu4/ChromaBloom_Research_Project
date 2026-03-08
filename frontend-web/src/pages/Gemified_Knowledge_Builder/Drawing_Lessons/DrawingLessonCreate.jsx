@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createDrawingLesson } from "../../../services/Gemified_Knowledge_Builder/drawingLessonService";
 import LessonForm from "./DrawingLessonForm";
+import AdminLayout from "../../admin/Admin_Management/AdminLayout";
+import { IoArrowBack } from "react-icons/io5";
 
 export default function DrawingLessonCreate() {
   const nav = useNavigate();
@@ -14,9 +16,7 @@ export default function DrawingLessonCreate() {
       setError("");
 
       const res = await createDrawingLesson(values);
-
-      // res expected: { success, data: lesson }
-      nav(`/drawing_lessons/${res.data._id}`);
+      nav(`/learning_module`);
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Create failed");
     } finally {
@@ -25,10 +25,24 @@ export default function DrawingLessonCreate() {
   }
 
   return (
-    <div>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+    <AdminLayout>
+      <div className="w-full min-h-full bg-[#F3E8E8] px-10 py-16 relative">
+        {/* Back Button */}
+        <button
+          onClick={() => nav(-1)}
+          className="mb-10 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-[#BD9A6B] hover:bg-slate-50 transition z-10"
+        >
+          <IoArrowBack size={20} />
+        </button>
 
-      <LessonForm mode="create" saving={saving} onSubmit={onSubmit} />
-    </div>
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200">
+            {error}
+          </div>
+        )}
+
+        <LessonForm mode="create" saving={saving} onSubmit={onSubmit} />
+      </div>
+    </AdminLayout>
   );
 }

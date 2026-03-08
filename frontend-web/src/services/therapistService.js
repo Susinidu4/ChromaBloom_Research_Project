@@ -41,3 +41,23 @@ export const getTherapistByIdService = async (id, token) => {
   });
   return res.data;
 };
+
+// Update therapist account status
+export const updateTherapistAccountStatus = async (id, status, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/${id}/status`, { status }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+// Update therapist profile (can include profile_picture_base64)
+export const updateTherapistService = async (id, data, token) => {
+  const res = await axios.patch(`${API_BASE_URL}/${id}`, data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};

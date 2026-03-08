@@ -21,7 +21,7 @@ const childRoutinePlanSchema = new Schema(
   {
     planId: {
       type: String,
-      unique: true,
+      // unique: true,
     },
 
     caregiverId: {
@@ -72,29 +72,29 @@ const childRoutinePlanSchema = new Schema(
   }
 );
 
-childRoutinePlanSchema.pre("save", async function (next) {
-  // If planId already exists (manual insert), skip
-  if (this.planId) return next();
+// childRoutinePlanSchema.pre("save", async function (next) {
+//   // If planId already exists (manual insert), skip
+//   if (this.planId) return next();
 
-  const lastPlan = await this.constructor
-    .findOne()
-    .sort({ created_at: -1 })
-    .lean();
+//   const lastPlan = await this.constructor
+//     .findOne()
+//     .sort({ created_at: -1 })
+//     .lean();
 
-  let lastNumber = 0;
+//   let lastNumber = 0;
 
-  if (lastPlan?.planId) {
-    const match = lastPlan.planId.match(/\d+/);
-    if (match) {
-      lastNumber = parseInt(match[0], 10);
-    }
-  }
+//   if (lastPlan?.planId) {
+//     const match = lastPlan.planId.match(/\d+/);
+//     if (match) {
+//       lastNumber = parseInt(match[0], 10);
+//     }
+//   }
 
-  const nextNumber = lastNumber + 1;
-  this.planId = `AP-${String(nextNumber).padStart(3, "0")}`;
+//   const nextNumber = lastNumber + 1;
+//   this.planId = `AP-${String(nextNumber).padStart(3, "0")}`;
 
-  next();
-});
+//   next();
+// });
 
 const ChildRoutinePlan = model("ChildRoutinePlan", childRoutinePlanSchema);
 export default ChildRoutinePlan;

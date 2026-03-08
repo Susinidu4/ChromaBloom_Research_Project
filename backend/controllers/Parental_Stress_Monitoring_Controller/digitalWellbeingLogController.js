@@ -1,7 +1,11 @@
 import DigitalWellbeingLog from "../../models/Parental_Stress_Monitoring_Model/digitalWellbeingLogModel.js";
 
+// ------------------------- Caregiver -------------------------- //
+
+// Create or update a digital wellbeing log entry for a caregiver
 export const createDigitalWellbeingLog = async (req, res) => {
   try {
+    // Read digital wellbeing data from request body
     const {
       caregiverId,
       log_date,
@@ -21,9 +25,9 @@ export const createDigitalWellbeingLog = async (req, res) => {
         .json({ message: "caregiverId and log_date required" });
     }
 
-    // 🔑 UPSERT: update if exists, create if not
+    // Update existing log or create new one for the day
     const log = await DigitalWellbeingLog.findOneAndUpdate(
-      { caregiverId, log_date }, // find today's record
+      { caregiverId, log_date }, // find log by caregiver and date
       {
         caregiverId,
         log_date,
@@ -37,9 +41,9 @@ export const createDigitalWellbeingLog = async (req, res) => {
         sleep_quality,
       },
       {
-        new: true, // return updated document
-        upsert: true, // create if not exists
-      }
+        new: true,
+        upsert: true,
+      },
     );
 
     return res
@@ -50,5 +54,20 @@ export const createDigitalWellbeingLog = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Server error", error: String(err) });
+  }
+};
+
+
+//get digital wellbeing logs by caregiverId
+export const getDigitalWellbeingLogsByCaregiverId = async (req, res) => {
+  try {
+    const { caregiverId } = req.params;
+    const logs = await DigitalWellbeingLog.find({ caregiverId }).sort({
+      log_date: -1,
+    });
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error("getDigitalWellbeingLogsByCaregiverId:", err);
+    return res.status(500).json({ message: "Server error", error: String(err) });
   }
 };

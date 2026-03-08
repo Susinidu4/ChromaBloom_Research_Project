@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quickalert/quickalert.dart';
+
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../state/session_provider.dart';
 
 import '../../others/navBar.dart';
 import '../../others/header.dart';
+
 import '../../../services/Interactive_visual_task_scheduler_services/user_activity_service.dart';
 import '../../../services/user_services/child_api.dart';
 
@@ -20,7 +22,7 @@ class CreateUserActivityScreen extends StatefulWidget {
 }
 
 class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
-  // ===== Theme colors =====
+  // Colors used in this page
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color cardBg = Color(0xFFE9DDCC);
   static const Color stroke = Color(0xFFBD9A6B);
@@ -28,7 +30,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   static const Color shadow = Color(0x33000000);
   static const Color btn = Color(0xFFBD9A6B);
 
-  // Themed alert
+  // QuickAlert UI
   void showThemedAlert({
     required QuickAlertType type,
     required String title,
@@ -47,25 +49,47 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     );
   }
 
-  final TextEditingController durationCtrl = TextEditingController();
-  final FocusNode durationFocus = FocusNode();
+  // TEMP caregiver
+  //static const String hardcodedCaregiverId = "p-0001";
 
+  // Form validation key
   final _formKey = GlobalKey<FormState>();
 
-  DateTime selectedDate = DateTime.now();
-
+  // Controllers
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
-
-  // Duration UI
-  int durationB = 0;
-
-  // Steps (dynamic)
+  final TextEditingController durationCtrl = TextEditingController();
+  final FocusNode durationFocus = FocusNode();
   final List<TextEditingController> stepCtrls = [TextEditingController()];
 
-  // ✅ Backend-required dropdowns
-  String developmentArea = "motor";
-  String difficulty = "easy"; // backend expects lowercase
+  // Date selection
+  DateTime selectedDate = DateTime.now();
+
+  // Format date as DD/MM/YYYY
+  String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
+
+  // Dropdown values required by backend (must be lowercase)
+  String developmentArea = "self-care";
+  String difficulty = "easy";
+
+  // Duration Value
+  int durationB = 0;
+
+  // Increment and decrement duration
+  void _incDurationB() => _setDurationB(durationB + 1);
+  void _decDurationB() => _setDurationB(durationB - 1);
+
+  // Get estimated duration in minutes
+  int _estimatedDurationMinutes() => durationB;
+
+  // Image
+  File? selectedImageFile;
+  String imageLabel = "";
+
+  // Indicates whether the form is currently submitting
+  bool saving = false;
+
+  // ================= Functions ================== //
 
   // Calculate age from DOB
   int calculateAgeFromDob(String dob) {
@@ -82,7 +106,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     return age;
   }
 
-  // Get age of logged-in caregiver's child
+  // Fetch the age of logged-in caregiver's child
   Future<int?> getLoggedCaregiverChildAge() async {
     final session = context.read<SessionProvider>();
 
@@ -92,34 +116,30 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
     if (caregiverId.isEmpty) return null;
 
+    // Fetch children linked to caregiver
     final children = await ChildApi.getChildrenByCaregiver(caregiverId);
 
     if (children.isEmpty) return null;
 
-    // 👉 If only one child → take first
+    // If only one child → take first
     final child = children.first;
 
-    final dob = child['dateOfBirth']; // ISO string: "2019-06-12"
+    // ISO string: "2019-06-12"
+    final dob = child['dateOfBirth'];
     if (dob == null) return null;
 
     return calculateAgeFromDob(dob);
   }
 
-  // Image
-  File? selectedImageFile;
-  String imageLabel = "";
-
-  bool saving = false;
-
+  // Initialize state
+  // Sets initial duration text to "00"
   @override
   void initState() {
     super.initState();
     durationCtrl.text = durationB.toString().padLeft(2, "0");
   }
 
-  // TEMP caregiver
-  //static const String hardcodedCaregiverId = "p-0001";
-
+  // Dispose all controllers
   @override
   void dispose() {
     titleCtrl.dispose();
@@ -132,6 +152,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     super.dispose();
   }
 
+  // Pick date
   Future<void> _pickDate() async {
     final now = DateTime.now();
 
@@ -170,6 +191,14 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     if (picked != null) setState(() => selectedDate = picked);
   }
 
+  // Set duration with value clamped between 0-60 minutes
+  void _setDurationB(int v) {
+    final clamped = v.clamp(0, 60);
+    setState(() => durationB = clamped);
+    durationCtrl.text = clamped.toString().padLeft(2, "0");
+  }
+
+  // Add steps
   void _addStep() {
     if (stepCtrls.length >= 10) {
       QuickAlert.show(
@@ -183,6 +212,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     setState(() => stepCtrls.add(TextEditingController()));
   }
 
+  // Remove step
   void _removeStep(int index) {
     if (stepCtrls.length <= 1) return;
     setState(() {
@@ -191,19 +221,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     });
   }
 
-  void _setDurationB(int v) {
-    final clamped = v.clamp(0, 60);
-    setState(() => durationB = clamped);
-    durationCtrl.text = clamped.toString().padLeft(2, "0");
-  }
-
-  void _incDurationB() => _setDurationB(durationB + 1);
-  void _decDurationB() => _setDurationB(durationB - 1);
-
-  String _fmtDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
-
-  int _estimatedDurationMinutes() => durationB;
-
+  // Pick image
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
@@ -216,7 +234,9 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     }
   }
 
+  // Form Submission
   Future<void> _submit() async {
+    // Validate form fields
     if (!_formKey.currentState!.validate()) return;
 
     // Get caregiver ID
@@ -226,7 +246,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
             .toString();
 
-    // Get child age
+    // Get child age for age group
     final childAge = await getLoggedCaregiverChildAge();
 
     final today = DateTime.now();
@@ -239,6 +259,17 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
     final durationMin = durationB;
 
+    // Caregiver ID validation
+    if (caregiverId.isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: 'Session Error',
+        text: 'Please login again',
+      );
+      return;
+    }
+
+    // Date validation
     if (chosen.isBefore(todayOnly)) {
       showThemedAlert(
         type: QuickAlertType.error,
@@ -248,6 +279,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       return;
     }
 
+    // Development area validation
     if (developmentArea.trim().isEmpty) {
       showThemedAlert(
         type: QuickAlertType.error,
@@ -257,6 +289,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       return;
     }
 
+    // Duration validation
     if (durationMin <= 0) {
       showThemedAlert(
         type: QuickAlertType.error,
@@ -274,6 +307,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       return;
     }
 
+    // Steps validation
     if (stepCtrls.any((c) => c.text.trim().isEmpty)) {
       showThemedAlert(
         type: QuickAlertType.error,
@@ -283,15 +317,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       return;
     }
 
-    if (caregiverId.isEmpty) {
-      showThemedAlert(
-        type: QuickAlertType.error,
-        title: 'Session Error',
-        text: 'Please login again',
-      );
-      return;
-    }
-
+    // Child age validation
     if (childAge == null) {
       showThemedAlert(
         type: QuickAlertType.warning,
@@ -309,6 +335,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     setState(() => saving = true);
 
     try {
+      // Call backend API to create activity
       final res = await UserActivityService.createUserActivity(
         createdBy: caregiverId,
         title: titleCtrl.text.trim(),
@@ -319,7 +346,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         estimatedDurationMinutes: _estimatedDurationMinutes(),
         difficultyLevel: difficulty,
         steps: steps,
-        mediaImage: selectedImageFile, // optional
+        mediaImage: selectedImageFile,
       );
 
       // Success
@@ -329,7 +356,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         text: 'Activity created successfully',
       );
 
-      // Reset UI
+      // Reset Form
       titleCtrl.clear();
       descCtrl.clear();
       for (final c in stepCtrls) c.clear();
@@ -342,15 +369,19 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         difficulty = "easy";
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed: $e")));
+      // Error
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Failed",
+        text: e.toString(),
+      );
     } finally {
       if (!mounted) return;
       setState(() => saving = false);
     }
   }
 
+  // Build UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -359,11 +390,14 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
               notificationCount: 0,
             ),
+
+            // Body
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -373,7 +407,42 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
-                    child: _buildFormCard(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                "Let’s add a new task...",
+                                style: TextStyle(
+                                  color: textSoft,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: textSoft,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        Center(
+                          child: Image.asset(
+                            "assets/InteractiveVisualTaskScheduler/create_user_activity.png",
+                            width: 180,
+                            height: 160,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildFormCard(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -387,6 +456,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     );
   }
 
+  // Build create user activity form card
   Widget _buildFormCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -402,40 +472,14 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    "Let’s add a new task...",
-                    style: TextStyle(
-                      color: textSoft,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                      decorationColor: textSoft,
-                    ),
-                  ),
-                ),
-                _circleIconButton(
-                  icon: Icons.close,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            // Image preview
-            Center(
-              child: Image.asset(
-                "assets/create_user_activity.png",
-                width: 180,
-                height: 160,
-                fit: BoxFit.contain,
+            Align(
+              alignment: Alignment.topRight,
+              child: _circleIconButton(
+                icon: Icons.close,
+                onTap: () => Navigator.pop(context),
               ),
             ),
-
-            const SizedBox(height: 18),
-
+            // Date picker
             _label("Date :"),
             const SizedBox(height: 6),
             GestureDetector(
@@ -460,7 +504,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
-            // ✅ Development Area
+            // Development Area
             _label("Development Area :"),
             const SizedBox(height: 6),
             _inputLike(
@@ -493,7 +537,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                     ),
                   ],
                   onChanged: (v) =>
-                      setState(() => developmentArea = v ?? "motor"),
+                      setState(() => developmentArea = v ?? "self-care"),
                   style: const TextStyle(
                     color: textSoft,
                     fontWeight: FontWeight.w700,
@@ -504,6 +548,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
+            // Title
             _label("Title :"),
             const SizedBox(height: 6),
             _underlineField(
@@ -520,6 +565,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
+            // Description
             _label("Description :"),
             const SizedBox(height: 6),
             Container(
@@ -537,6 +583,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                   contentPadding: EdgeInsets.all(12),
                   border: InputBorder.none,
                 ),
+                // Max length 150 validator
                 validator: (v) {
                   final t = (v ?? "").trim();
                   if (t.isEmpty) return "Description required";
@@ -561,6 +608,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                 const SizedBox(width: 8),
                 _durationInputField(),
                 const SizedBox(width: 8),
+                // Duration buttons
                 _upDown(onUp: _incDurationB, onDown: _decDurationB),
                 const SizedBox(width: 8),
                 const Text(
@@ -573,6 +621,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
               ],
             ),
             const SizedBox(height: 4),
+            // Duration limit
             const Text(
               "Maximum 60 minutes",
               style: TextStyle(
@@ -584,16 +633,16 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 12),
 
-            // Steps (dynamic list)
+            // Steps
             Row(
               children: [
                 _label("Steps :"),
                 const Spacer(),
+                // Add step button
                 _circleIconButton(icon: Icons.add, onTap: _addStep),
               ],
             ),
             const SizedBox(height: 8),
-
             ...List.generate(stepCtrls.length, (i) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -619,6 +668,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
+                    // Remove step button
                     _circleIconButton(
                       icon: Icons.close,
                       onTap: () => _removeStep(i),
@@ -631,6 +681,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 6),
 
+            // Difficulty level
             _label("Difficulty Level :"),
             const SizedBox(height: 6),
             _inputLike(
@@ -658,12 +709,12 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 16),
 
-            // ===== Images =====
+            // Image upload
             _label("Images :"),
             const SizedBox(height: 6),
 
             GestureDetector(
-              onTap: _pickImage, // ✅ THIS calls ImagePicker
+              onTap: _pickImage,
               child: _inputLike(
                 child: Row(
                   children: [
@@ -685,7 +736,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 10),
 
-            // ✅ Preview (only if image selected)
+            // Preview (only if image selected)
             if (selectedImageFile != null)
               Center(
                 child: ClipRRect(
@@ -701,6 +752,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
 
             const SizedBox(height: 16),
 
+            // Add button (Submit)
             Center(
               child: SizedBox(
                 width: 140,
@@ -738,8 +790,9 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     );
   }
 
-  // ================== Helpers ==================
+  // ================== Helpers ================== //
 
+  // Label widget
   Widget _label(String t) => Text(
     t,
     style: const TextStyle(
@@ -749,6 +802,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     ),
   );
 
+  // User input container
   Widget _inputLike({required Widget child}) => Container(
     height: 42,
     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -764,6 +818,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     child: child,
   );
 
+  // Underline text field
   Widget _underlineField({
     required TextEditingController controller,
     required String hint,
@@ -772,13 +827,13 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
   }) => TextFormField(
     controller: controller,
     validator: validator,
-    maxLength: maxLength, // ✅
+    maxLength: maxLength,
     style: const TextStyle(
       color: Color(0xFF2F2A22),
       fontWeight: FontWeight.w600,
     ),
     decoration: InputDecoration(
-      counterText: "", // ✅ hide counter
+      //counterText: "",
       hintText: hint,
       hintStyle: const TextStyle(color: Color(0xFFBFB2A0)),
       isDense: true,
@@ -792,6 +847,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     ),
   );
 
+  // Circle icon button (Close, Add, etc.)
   Widget _circleIconButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -812,6 +868,7 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
     ),
   );
 
+  // Duration user input field
   Widget _durationInputField() => SizedBox(
     width: 56,
     height: 38,
@@ -845,19 +902,20 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
         setState(() => durationB = n.clamp(0, 60));
       },
       onEditingComplete: () {
-        // when user finishes typing, normalize + pad + clamp
         final n = int.tryParse(durationCtrl.text) ?? 0;
         _setDurationB(n);
         durationFocus.unfocus();
       },
 
       inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly, // only numbers
-        LengthLimitingTextInputFormatter(2), // max 2 digits
+        // only digits, max 2 characters
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(2),
       ],
     ),
   );
 
+  // Up and down buttons in duration field
   Widget _upDown({required VoidCallback onUp, required VoidCallback onDown}) =>
       Container(
         width: 26,

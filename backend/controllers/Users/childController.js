@@ -138,3 +138,51 @@ export const deleteChild = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+// Get CHILDREN BY THERAPIST ID (t-0001)
+export const getChildrenByTherapist = async (req, res) => {
+  try {
+    const { therapistId } = req.params; // e.g. "t-0001"
+
+    const children = await Child.find({ therapist: therapistId })
+      .sort({ createdAt: -1 })
+      .populate("caregiver")
+      .populate("therapist");
+
+    res.json(children);
+  } catch (err) {
+    console.error("getChildrenByTherapist error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// UPDATE CHILD ACCOUNT STATUS
+export const updateChildStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { account_status } = req.body;
+
+    if (!["active", "inactive"].includes(account_status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const updatedChild = await Child.findByIdAndUpdate(
+      id,
+      { account_status },
+      { new: true }
+    );
+
+    if (!updatedChild) {
+      return res.status(404).json({ message: "Child not found" });
+    }
+
+    res.json({
+      message: "Child account status updated successfully",
+      child: updatedChild,
+    });
+  } catch (err) {
+    console.error("updateChildStatus error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};

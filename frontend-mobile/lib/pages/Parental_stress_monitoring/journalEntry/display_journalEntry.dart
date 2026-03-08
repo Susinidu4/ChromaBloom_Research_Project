@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -13,9 +18,30 @@ class JournalsScreen extends StatefulWidget {
 
 class _JournalsScreenState extends State<JournalsScreen> {
   final JournalEntryService _service = JournalEntryService();
+  bool _errorShown = false;
+  bool _notLoggedIn = false;
 
-  // ✅ hardcode for now (until login)
-  final String _caregiverId = "p-0001";
+  // hardcode for now (until login)
+  //final String _caregiverId = "p-0001";
+
+// Helper to show themed QuickAlert (same theme everywhere)
+  Future<void> showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) async {
+    await QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color(0xFFFFFFFF),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
 
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -25,7 +51,6 @@ class _JournalsScreenState extends State<JournalsScreen> {
     _future = _load();
   }
 
-  // ===== helpers =====
   DateTime? _parseDate(String? s) {
     if (s == null || s.isEmpty) return null;
     try {
@@ -35,8 +60,10 @@ class _JournalsScreenState extends State<JournalsScreen> {
     }
   }
 
+// helper to format date as "DD/MM/YYYY"
   String _formatDateDMY(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
+// helper to check if two dates are on the same calendar day
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -53,7 +80,29 @@ class _JournalsScreenState extends State<JournalsScreen> {
 
   // ===== load journals (last 14 days) =====
   Future<List<Map<String, dynamic>>> _load() async {
-    final list = await _service.getJournalsByCaregiver(_caregiverId);
+    final session = context.read<SessionProvider>();
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
+    if (caregiverId.isEmpty) {
+  if (!_notLoggedIn) {
+    _notLoggedIn = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Login Required",
+        text: "Please login to view journals.",
+      );
+    });
+  }
+  return [];
+}
+_notLoggedIn = false;
+
+// fetch all journals for caregiver, then filter/sort in app (since we don't have a "get recent journals" API)
+    final list = await _service.getJournalsByCaregiver(caregiverId);
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -77,230 +126,266 @@ class _JournalsScreenState extends State<JournalsScreen> {
     return filtered;
   }
 
-  // ✅ refresh (NO async inside setState)
+  // refresh (NO async inside setState)
   Future<void> _refresh() async {
     setState(() {
       _future = _load(); // <-- assign Future only (no await)
+      _errorShown = false;
+      _notLoggedIn = false;
     });
   }
 
   // ===== delete =====
   Future<void> _confirmDelete(String entryId) async {
-    if (entryId.isEmpty) return;
+  if (entryId.isEmpty) return;
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Delete Journal"),
-        content: const Text(
-          "Are you sure you want to delete this journal entry?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
-    );
-
-    if (ok != true) return;
-
-    try {
-      await _service.deleteJournal(entryId);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Deleted successfully")));
-
-      await _refresh();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Delete failed: $e")));
-    }
-  }
-
-Future<void> _showJournalDetails({
-  required String dateText,
-  required String moodLabel,
-  required String emoji,
-  required String fullText,
-}) async {
-  await showDialog<void>(
+  await QuickAlert.show(
     context: context,
-    barrierColor: const Color(0xAA000000), // grey overlay
-    builder: (dialogCtx) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE9DDCC), // outer soft bg
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x55000000),
-                blurRadius: 18,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ConstrainedBox(
-            // ✅ dialog grows/shrinks with content, but won't exceed screen
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
-            ),
-            child: IntrinsicHeight(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9DDCC), // inner beige card
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFBD9A6B), width: 2),
-                ),
-                child: Stack(
-                  children: [
-                    // ===== Date pill (top-left) =====
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9DDCC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: const Color(0xFFBD9A6B),
-                            width: 2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              dateText,
-                              style: const TextStyle(
-                                color: Color(0xFFBD9A6B),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            const Icon(
-                              Icons.calendar_month_rounded,
-                              color: Color(0xFFBD9A6B),
-                              size: 22,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+    type: QuickAlertType.confirm,
+    title: "Delete Journal",
+    text: "Are you sure you want to delete this journal entry?",
+    confirmBtnText: "Delete",
+    cancelBtnText: "Cancel",
+    showCancelBtn: true,
+    barrierDismissible: false,
 
-                    // ===== Close circle (top-right) =====
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: InkWell(
-                        onTap: () => Navigator.pop(dialogCtx),
-                        borderRadius: BorderRadius.circular(999),
-                        child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF3E8E8),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x55000000),
-                                blurRadius: 16,
-                                offset: Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.close_rounded,
-                              size: 34,
-                              color: Color(0xFFBD9A6B),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+    // EXACT THEME
+    backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+    titleColor: const Color(0xFFBD9A6B),
+    textColor: const Color(0xFFBD9A6B),
+    confirmBtnColor: const Color(0xFFBD9A6B),
 
-                    // ===== Main content =====
-                    Padding(
-                      padding: const EdgeInsets.only(top: 70),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // emoji + mood
-                          Row(
-                            children: [
-                              Text(
-                                emoji,
-                                style: const TextStyle(fontSize: 32),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                moodLabel,
-                                style: const TextStyle(
-                                  color: Color(0xFFBD9A6B),
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+    onConfirmBtnTap: () async {
+      // close confirm alert
+      Navigator.of(context, rootNavigator: true).pop();
 
-                          const SizedBox(height: 16),
+      try {
+        await _service.deleteJournal(entryId);
+        if (!mounted) return;
 
-                          // ✅ text scrolls only if very long
-                          Flexible(
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: Text(
-                                fullText,
-                                style: const TextStyle(
-                                  color: Color(0xFFBD9A6B),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
+        // success alert
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.success,
+          title: "Deleted",
+          text: "Deleted successfully",
+          confirmBtnText: "OK",
+
+          // EXACT THEME
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+          titleColor: const Color(0xFFBD9A6B),
+          textColor: const Color(0xFFBD9A6B),
+          confirmBtnColor: const Color(0xFFBD9A6B),
+        );
+
+        await _refresh();
+      } catch (e) {
+        if (!mounted) return;
+
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.error,
+          title: "Delete Failed",
+          text: e.toString(),
+          confirmBtnText: "OK",
+
+          // EXACT THEME
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+          titleColor: const Color(0xFFBD9A6B),
+          textColor: const Color(0xFFBD9A6B),
+          confirmBtnColor: const Color(0xFFBD9A6B),
+        );
+      }
+    },
+
+    onCancelBtnTap: () {
+      Navigator.of(context, rootNavigator: true).pop();
     },
   );
 }
 
+
+// ===== show journal details in a dialog =====
+
+  Future<void> _showJournalDetails({
+    required String dateText,
+    required String moodLabel,
+    required String emoji,
+    required String fullText,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xAA000000), // grey overlay
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 24,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9DDCC), // outer soft bg
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x55000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ConstrainedBox(
+              // dialog grows/shrinks with content, but won't exceed screen
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
+              ),
+              child: IntrinsicHeight(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9DDCC), // inner beige card
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: const Color(0xFFBD9A6B),
+                      width: 2,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // ===== Date pill (top-left) =====
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9DDCC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFBD9A6B),
+                              width: 2,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                dateText,
+                                style: const TextStyle(
+                                  color: Color(0xFFBD9A6B),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              const Icon(
+                                Icons.calendar_month_rounded,
+                                color: Color(0xFFBD9A6B),
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ===== Close circle (top-right) =====
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(dialogCtx),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            width: 45,
+                            height: 45,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF3E8E8),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0x55000000),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 34,
+                                color: Color(0xFFBD9A6B),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // ===== Main content =====
+                      Padding(
+                        padding: const EdgeInsets.only(top: 70),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // emoji + mood
+                            Row(
+                              children: [
+                                Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 32),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  moodLabel,
+                                  style: const TextStyle(
+                                    color: Color(0xFFBD9A6B),
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // text scrolls only if very long
+                            Flexible(
+                              child: SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: Text(
+                                  fullText,
+                                  style: const TextStyle(
+                                    color: Color(0xFFBD9A6B),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   // ===== edit (same day only) =====
   Future<void> _editEntry(Map<String, dynamic> entry) async {
@@ -310,11 +395,14 @@ Future<void> _showJournalDetails({
     final created = _parseDate(entry['created_at']?.toString());
     final now = DateTime.now();
 
-    // ✅ allow edit only within the added day (same day)
+    // allow edit only within the added day (same day)
     if (created == null || !_isSameDay(created, now)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Edit is allowed only on the same day.")),
+      await showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Not Allowed",
+        text: "Edit is allowed only on the same day.",
       );
+
       return;
     }
 
@@ -451,19 +539,24 @@ Future<void> _showJournalDetails({
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Updated successfully")));
+      await showThemedAlert(
+        type: QuickAlertType.success,
+        title: "Updated",
+        text: "Updated successfully",
+      );
 
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Update failed: $e")));
+      await showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Update Failed",
+        text: e.toString(),
+      );
     }
   }
 
+// ===================== BUILD UI =====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -515,6 +608,7 @@ Future<void> _showJournalDetails({
 
                       const SizedBox(height: 6),
 
+// top section with image, date tile, and add button
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Row(
@@ -549,6 +643,7 @@ Future<void> _showJournalDetails({
 
                       const SizedBox(height: 6),
 
+  // journal list (future builder)
                       Expanded(
                         child: FutureBuilder<List<Map<String, dynamic>>>(
                           future: _future,
@@ -560,21 +655,45 @@ Future<void> _showJournalDetails({
                               );
                             }
                             if (snap.hasError) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(18),
-                                  child: Text(
-                                    "Failed to load journals:\n${snap.error}",
-                                    style: const TextStyle(
-                                      color: _JColors.goldText,
-                                    ),
-                                    textAlign: TextAlign.center,
+                              if (!_errorShown) {
+                                _errorShown = false;
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (!mounted) return;
+                                  showThemedAlert(
+                                    type: QuickAlertType.error,
+                                    title: "Load Failed",
+                                    text: snap.error.toString(),
+                                  );
+                                });
+                              }
+
+                              return const Center(
+                                child: Text(
+                                  "Unable to load journals.",
+                                  style: TextStyle(
+                                    color: _JColors.goldText,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               );
                             }
 
                             final items = snap.data ?? [];
+
+                            if (_notLoggedIn) {
+                              return const Center(
+                                child: Text(
+                                  "Please login to view journals.",
+                                  style: TextStyle(
+                                    color: _JColors.goldText,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            }
+
                             if (items.isEmpty) {
                               return const Center(
                                 child: Text(
@@ -586,7 +705,7 @@ Future<void> _showJournalDetails({
                                 ),
                               );
                             }
-
+// pull to refresh list of journals
                             return RefreshIndicator(
                               onRefresh: _refresh,
                               child: ListView.separated(
@@ -628,6 +747,7 @@ Future<void> _showJournalDetails({
                                       mood[0].toUpperCase() +
                                       mood.substring(1); // "happy" -> "Happy"
 
+// journal card with edit/delete buttons (edit only if same day)
                                   return _JournalCard(
                                     dateText: dateText,
                                     emoji: emoji,
@@ -662,8 +782,7 @@ Future<void> _showJournalDetails({
   }
 }
 
-/* ===================== UI WIDGETS (same design) ===================== */
-
+// circular button with an icon, used for back navigation and other actions in the journal screen
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -698,6 +817,7 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
+// custom styled tile to display the date in the top section of the journal screen, showing month and day with decorative dots
 class _DateTile extends StatelessWidget {
   final DateTime date;
   const _DateTile({required this.date});
@@ -781,6 +901,7 @@ class _DateTile extends StatelessWidget {
   }
 }
 
+// custom styled outlined button with an add icon, used to navigate to the create journal entry screen
 class _AddNewButton extends StatelessWidget {
   final VoidCallback onTap;
   const _AddNewButton({required this.onTap});
@@ -808,6 +929,7 @@ class _AddNewButton extends StatelessWidget {
   }
 }
 
+// display a summary of each journal entry in the list
 class _JournalCard extends StatelessWidget {
   final VoidCallback? onTap;
   final String dateText;
@@ -871,8 +993,8 @@ class _JournalCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     text,
-                    maxLines: 1, // 👈 limit lines (or 3 if you prefer)
-                    overflow: TextOverflow.ellipsis, // 👈 show ...
+                    maxLines: 1, // limit lines (or 3 if you prefer)
+                    overflow: TextOverflow.ellipsis, 
                     softWrap: true,
                     style: const TextStyle(
                       color: _JColors.goldText,
@@ -883,6 +1005,7 @@ class _JournalCard extends StatelessWidget {
                 ],
               ),
             ),
+            // edit/delete buttons (only show if allowed)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -907,6 +1030,7 @@ class _JournalCard extends StatelessWidget {
   }
 }
 
+// centralized color definitions for the journal screen, used for consistent theming across all widgets
 class _JColors {
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color goldText = Color(0xFFBD9A6B);

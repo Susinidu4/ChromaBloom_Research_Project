@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -34,6 +40,64 @@ class _DetailedSystemActivityScreenState
   static const Color stroke = Color(0xFFBD9A6B);
   static const Color shadow = Color(0x22000000);
 
+  String? caregiverID;
+  String? childID;
+
+  // Identity loading state
+  bool loadingIdentity = true;
+  String? identityError;
+
+  // Get caregiver ID from session
+  String _getCaregiverIdFromSession() {
+    final session = context.read<SessionProvider>();
+    return (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+        .toString();
+  }
+
+  // Check if selected date is today (for enabling checkboxes and input)
+  bool get _isToday {
+    final d = widget.selectedDate;
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  // Load caregiver and child info based on session
+  Future<void> _loadCaregiverAndChild() async {
+    try {
+      // Get caregiver ID from session
+      final caregiverID = _getCaregiverIdFromSession();
+      if (caregiverID.isEmpty) {
+        throw Exception("Session error. Please login again.");
+      }
+
+      // Fetch children linked to caregiver
+      final children = await ChildApi.getChildrenByCaregiver(caregiverID);
+      if (children.isEmpty) {
+        throw Exception("No child profile found.");
+      }
+
+      final child = children.first;
+      // Extract child ID
+      final childID = (child['_id'] ?? child['id'] ?? '').toString();
+      if (childID.isEmpty) {
+        throw Exception("Child ID missing.");
+      }
+
+      if (!mounted) return;
+      setState(() {
+        this.caregiverID = caregiverID;
+        this.childID = childID;
+        loadingIdentity = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        identityError = e.toString();
+        loadingIdentity = false;
+      });
+    }
+  }
+
   // Themed alert dialog
   Future<void> showThemedAlert({
     required QuickAlertType type,
@@ -63,11 +127,18 @@ class _DetailedSystemActivityScreenState
 
   int completedMinutes = 0;
 
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool loadingVideo = true;
+  String? videoError;
+
+  // Load saved progress from RoutineRun collection
   @override
   void initState() {
     super.initState();
 
     TtsService.init();
+    _loadVideo();
 
     // 1) Build steps FIRST
     final rawSteps = (widget.activity["steps"] as List?) ?? [];
@@ -83,22 +154,34 @@ class _DetailedSystemActivityScreenState
     stepDone = List<bool>.filled(steps.length, false);
 
     // 3) Load saved progress from RoutineRun collection
-    _loadSavedProgress();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadCaregiverAndChild();
+      if (caregiverID != null && childID != null) {
+        await _loadSavedProgress();
+      } else {
+        if (mounted) setState(() => loadingProgress = false);
+      }
+    });
   }
 
+  // Dispose controllers to prevent memory leaks
   @override
   void dispose() {
     TtsService.stop();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     completedCtrl.dispose();
     super.dispose();
   }
 
+  // Calculate completion percentage based on steps done
   int _calcPercent() {
     if (steps.isEmpty) return 0;
     final done = stepDone.where((x) => x).length;
     return ((done / steps.length) * 100).round();
   }
 
+  // Increment completed minutes with upper limit of 60
   void onIncCompleted() {
     setState(() {
       completedMinutes = (completedMinutes + 1).clamp(0, 60);
@@ -106,6 +189,7 @@ class _DetailedSystemActivityScreenState
     });
   }
 
+  // Decrement completed minutes with lower limit of 0
   void onDecCompleted() {
     setState(() {
       completedMinutes = (completedMinutes - 1).clamp(0, 60);
@@ -113,6 +197,7 @@ class _DetailedSystemActivityScreenState
     });
   }
 
+  // Text-to-speech functions for title, description, and steps
   String _title() => (widget.activity["title"] ?? "").toString();
   String _desc() =>
       (widget.activity["description"] ?? widget.activity["desc"] ?? "")
@@ -129,6 +214,7 @@ class _DetailedSystemActivityScreenState
     await TtsService.speak("Step $n. $instruction");
   }
 
+  // Speak all steps in one go (optional, can be triggered by a button if needed)
   Future<void> _speakAllSteps() async {
     if (steps.isEmpty) return;
     final buffer = StringBuffer();
@@ -142,10 +228,16 @@ class _DetailedSystemActivityScreenState
     await TtsService.speak(buffer.toString());
   }
 
+  // Load saved progress from RoutineRun collection and update UI accordingly
   Future<void> _loadSavedProgress() async {
     try {
-      const caregiverId = "p-0001";
-      const childId = "c-0001";
+      final caregiverId = caregiverID;
+      final childId = childID;
+
+      if (caregiverId == null || childId == null) {
+        if (mounted) setState(() => loadingProgress = false);
+        return;
+      }
 
       final planId = widget.planMongoId;
       final activityId = _getActivityMongoId();
@@ -155,12 +247,13 @@ class _DetailedSystemActivityScreenState
         return;
       }
 
+      // fetch the routine run for the given caregiver, child, plan, activity, and date
       final run = await ChildRoutinePlanService.getRoutineRunProgress(
         caregiverId: caregiverId,
         childId: childId,
         planMongoId: widget.planMongoId,
-        activityMongoId: widget.activity["_id"],
-        runDate: widget.selectedDate, // ✅ calendar date
+        activityMongoId: activityId,
+        runDate: widget.selectedDate,
       );
 
       if (run != null) {
@@ -204,29 +297,95 @@ class _DetailedSystemActivityScreenState
     return widget.activity;
   }
 
+  // Load video from media_links in activity and initialize controllers
+  Future<void> _loadVideo() async {
+    try {
+      final activity = _getActivityObj();
+      final mediaLinks = (activity["media_links"] as List?) ?? [];
+
+      if (mediaLinks.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          loadingVideo = false;
+          videoError = "No video found";
+        });
+        return;
+      }
+
+      final videoUrl = mediaLinks.first.toString().trim();
+
+      if (videoUrl.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          loadingVideo = false;
+          videoError = "Video URL is empty";
+        });
+        return;
+      }
+
+      // Initialize video player controller with the video URL
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      await _videoController!.initialize();
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController!,
+        autoPlay: false,
+        looping: true,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        showControlsOnInitialize: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: stroke,
+          handleColor: stroke,
+          bufferedColor: Colors.white70,
+          backgroundColor: Colors.black26,
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        loadingVideo = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingVideo = false;
+        videoError = e.toString();
+      });
+    }
+  }
+
+  // Build method to render the UI based on loading states, errors, and activity data
   @override
   Widget build(BuildContext context) {
+    if (loadingIdentity) {
+      return const Scaffold(
+        backgroundColor: pageBg,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (identityError != null) {
+      return Scaffold(
+        backgroundColor: pageBg,
+        body: Center(
+          child: Text(
+            identityError!,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+
     final activity = _getActivityObj();
 
     final title = (widget.activity["title"] ?? "").toString();
     final description =
-        (widget.activity["description"] ?? widget.activity["desc"] ?? "")
-            .toString();
+        (activity["description"] ?? widget.activity["desc"] ?? "").toString();
 
     final est = (widget.activity["estimated_duration_minutes"] ?? 0);
     final percent = _calcPercent();
-
-    final img =
-        (widget.activity["img"] ??
-                (widget.activity["media_links"] is List &&
-                        (widget.activity["media_links"] as List).isNotEmpty
-                    ? widget.activity["media_links"][0]
-                    : "assets/brushing_teeth.png"))
-            .toString();
-
-    final bool isNetwork = img.startsWith("http");
-
-    final activityId = _getActivityMongoId();
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -392,13 +551,84 @@ class _DetailedSystemActivityScreenState
 
                           const SizedBox(height: 14),
 
-                          // Big image
-                          Center(
-                            child: SizedBox(
-                              height: 190,
-                              child: isNetwork
-                                  ? Image.network(img, fit: BoxFit.contain)
-                                  : Image.asset(img, fit: BoxFit.contain),
+                          // Video player container
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: stroke.withOpacity(0.25),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    color: Colors.black12,
+                                    child: loadingVideo
+                                        ? const SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          )
+                                        : videoError != null
+                                        ? SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                child: Text(
+                                                  videoError!,
+                                                  style: const TextStyle(
+                                                    color: Colors.red,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : (_chewieController != null &&
+                                              _videoController != null &&
+                                              _videoController!
+                                                  .value
+                                                  .isInitialized)
+                                        ? AspectRatio(
+                                            aspectRatio:
+                                                _videoController!
+                                                        .value
+                                                        .aspectRatio ==
+                                                    0
+                                                ? 16 / 9
+                                                : _videoController!
+                                                      .value
+                                                      .aspectRatio,
+                                            child: Chewie(
+                                              controller: _chewieController!,
+                                            ),
+                                          )
+                                        : const SizedBox(
+                                            height: 220,
+                                            child: Center(
+                                              child: Text(
+                                                "No video available",
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
 
@@ -517,13 +747,14 @@ class _DetailedSystemActivityScreenState
                                       ),
                                       child: Checkbox(
                                         value: stepDone[i],
-                                        onChanged: (v) async {
-                                          await TtsService.stop();
-                                          setState(() {
-                                            stepDone[i] = v ?? false;
-                                          });
-                                        },
-
+                                        onChanged: _isToday
+                                            ? (v) async {
+                                                await TtsService.stop();
+                                                setState(() {
+                                                  stepDone[i] = v ?? false;
+                                                });
+                                              }
+                                            : null, // ✅ disables for past/future
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
                                       ),
@@ -571,6 +802,8 @@ class _DetailedSystemActivityScreenState
                                 ),
                                 child: TextFormField(
                                   controller: completedCtrl,
+                                  enabled: _isToday,
+                                  readOnly: !_isToday,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
                                   inputFormatters: [
@@ -614,7 +847,7 @@ class _DetailedSystemActivityScreenState
                                   children: [
                                     Expanded(
                                       child: InkWell(
-                                        onTap: onIncCompleted,
+                                        onTap: _isToday ? onIncCompleted : null,
                                         borderRadius:
                                             const BorderRadius.vertical(
                                               top: Radius.circular(10),
@@ -629,7 +862,7 @@ class _DetailedSystemActivityScreenState
 
                                     Expanded(
                                       child: InkWell(
-                                        onTap: onDecCompleted,
+                                        onTap: _isToday ? onDecCompleted : null,
                                         borderRadius:
                                             const BorderRadius.vertical(
                                               bottom: Radius.circular(10),
@@ -666,93 +899,108 @@ class _DetailedSystemActivityScreenState
                               width: 160,
                               height: 44,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  final caregiverId = "p-0001";
-                                  final childId = "c-0001";
-                                  final planId = widget.planMongoId;
-                                  final activityId = _getActivityMongoId();
+                                onPressed: _isToday
+                                    ? () async {
+                                        final caregiverId = caregiverID;
+                                        final childId = childID;
 
-                                  // ❌ missing ids
-                                  if (planId.isEmpty || activityId.isEmpty) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Error",
-                                      text:
-                                          "Missing plan or activity information.",
-                                    );
-                                    return;
-                                  }
+                                        if (caregiverId == null ||
+                                            childId == null) {
+                                          await showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Session Error",
+                                            text:
+                                                "Missing caregiver or child. Please login again.",
+                                          );
+                                          return;
+                                        }
+                                        final planId = widget.planMongoId;
+                                        final activityId =
+                                            _getActivityMongoId();
 
-                                  // ❌ completed duration REQUIRED
-                                  if (completedMinutes <= 0) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Duration Required",
-                                      text:
-                                          "Please enter completed duration (1–60 minutes).",
-                                    );
-                                    return;
-                                  }
+                                        // ❌ missing ids
+                                        if (planId.isEmpty ||
+                                            activityId.isEmpty) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Error",
+                                            text:
+                                                "Missing plan or activity information.",
+                                          );
+                                          return;
+                                        }
 
-                                  // ❌ at least one step checkbox REQUIRED
-                                  final anyChecked = stepDone.any(
-                                    (x) => x == true,
-                                  );
-                                  if (!anyChecked) {
-                                    showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Steps Required",
-                                      text:
-                                          "Please tick at least one step before saving.",
-                                    );
-                                    return;
-                                  }
+                                        // ❌ completed duration REQUIRED
+                                        if (completedMinutes <= 0) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Duration Required",
+                                            text:
+                                                "Please enter completed duration (1–60 minutes).",
+                                          );
+                                          return;
+                                        }
 
-                                  final stepsProgress = List.generate(
-                                    stepDone.length,
-                                    (i) {
-                                      return {
-                                        "step_number": i + 1,
-                                        "status": stepDone[i],
-                                      };
-                                    },
-                                  );
+                                        // ❌ at least one step checkbox REQUIRED
+                                        final anyChecked = stepDone.any(
+                                          (x) => x == true,
+                                        );
+                                        if (!anyChecked) {
+                                          showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Steps Required",
+                                            text:
+                                                "Please tick at least one step before saving.",
+                                          );
+                                          return;
+                                        }
 
-                                  try {
-                                    final res =
-                                        await ChildRoutinePlanService.saveRoutineRun(
-                                          caregiverId: caregiverId,
-                                          childId: childId,
-                                          planMongoId: planId,
-                                          activityMongoId: activityId,
-                                          runDate: widget.selectedDate,
-                                          stepsProgress: stepsProgress,
-                                          completedDurationMinutes:
-                                              completedMinutes,
+                                        final stepsProgress = List.generate(
+                                          stepDone.length,
+                                          (i) {
+                                            return {
+                                              "step_number": i + 1,
+                                              "status": stepDone[i],
+                                            };
+                                          },
                                         );
 
-                                    if (!mounted) return;
+                                        try {
+                                          final res =
+                                              await ChildRoutinePlanService.saveRoutineRun(
+                                                caregiverId: caregiverId,
+                                                childId: childId,
+                                                planMongoId: planId,
+                                                activityMongoId: activityId,
+                                                runDate: widget.selectedDate,
+                                                stepsProgress: stepsProgress,
+                                                completedDurationMinutes:
+                                                    completedMinutes,
+                                              );
 
-                                    await showThemedAlert(
-                                      type: QuickAlertType.success,
-                                      title: "Saved",
-                                      text:
-                                          res["message"] ??
-                                          "Progress saved successfully.",
-                                    );
+                                          if (!mounted) return;
 
-                                    if (!mounted) return;
-                                    Navigator.pop(context, true);
-                                  } catch (e) {
-                                    if (!mounted) return;
+                                          await showThemedAlert(
+                                            type: QuickAlertType.success,
+                                            title: "Saved",
+                                            text:
+                                                res["message"] ??
+                                                "Progress saved successfully.",
+                                          );
 
-                                    await showThemedAlert(
-                                      type: QuickAlertType.error,
-                                      title: "Save Failed",
-                                      text: e.toString(),
-                                    );
-                                  }
-                                },
+                                          if (!mounted) return;
+                                          Navigator.pop(context, true);
+                                        } catch (e) {
+                                          if (!mounted) return;
+
+                                          await showThemedAlert(
+                                            type: QuickAlertType.error,
+                                            title: "Save Failed",
+                                            text: e.toString(),
+                                          );
+                                        }
+                                      }
+                                    : null,
 
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFB79C6B),
@@ -781,38 +1029,6 @@ class _DetailedSystemActivityScreenState
         ),
       ),
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
-    );
-  }
-}
-
-/* Small square button like your UI */
-class _MiniSquareIconButton extends StatelessWidget {
-  const _MiniSquareIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  static const Color stroke = Color(0xFFBD9A6B);
-  static const Color shadow = Color(0x22000000);
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 28,
-        height: 18,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF6F0EC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: stroke.withOpacity(0.65), width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: shadow, blurRadius: 10, offset: Offset(0, 6)),
-          ],
-        ),
-        child: Icon(icon, color: stroke, size: 18),
-      ),
     );
   }
 }
