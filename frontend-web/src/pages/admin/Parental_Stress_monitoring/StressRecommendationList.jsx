@@ -25,6 +25,7 @@ export default function StressSupportRecommendationList() {
   const [filterBy, setFilterBy] = useState("Stress Level");
   const [filterValue, setFilterValue] = useState("All");
 
+  // Show error alert if there's an error
   useEffect(() => {
     if (!error) return;
 
@@ -45,6 +46,7 @@ export default function StressSupportRecommendationList() {
         setLoading(true);
         setError("");
 
+        // fetch all recommendations (no pagination for now, since we expect a small number of recommendations)
         const res = await getAllRecommendationsService();
 
         // backend: { success, count, data }
@@ -52,9 +54,9 @@ export default function StressSupportRecommendationList() {
 
         // normalize for UI
         const mapped = list.map((r) => ({
-          id: r.recommendationId || r._id, // prefer your REC-xxxx id
+          id: r.recommendationId || r._id,
           title: r.title || "Untitled",
-          level: r.level || "Low", // Low/Medium/High/Critical
+          level: r.level || "Low",
           category: r.category || "rest",
         }));
 
@@ -75,11 +77,13 @@ export default function StressSupportRecommendationList() {
     };
   }, []);
 
+  // derive unique categories from the fetched data for the category filter dropdown, with "All" as the default option
   const categories = useMemo(() => {
     const s = new Set(rows.map((r) => r.category).filter(Boolean));
     return ["All", ...Array.from(s)];
   }, [rows]);
 
+  // apply search and filters to the original rows to get the displayed list
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
 
@@ -103,12 +107,14 @@ export default function StressSupportRecommendationList() {
     });
   }, [rows, query, filterBy, filterValue]);
 
+  // clear search and reset filters to default values
   function handleClearFilters() {
     setQuery("");
     setFilterBy("Stress Level");
     setFilterValue("All");
   }
 
+  // handle deletion of a recommendation, with confirmation dialog and error handling
   async function onDelete(id) {
     const r = await Swal.fire({
       title: "Delete this recommendation?",
@@ -132,6 +138,7 @@ export default function StressSupportRecommendationList() {
     }
 
     try {
+      // call the delete service with the recommendation id
       await deleteRecommendationByIdService(id);
 
       setRows((prev) => prev.filter((x) => x.id !== id));
@@ -169,6 +176,7 @@ export default function StressSupportRecommendationList() {
             Stress Support Recommendation List
           </h2>
 
+          {/* Create button */}
           <button
             onClick={() => navigate("/Stress_recommendation_create")}
             className="mt-0 flex w-full items-center justify-center gap-3 rounded-xl bg-[#BD9A6B] px-6 py-2.5 text-white shadow-[0_10px_18px_rgba(0,0,0,0.12)] active:scale-[0.99] sm:w-auto md:mt-5"
@@ -213,6 +221,7 @@ export default function StressSupportRecommendationList() {
               ))}
             </select>
 
+            {/* The second filter's options depend on the first filter's value. */}
             <select
               className="h-9 w-full min-w-0 rounded-xl border border-[#BD9A6B] px-3 text-sm outline-none sm:min-w-[160px] sm:w-auto"
               value={filterValue}
@@ -278,6 +287,7 @@ export default function StressSupportRecommendationList() {
                       <div className="text-[#9A7E66]">{r.category}</div>
 
                       <div className="flex justify-end gap-3">
+                        {/* Delete button */}
                         <button
                           title="Delete"
                           disabled={loading}
@@ -287,6 +297,7 @@ export default function StressSupportRecommendationList() {
                           <MdDelete size={30} />
                         </button>
 
+                        {/* View details button */}
                         <button
                           title="More"
                           onClick={() =>
