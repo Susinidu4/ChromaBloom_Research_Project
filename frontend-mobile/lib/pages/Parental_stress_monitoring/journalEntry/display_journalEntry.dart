@@ -21,9 +21,10 @@ class _JournalsScreenState extends State<JournalsScreen> {
   bool _errorShown = false;
   bool _notLoggedIn = false;
 
-  // ✅ hardcode for now (until login)
+  // hardcode for now (until login)
   //final String _caregiverId = "p-0001";
 
+// Helper to show themed QuickAlert (same theme everywhere)
   Future<void> showThemedAlert({
     required QuickAlertType type,
     required String title,
@@ -50,7 +51,6 @@ class _JournalsScreenState extends State<JournalsScreen> {
     _future = _load();
   }
 
-  // ===== helpers =====
   DateTime? _parseDate(String? s) {
     if (s == null || s.isEmpty) return null;
     try {
@@ -60,8 +60,10 @@ class _JournalsScreenState extends State<JournalsScreen> {
     }
   }
 
+// helper to format date as "DD/MM/YYYY"
   String _formatDateDMY(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
+// helper to check if two dates are on the same calendar day
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -99,7 +101,7 @@ class _JournalsScreenState extends State<JournalsScreen> {
 }
 _notLoggedIn = false;
 
-
+// fetch all journals for caregiver, then filter/sort in app (since we don't have a "get recent journals" API)
     final list = await _service.getJournalsByCaregiver(caregiverId);
 
     final now = DateTime.now();
@@ -124,7 +126,7 @@ _notLoggedIn = false;
     return filtered;
   }
 
-  // ✅ refresh (NO async inside setState)
+  // refresh (NO async inside setState)
   Future<void> _refresh() async {
     setState(() {
       _future = _load(); // <-- assign Future only (no await)
@@ -147,7 +149,7 @@ _notLoggedIn = false;
     showCancelBtn: true,
     barrierDismissible: false,
 
-    // 🎨 YOUR EXACT THEME
+    // EXACT THEME
     backgroundColor: const Color.fromARGB(255, 255, 255, 255),
     titleColor: const Color(0xFFBD9A6B),
     textColor: const Color(0xFFBD9A6B),
@@ -161,7 +163,7 @@ _notLoggedIn = false;
         await _service.deleteJournal(entryId);
         if (!mounted) return;
 
-        // ✅ success alert
+        // success alert
         await QuickAlert.show(
           context: context,
           type: QuickAlertType.success,
@@ -169,7 +171,7 @@ _notLoggedIn = false;
           text: "Deleted successfully",
           confirmBtnText: "OK",
 
-          // 🎨 same theme
+          // EXACT THEME
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
           titleColor: const Color(0xFFBD9A6B),
           textColor: const Color(0xFFBD9A6B),
@@ -187,7 +189,7 @@ _notLoggedIn = false;
           text: e.toString(),
           confirmBtnText: "OK",
 
-          // 🎨 same theme
+          // EXACT THEME
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
           titleColor: const Color(0xFFBD9A6B),
           textColor: const Color(0xFFBD9A6B),
@@ -202,6 +204,8 @@ _notLoggedIn = false;
   );
 }
 
+
+// ===== show journal details in a dialog =====
 
   Future<void> _showJournalDetails({
     required String dateText,
@@ -233,7 +237,7 @@ _notLoggedIn = false;
               ],
             ),
             child: ConstrainedBox(
-              // ✅ dialog grows/shrinks with content, but won't exceed screen
+              // dialog grows/shrinks with content, but won't exceed screen
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(dialogCtx).size.height * 0.65,
               ),
@@ -354,7 +358,7 @@ _notLoggedIn = false;
 
                             const SizedBox(height: 16),
 
-                            // ✅ text scrolls only if very long
+                            // text scrolls only if very long
                             Flexible(
                               child: SingleChildScrollView(
                                 physics: const BouncingScrollPhysics(),
@@ -391,7 +395,7 @@ _notLoggedIn = false;
     final created = _parseDate(entry['created_at']?.toString());
     final now = DateTime.now();
 
-    // ✅ allow edit only within the added day (same day)
+    // allow edit only within the added day (same day)
     if (created == null || !_isSameDay(created, now)) {
       await showThemedAlert(
         type: QuickAlertType.warning,
@@ -552,6 +556,7 @@ _notLoggedIn = false;
     }
   }
 
+// ===================== BUILD UI =====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -603,6 +608,7 @@ _notLoggedIn = false;
 
                       const SizedBox(height: 6),
 
+// top section with image, date tile, and add button
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Row(
@@ -637,6 +643,7 @@ _notLoggedIn = false;
 
                       const SizedBox(height: 6),
 
+  // journal list (future builder)
                       Expanded(
                         child: FutureBuilder<List<Map<String, dynamic>>>(
                           future: _future,
@@ -698,7 +705,7 @@ _notLoggedIn = false;
                                 ),
                               );
                             }
-
+// pull to refresh list of journals
                             return RefreshIndicator(
                               onRefresh: _refresh,
                               child: ListView.separated(
@@ -740,6 +747,7 @@ _notLoggedIn = false;
                                       mood[0].toUpperCase() +
                                       mood.substring(1); // "happy" -> "Happy"
 
+// journal card with edit/delete buttons (edit only if same day)
                                   return _JournalCard(
                                     dateText: dateText,
                                     emoji: emoji,
@@ -774,8 +782,7 @@ _notLoggedIn = false;
   }
 }
 
-/* ===================== UI WIDGETS (same design) ===================== */
-
+// circular button with an icon, used for back navigation and other actions in the journal screen
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -810,6 +817,7 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
+// custom styled tile to display the date in the top section of the journal screen, showing month and day with decorative dots
 class _DateTile extends StatelessWidget {
   final DateTime date;
   const _DateTile({required this.date});
@@ -893,6 +901,7 @@ class _DateTile extends StatelessWidget {
   }
 }
 
+// custom styled outlined button with an add icon, used to navigate to the create journal entry screen
 class _AddNewButton extends StatelessWidget {
   final VoidCallback onTap;
   const _AddNewButton({required this.onTap});
@@ -920,6 +929,7 @@ class _AddNewButton extends StatelessWidget {
   }
 }
 
+// display a summary of each journal entry in the list
 class _JournalCard extends StatelessWidget {
   final VoidCallback? onTap;
   final String dateText;
@@ -983,8 +993,8 @@ class _JournalCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     text,
-                    maxLines: 1, // 👈 limit lines (or 3 if you prefer)
-                    overflow: TextOverflow.ellipsis, // 👈 show ...
+                    maxLines: 1, // limit lines (or 3 if you prefer)
+                    overflow: TextOverflow.ellipsis, 
                     softWrap: true,
                     style: const TextStyle(
                       color: _JColors.goldText,
@@ -995,6 +1005,7 @@ class _JournalCard extends StatelessWidget {
                 ],
               ),
             ),
+            // edit/delete buttons (only show if allowed)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1019,6 +1030,7 @@ class _JournalCard extends StatelessWidget {
   }
 }
 
+// centralized color definitions for the journal screen, used for consistent theming across all widgets
 class _JColors {
   static const Color pageBg = Color(0xFFF3E8E8);
   static const Color goldText = Color(0xFFBD9A6B);

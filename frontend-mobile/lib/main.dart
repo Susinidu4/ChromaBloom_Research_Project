@@ -57,7 +57,7 @@ void main() {
   );
 }
 
-// ✅ NEW: waits for SessionProvider.loadFromStorage() BEFORE running MyApp
+// waits for SessionProvider.loadFromStorage() BEFORE running MyApp
 class AppBoot extends StatelessWidget {
   const AppBoot({super.key});
 

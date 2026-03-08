@@ -54,6 +54,12 @@ class InsightChartCard extends StatelessWidget {
     cleaned.sort(
       (a, b) => (a["date"] as DateTime).compareTo(b["date"] as DateTime),
     );
+
+    // Only return the last 7 records
+    if (cleaned.length > 7) {
+      return cleaned.sublist(cleaned.length - 7);
+    }
+
     return cleaned;
   }
 

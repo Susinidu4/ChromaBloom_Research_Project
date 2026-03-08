@@ -5,10 +5,13 @@ import { computeStressAndRecommendation, getStressScoreHistory, getStressScoresB
 
 const router = express.Router();
 
+// Compute stress score and get recommendation for a caregiver
+// GET /chromabloom/stressAnalysis/compute/:caregiverId
 router.get("/compute/:caregiverId", computeStressAndRecommendation);
-//get stress scores by caregiverId
-router.get("/:caregiverId", getStressScoresByCaregiver);
 
+//get stress scores by caregiverId
+// GET /chromabloom/stressAnalysis/:caregiverId
+router.get("/:caregiverId", getStressScoresByCaregiver);
 
 // Get stress score history for a caregiver
 // GET /chromabloom/stressAnalysis/history/:caregiverId

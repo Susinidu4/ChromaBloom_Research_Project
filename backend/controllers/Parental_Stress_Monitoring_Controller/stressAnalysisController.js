@@ -23,6 +23,7 @@ function toUtcMidnight(dateObj = new Date()) {
     ),
   );
 }
+
 // Get UTC day start and end range
 function utcDayRange(dateObj = new Date()) {
   const start = new Date(
@@ -49,10 +50,12 @@ function utcDayRange(dateObj = new Date()) {
   );
   return { start, end };
 }
+
 // Check if stress level title is High or Critical
 function isHighOrCriticalTitle(levelTitle) {
   return levelTitle === "High" || levelTitle === "Critical";
 }
+
 // Compute stress score and pick recommendation for a caregiver
 export const computeStressAndRecommendation = async (req, res) => {
   try {
@@ -206,7 +209,6 @@ export const computeStressAndRecommendation = async (req, res) => {
       .json({ error: "Server error", details: String(err.message || err) });
   }
 };
-
 
 // get stress scores history by caregiverId
 export const getStressScoresByCaregiver = async (req, res) => {

@@ -24,14 +24,14 @@ class WellnessHomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // ✅ HEADER (no gradient here)
+            // HEADER (no gradient here)
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
 
-            // ✅ CONTENT AREA WITH GRADIENT
+            // CONTENT AREA WITH GRADIENT
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -276,7 +276,7 @@ class WellnessHomeScreen extends StatelessWidget {
         ),
       ),
 
-      // ✅ Bottom NavBar (stays fixed)
+      // Bottom NavBar (stays fixed)
       bottomNavigationBar: const MainNavBar(currentIndex: 0),
     );
   }
@@ -362,6 +362,7 @@ class _SuggestionCard extends StatelessWidget {
   }
 }
 
+// Reusable card widget for features like Stress Analysis and Journal Entry 
 class _FeatureCard extends StatelessWidget {
   final String title;
   final String imageAsset;

@@ -126,7 +126,7 @@ export default function NewStressRecommendation() {
     };
 
     try {
-      // ✅ Ask Yes/No before submit
+      // Ask Yes/No before submit
       const confirm = await Swal.fire({
         title: "Add this recommendation?",
         text: "Please confirm to save this recommendation.",

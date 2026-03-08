@@ -1,6 +1,7 @@
 import ConsentModel from "../../models/Parental_Stress_Monitoring_Model/consentModel.js";
 
 // ------------------------- Caregiver -------------------------- //
+
 // Get consent records by caregiverId
 export const getConsentByCaregiver = async (req, res) => {
   try {
