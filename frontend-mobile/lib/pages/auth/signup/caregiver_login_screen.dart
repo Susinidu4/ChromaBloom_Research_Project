@@ -158,27 +158,27 @@ class _CaregiverLoginScreenState extends State<CaregiverLoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  // const SizedBox(height: 14),
 
-                  // ✅ Forget Password ? (right)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: _isLoading
-                          ? null
-                          : () {
-                              // TODO: navigate forgot password
-                            },
-                      child: Text(
-                        "Forget Password ?",
-                        style: TextStyle(
-                          color: _gold.withOpacity(0.85),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // ✅ Forget Password ? (right) — commented out
+                  // Align(
+                  //   alignment: Alignment.centerRight,
+                  //   child: InkWell(
+                  //     onTap: _isLoading
+                  //         ? null
+                  //         : () {
+                  //             // TODO: navigate forgot password
+                  //           },
+                  //     child: Text(
+                  //       "Forget Password ?",
+                  //       style: TextStyle(
+                  //         color: _gold.withOpacity(0.85),
+                  //         fontSize: 12.5,
+                  //         fontWeight: FontWeight.w500,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
 
                   const SizedBox(height: 28),
 

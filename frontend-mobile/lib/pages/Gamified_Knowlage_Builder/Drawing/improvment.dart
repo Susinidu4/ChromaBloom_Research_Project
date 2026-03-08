@@ -182,11 +182,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       );
 
       _savedOnce = true;
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Saved lesson completion")),
-      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
