@@ -8,14 +8,6 @@ const router = express.Router();
 // POST /chromabloom/userActivities/createUserActivity
 router.post("/createUserActivity", upload.single("media_image"), createUserActivity);
 
-// Display all activities
-// GET /chromabloom/userActivities/allUserActivity
-router.get("/allUserActivity", getAllActivities);
-
-// Display all user activities for a caregiver
-// GET /chromabloom/userActivities/allUserActivity/:caregiverId
-router.get("/allUserActivity/:caregiverId", getAllUserActivities);
-
 // Get user activities by date
 // POST /chromabloom/userActivities/getByDate
 router.post("/getByDate", getUserActivitiesByDate);
@@ -32,5 +24,15 @@ router.put("/updateUserActivity/:activityId", updateUserActivity);
 // PATCH /chromabloom/userActivities/updateProgress/:activityId
 router.patch("/updateProgress/:activityId", updateUserActivityProgress);
 
+
+// --------------------------- NOT USE --------------------------- //
+
+// Display all activities
+// GET /chromabloom/userActivities/allUserActivity
+router.get("/allUserActivity", getAllActivities);
+
+// Display all user activities for a caregiver
+// GET /chromabloom/userActivities/allUserActivity/:caregiverId
+router.get("/allUserActivity/:caregiverId", getAllUserActivities);
 
 export default router;

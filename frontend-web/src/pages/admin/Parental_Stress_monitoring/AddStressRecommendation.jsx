@@ -15,24 +15,11 @@ const CATEGORIES = [
   { label: "Calm Reset", value: "calm reset" },
   { label: "Positivity", value: "positivity" },
   { label: "Hydration", value: "hydration" },
-  { label: "Routine Ease", value: "routine ease" },
-  { label: "Connection", value: "connection" },
-  { label: "Self Kindness", value: "self kindness" },
+  { label: "Self Awareness", value: "self awareness" },
   { label: "Digital Break", value: "digital break" },
-  { label: "Fresh Air", value: "fresh air" },
-  { label: "Support Seeking", value: "support seeking" },
   { label: "Grounding", value: "grounding" },
-  { label: "Movement", value: "movement" },
-  { label: "Sensory Soothing", value: "sensory soothing" },
-  { label: "Emotional Awareness", value: "emotional awareness" },
   { label: "Communication", value: "communication" },
-  { label: "De-escalation", value: "de-escalation" },
-  { label: "Safety", value: "safety" },
-  { label: "Mini Gratitude", value: "mini gratitude" },
-  { label: "Eye Care", value: "eye care" },
-  { label: "Emotional Safety", value: "emotional safety" },
-  { label: "Restorative", value: "restorative" },
-  { label: "Rest", value: "rest" },
+  { label: "Wellbeing", value: "wellbeing" },
 ];
 
 export default function NewStressRecommendation() {
@@ -139,7 +126,7 @@ export default function NewStressRecommendation() {
     };
 
     try {
-      // ✅ Ask Yes/No before submit
+      // Ask Yes/No before submit
       const confirm = await Swal.fire({
         title: "Add this recommendation?",
         text: "Please confirm to save this recommendation.",

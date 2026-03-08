@@ -17,7 +17,6 @@ export default function RecommendationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-
   useEffect(() => {
     if (!error) return;
 
@@ -105,8 +104,8 @@ export default function RecommendationDetail() {
           duration: r?.duration ? `${r.duration} min` : "",
           steps: Array.isArray(r?.steps)
             ? r.steps
-              .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
-              .map((s) => s.instruction)
+                .sort((a, b) => (a.step_number ?? 0) - (b.step_number ?? 0))
+                .map((s) => s.instruction)
             : [],
           source: r?.source || "",
         };
@@ -130,21 +129,22 @@ export default function RecommendationDetail() {
 
   return (
     <AdminLayout>
-      <div className="w-full h-full bg-[#F3E8E8]">
-        <div className="px-10 py-8">
-          <div className="relative min-h-[630px] rounded-[14px] px-10 py-8">
+      <div className="w-full min-h-screen bg-[#F3E8E8]">
+        <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-8 lg:px-10">
+          <div className="relative min-h-[630px] rounded-[14px] px-0 py-4 sm:px-4 sm:py-6 md:px-8 lg:px-10">
             {/* Back */}
             <button
               onClick={onBack}
-              className="absolute left-10 top-10 h-10 w-10 rounded-full bg-white/70
-                         shadow-[0_10px_18px_rgba(0,0,0,0.18)]
-                         grid place-items-center hover:brightness-95 active:scale-[0.98]"
+              className="absolute left-0 top-0 h-10 w-10 rounded-full bg-white/70
+           shadow-[0_10px_18px_rgba(0,0,0,0.18)]
+           grid place-items-center hover:brightness-95 active:scale-[0.98]
+           sm:left-4 sm:top-4 md:left-8 md:top-8 lg:left-10 lg:top-10"
             >
               <FaArrowLeft className="text-[#BD9A6B]" />
             </button>
 
             {loading && (
-              <div className="mx-auto w-[680px] max-w-[92%] text-sm text-[#8B7A68]">
+              <div className="mx-auto w-full max-w-[680px] px-2 text-sm text-[#8B7A68] sm:max-w-[92%] sm:px-0">
                 Loading...
               </div>
             )}
@@ -152,16 +152,17 @@ export default function RecommendationDetail() {
             {/* Card */}
             {rec && (
               <div
-                className="mx-auto w-[680px] max-w-[92%] bg-[#E9DDCC] rounded-[14px]
-                           shadow-[0_10px_18px_rgba(0,0,0,0.18)] px-10 py-10"
+                className="mx-auto w-full max-w-[420px] rounded-[14px] bg-[#E9DDCC]
+             shadow-[0_10px_18px_rgba(0,0,0,0.18)] px-4 py-6
+             sm:max-w-[60%] sm:px-6 sm:py-8 md:px-8 md:py-10 lg:px-10"
               >
                 {/* Title + icons */}
-                <div className="flex items-start justify-between">
-                  <h2 className="text-[22px] font-semibold text-[#BD9A6B] mt-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h2 className="mt-3 text-[18px] font-semibold text-[#BD9A6B] sm:text-[20px] lg:text-[22px]">
                     {rec.title}
                   </h2>
 
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className="mt-2 flex items-center gap-3 self-start">
                     <button
                       onClick={onEdit}
                       className="text-[#BD9A6B] hover:brightness-90"
@@ -187,30 +188,36 @@ export default function RecommendationDetail() {
                 </div>
 
                 {/* Message text (no div inside p) */}
-                <p className="mt-3 text-[13px] leading-6 text-[#B79A6A] opacity-90 max-w-[560px]">
+                <p className="mt-3 max-w-full text-[13px] leading-6 text-[#B79A6A] opacity-90 md:max-w-[560px]">
                   {rec.message}
                 </p>
 
                 {/* Field rows (aligned like screenshot) */}
                 <div className="mt-8 space-y-4 text-[13px] text-[#BD9A6B]">
-                  <div className="flex gap-3">
-                    <span className="font-semibold w-[120px]">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <span className="w-[120px] font-semibold">
                       STRESS LEVEL
                     </span>
                     <span>:</span>
-                    <span className="text-[#B79A6A]">{rec.stressLevel}</span>
+                    <span className="break-words text-[#B79A6A]">
+                      {rec.stressLevel}
+                    </span>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="font-semibold w-[120px]">CATEGORY</span>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <span className="w-[120px] font-semibold">CATEGORY</span>
                     <span>:</span>
-                    <span className="text-[#B79A6A]">{rec.category}</span>
+                    <span className="break-words text-[#B79A6A]">
+                      {rec.category}
+                    </span>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="font-semibold w-[120px]">DURATION</span>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <span className="w-[120px] font-semibold">DURATION</span>
                     <span>:</span>
-                    <span className="text-[#B79A6A]">{rec.duration}</span>
+                    <span className="break-words text-[#B79A6A]">
+                      {rec.duration}
+                    </span>
                   </div>
                 </div>
 
@@ -220,7 +227,7 @@ export default function RecommendationDetail() {
                     STEPS:
                   </p>
 
-                  <ol className="mt-4 list-decimal pl-10 text-[13px] text-[#B79A6A] space-y-3">
+                  <ol className="mt-4 list-decimal space-y-3 pl-6 text-[13px] text-[#B79A6A] sm:pl-8 md:pl-10">
                     {rec.steps?.length ? (
                       rec.steps.map((s, idx) => <li key={idx}>{s}</li>)
                     ) : (
@@ -231,10 +238,12 @@ export default function RecommendationDetail() {
 
                 {/* SOURCE */}
                 <div className="mt-8 text-[13px] text-[#BD9A6B]">
-                  <div className="flex gap-3">
-                    <span className="font-semibold w-[120px]">SOURCE</span>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <span className="w-[120px] font-semibold">SOURCE</span>
                     <span>:</span>
-                    <span className="text-[#B79A6A]">{rec.source}</span>
+                    <span className="break-words text-[#B79A6A]">
+                      {rec.source}
+                    </span>
                   </div>
                 </div>
               </div>

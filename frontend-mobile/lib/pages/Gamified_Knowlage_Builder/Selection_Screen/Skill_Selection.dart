@@ -223,6 +223,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
         }
       }
 
+
       if (!mounted) return;
       // Navigate to the lessons page (will now show lessons for the potentially updated level)
       Navigator.pushNamed(context, '/problemSolvingLessons');
