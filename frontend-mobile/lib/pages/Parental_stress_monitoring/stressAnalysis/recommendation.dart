@@ -36,6 +36,7 @@ class _WellnessRecommendationDetailPageState
 
   bool _handledError = false;
 
+  // This page is designed to show a single recommendation based on the caregiver's stress analysis. It fetches the recommendation when the page loads and displays it in a nicely formatted card. If there's an error (like no journal entry for today), it shows an alert prompting the user to create one, and handles navigation accordingly.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,14 +76,14 @@ class _WellnessRecommendationDetailPageState
                           confirmBtnColor: const Color(0xFFBD9A6B),
                           barrierDismissible: false,
 
-                          // ✅ IMPORTANT: do navigation AFTER closing dialog
+                          // IMPORTANT: do navigation AFTER closing dialog
                           onConfirmBtnTap: () {
                             Navigator.of(
                               context,
                               rootNavigator: true,
                             ).pop(); // close alert
 
-                            // ✅ Navigate directly (avoids named-route + nested navigator issues)
+                            // IMPORTANT: Navigate directly (avoids named-route + nested navigator issues)
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -115,6 +116,7 @@ class _WellnessRecommendationDetailPageState
 
                   final data = snapshot.data!;
 
+                  // The recommendation card is designed to be visually appealing and informative, showing the title, duration, description, and steps of the recommended activity.
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(18, 24, 18, 24),
                     child: Center(
@@ -139,6 +141,7 @@ class _WellnessRecommendationDetailPageState
   }
 }
 
+// displays the recommendation details.
 class _RecommendationCard extends StatelessWidget {
   final String title;
   final String durationText;
@@ -235,6 +238,7 @@ class _RecommendationCard extends StatelessWidget {
 
             const SizedBox(height: 18),
 
+            // steps header
             const Text(
               "STEPS:",
               style: TextStyle(
@@ -246,6 +250,7 @@ class _RecommendationCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
+            // steps list
             Padding(
               padding: const EdgeInsets.only(left: 20),
               child: Column(
@@ -307,6 +312,7 @@ class _RecommendationCard extends StatelessWidget {
 
             const SizedBox(height: 6),
 
+            // done button
             Center(
               child: SizedBox(
                 width: 105,

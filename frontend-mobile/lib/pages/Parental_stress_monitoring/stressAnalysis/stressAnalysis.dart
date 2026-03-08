@@ -51,6 +51,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
     });
   }
 
+  // Call this to refresh both current stress and history
   void _reload() {
     setState(() {
       _future = StressAnalysisService.compute(caregiverId: caregiverId!);
@@ -61,6 +62,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
     });
   }
 
+  // Convert technical errors into user-friendly messages
   String friendlyErrorMessage(Object? err) {
     final msg = err.toString().toLowerCase();
 
@@ -101,6 +103,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
               subtitle: "Welcome Back.",
               notificationCount: 5,
             ),
+            // CONTENT AREA (scrollable)
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
@@ -149,6 +152,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                     ),
                     const SizedBox(height: 18),
 
+                    // Current Stress Analysis
                     FutureBuilder<StressComputeResponse>(
                       future: _future,
                       builder: (context, snap) {
@@ -176,6 +180,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                             stress.computedAt ??
                             DateTime.now();
 
+                        // Add recommendation card below stress card if rec != null
                         return Column(
                           children: [
                             _LatestStressCard(
@@ -185,6 +190,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                               stressProbability: stress.stressProbability,
                               consecutiveHighDays: stress.consecutiveHighDays,
                               escalationTriggered: stress.escalationTriggered,
+                              raw: stress.raw,
                             ),
                             const SizedBox(height: 14),
                             // _RecommendationCard(recommendation: rec),
@@ -193,6 +199,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                       },
                     ),
 
+                    // History Chart
                     const SizedBox(height: 22),
                     Text(
                       "Analysis history",
@@ -257,6 +264,7 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
+// Simple card to show loading state while fetching stress analysis
 class _LoadingCard extends StatelessWidget {
   const _LoadingCard();
 
@@ -284,6 +292,7 @@ class _LoadingCard extends StatelessWidget {
   }
 }
 
+// Card to show user-friendly error messages with a retry button
 class _ErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -343,6 +352,7 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
+// Card to show when there's no stress analysis available yet (e.g. new user)
 class _EmptyStressCard extends StatelessWidget {
   const _EmptyStressCard();
 
@@ -357,6 +367,7 @@ class _EmptyStressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
+          // You can customize this message or design as needed
           Text(
             "Latest stress level",
             style: TextStyle(
@@ -382,12 +393,14 @@ class _EmptyStressCard extends StatelessWidget {
   }
 }
 
+// Card to display the latest stress analysis result with details and confidence levels
 class _LatestStressCard extends StatelessWidget {
   final String stressLevel;
   final DateTime date;
 
   final int stressScore; // 0..3
   final double stressProbability;
+  final List<double>? raw;
   final int consecutiveHighDays;
   final bool escalationTriggered;
 
@@ -398,6 +411,7 @@ class _LatestStressCard extends StatelessWidget {
     required this.stressProbability,
     required this.consecutiveHighDays,
     required this.escalationTriggered,
+    this.raw,
   });
 
   static const Color gold = Color(0xFFBD9A6B);
@@ -406,6 +420,7 @@ class _LatestStressCard extends StatelessWidget {
   bool _isFilled(String label) =>
       label.toLowerCase() == stressLevel.toLowerCase();
 
+  // Helper to convert month number to short name
   String _monthName(int month) {
     const months = [
       "Jan",
@@ -424,6 +439,7 @@ class _LatestStressCard extends StatelessWidget {
     return months[month - 1];
   }
 
+  // Main build method for the stress card
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -461,6 +477,7 @@ class _LatestStressCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Display date information
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -488,6 +505,7 @@ class _LatestStressCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
+              // Right side: Stress level boxes + details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -533,17 +551,6 @@ class _LatestStressCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Detected: $stressLevel",
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: "Poppins",
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: gold,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -551,9 +558,38 @@ class _LatestStressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           // _MetaRow(label: "Stress score", value: "$stressScore / 3"),
-          _MetaRow(
-            label: "Probability:",
-            value: "${(stressProbability * 100).toStringAsFixed(1)}%",
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left side: Stress Analysis Details
+              Expanded(child: _stressDetailsBlock()),
+
+              // Right side: Detected + Confidence (as your screenshot)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "Detected   : $stressLevel",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Confidence : ${(stressProbability * 100).toStringAsFixed(1)}%",
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           // _MetaRow(label: "Consecutive high days", value: "$consecutiveHighDays"),
           // _MetaRow(label: "Escalation", value: escalationTriggered ? "Triggered" : "Not triggered"),
@@ -561,8 +597,75 @@ class _LatestStressCard extends StatelessWidget {
       ),
     );
   }
+
+  // Helper to display the raw confidence levels for each stress category (if available)
+  Widget _stressDetailsBlock() {
+    if (raw == null || raw!.isEmpty) return const SizedBox.shrink();
+
+    const labels = ["Low", "Medium", "High", "Critical"];
+    final count = raw!.length < 4 ? raw!.length : 4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Stress Analysis Details",
+          style: TextStyle(
+            fontFamily: "Poppins",
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: gold,
+            decoration: TextDecoration.underline,
+            decorationColor: Color(0xFFBD9A6B),
+            decorationThickness: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (int i = 0; i < count; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    labels[i],
+                    style: const TextStyle(
+                      fontFamily: "Poppins",
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: gold,
+                    ),
+                  ),
+                ),
+                const Text(
+                  ":",
+                  style: TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "${(raw![i] * 100).toStringAsFixed(1)}%",
+                  style: const TextStyle(
+                    fontFamily: "Poppins",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
+// Reusable widget to display a label-value pair, right-aligned
 class _MetaRow extends StatelessWidget {
   final String label;
   final String value;
@@ -574,7 +677,7 @@ class _MetaRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end, // <-- RIGHT ALIGN
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
             label,
@@ -601,6 +704,7 @@ class _MetaRow extends StatelessWidget {
   }
 }
 
+// Simple widget to display stress level labels above the boxes
 class _LvlLabel extends StatelessWidget {
   final String t;
   const _LvlLabel(this.t);
@@ -632,6 +736,7 @@ extension _TextReplace on SizedBox {
   }
 }
 
+// Widget to display the filled/unfilled boxes for each stress level category
 class _LevelBox extends StatelessWidget {
   final bool filled;
   final Color fillColor;
@@ -654,6 +759,7 @@ class _LevelBox extends StatelessWidget {
   }
 }
 
+// Card to display the recommendation based on the latest stress analysis result
 class _RecommendationCard extends StatelessWidget {
   final RecommendationDto? recommendation;
   const _RecommendationCard({required this.recommendation});
@@ -725,6 +831,7 @@ class _RecommendationCard extends StatelessWidget {
   }
 }
 
+// Card to display the history chart of stress levels over time using fl_chart package
 class _HistoryChartCard extends StatelessWidget {
   final Future<StressHistoryResponse> historyFuture;
   const _HistoryChartCard({required this.historyFuture});
@@ -746,6 +853,7 @@ class _HistoryChartCard extends StatelessWidget {
     }
   }
 
+  // Helper to convert Y values back to stress level labels for the left axis
   String _yToLabel(double v) {
     final i = v.round().clamp(0, 3);
     return const ["Low", "Medium", "High", "Critical"][i];
