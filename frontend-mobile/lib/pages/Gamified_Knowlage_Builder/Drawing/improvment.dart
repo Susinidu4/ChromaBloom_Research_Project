@@ -1,14 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-
 import '../../../services/Gemified/drawing_predict_service.dart';
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
-
 import '../../../state/session_provider.dart';
 
 class LessonCompletePage extends StatefulWidget {
@@ -16,7 +12,7 @@ class LessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.imageFile,
-    required this.previousCorrectness, // (kept, but DB-based improvement is used)
+    required this.previousCorrectness, 
   });
 
   final String lessonId;
@@ -44,14 +40,8 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
   String _predictedLabel = "-";
   double _confidencePercent = 0;
-
-  // 0..1
   double _correctness = 0;
-
-  // 0..1  (currentCorrectness - lastDbCorrectness)
   double _improvement = 0;
-
-  // previous saved correctness from DB (0..1)
   double _prevDbCorrectness = 0;
 
   @override
@@ -80,10 +70,9 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     return id;
   }
 
-  /* ===================== DB HELPERS (extract list + last record) ===================== */
+  /*  DB HELPERS (extract list + last record) */
 
   List<Map<String, dynamic>> _extractList(dynamic json) {
-    // common response shapes
     if (json is Map<String, dynamic>) {
       final candidates = [
         json["data"],
@@ -142,9 +131,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       final list = _extractList(res);
 
       if (list.isEmpty) return 0.0;
-
-      // Prefer createdAt sorting if present; else just use list.last
-      // We'll sort anyway; if createdAt missing, all become epoch and order stays stable-ish.
       final sorted = [...list];
       sorted.sort((a, b) => _extractCreatedAt(a).compareTo(_extractCreatedAt(b)));
       final last = sorted.isNotEmpty ? sorted.last : list.last;
@@ -156,7 +142,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     }
   }
 
-  /* ===================== SAVE COMPLETED LESSON ===================== */
+  /*SAVE COMPLETED LESSON*/
 
   Future<void> _saveCompletedLesson() async {
     if (_savedOnce) return;
@@ -178,7 +164,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       await CompleteDrawingLessonService.createCompletedLesson(
         lessonId: widget.lessonId,
         userId: caregiverId,
-        correctnessRate: _correctness, // 0..1
+        correctnessRate: _correctness,
       );
 
       _savedOnce = true;
@@ -192,7 +178,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
     }
   }
 
-  /* ===================== PREDICT + COMPUTE IMPROVEMENT (DB-LAST) ===================== */
+  /*PREDICT + COMPUTE IMPROVEMENT (DB-LAST) */
 
   Future<void> _predictOnLoad() async {
     setState(() => _loading = true);
@@ -208,10 +194,10 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
         return;
       }
 
-      // ✅ 1) get last saved correctness from DB BEFORE saving current record
+      // 1) get last saved correctness from DB BEFORE saving current record
       final prevDb = await _fetchLastCorrectnessFromDb(caregiverId);
 
-      // ✅ 2) predict current drawing
+      // 2) predict current drawing
       final res = await DrawingPredictService.predictDrawing(widget.imageFile);
 
       final top1 = (res["top1"] as Map?)?.cast<String, dynamic>();
@@ -223,7 +209,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
       // conf 0..100 => correctness 0..1
       final currentCorrectness = (conf.clamp(0, 100) / 100.0);
 
-      // ✅ 3) improvement = current - lastDb (0..1)
+      // 3) improvement = current - lastDb (0..1)
       final improvement = (currentCorrectness - prevDb).clamp(0.0, 1.0);
 
       if (!mounted) return;
@@ -235,7 +221,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
         _improvement = improvement;
       });
 
-      // ✅ 4) save current completion AFTER computing improvement
+      // 4) save current completion AFTER computing improvement
       await _saveCompletedLesson();
     } catch (e) {
       if (!mounted) return;
@@ -390,8 +376,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                     ),
                     const SizedBox(height: 6),
                     _ProgressBar(value: _loading ? 0 : _improvement),
-
-                    // optional small helper text (remove if you don't want)
                     const SizedBox(height: 6),
                     if (!_loading)
                       Align(
@@ -433,7 +417,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
   }
 }
 
-/* ===================== TOP RIGHT CIRCLE BUTTON ===================== */
+/* TOP RIGHT CIRCLE BUTTON */
 
 class _CircleActionButton extends StatelessWidget {
   const _CircleActionButton({
@@ -473,7 +457,7 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-/* ===================== THICK PROGRESS BAR ===================== */
+/*THICK PROGRESS BAR  */
 
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({required this.value});
