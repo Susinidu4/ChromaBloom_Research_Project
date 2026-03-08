@@ -51,7 +51,7 @@ export default function Sidebar() {
 
       {/* ===== Navigation ===== */}
       <div className="flex-1">
-        {/* ✅ CLICKABLE Section title -> /admin_dashboard */}
+        {/* CLICKABLE Section title -> /admin_dashboard */}
         <NavLink
           to="/admin_dashboard"
           className={({ isActive }) =>
@@ -94,7 +94,7 @@ export default function Sidebar() {
                 [
                   "flex items-center gap-3 px-6 py-3 text-sm font-medium border-t border-white/10",
                   "transition-colors duration-200",
-                  // ✅ active = bg F7EAD7
+                  // active = bg F7EAD7
                   isActive
                     ? "bg-[#F7EAD7] text-[#386884]"
                     : "bg-[#386884] text-[#DFC7A7]",
