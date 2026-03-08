@@ -49,6 +49,7 @@ const calculateSentiment = (text = "") => {
   score = Math.max(-1, Math.min(1, score));
   return Math.round(score * 1000) / 1000;
 };
+
 // Create a new journal entry for a caregiver
 export const createJournalEntry = async (req, res) => {
   try {
@@ -101,7 +102,6 @@ export const createJournalEntry = async (req, res) => {
     });
   }
 };
-
 
 // Get journal entries by caregiver ID
 export const getJournalEntriesByCaregiver = async (req, res) => {
