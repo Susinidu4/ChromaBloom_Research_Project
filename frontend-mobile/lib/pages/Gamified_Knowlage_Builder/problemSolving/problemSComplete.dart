@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-
-import '../../../state/session_provider.dart'; // adjust path
+import '../../../state/session_provider.dart'; 
 import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 
@@ -13,7 +11,7 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.correctness,
-    required this.improvement, // kept for compatibility, but we compute improvement from API now
+    required this.improvement, 
   });
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -30,9 +28,9 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
 
   static const Color labelColor = Color(0xFF111111);
 
-  final String lessonId; // ✅ REQUIRED for saving
-  final double correctness; // 0.0 - 1.0
-  final double improvement; // not used for UI anymore (API-based improvement)
+  final String lessonId; 
+  final double correctness; 
+  final double improvement; 
 
   @override
   State<ProblemSolvingLessonCompletePage> createState() =>
@@ -44,10 +42,8 @@ class _ProblemSolvingLessonCompletePageState
   bool _saving = false;
   bool _savedOnce = false;
 
-  // ✅ computed from backend last 2 records
   double _computedImprovement = 0.0;
 
-  // ✅ show IDs on UI
   String _caregiverId = "";
   String _childId = "";
   late final String _lessonId = widget.lessonId;
@@ -58,7 +54,6 @@ class _ProblemSolvingLessonCompletePageState
     WidgetsBinding.instance.addPostFrameCallback((_) => _waitForSessionThenSave());
   }
 
-  // ✅ NEW: wait until SessionProvider finishes loadFromStorage()
   Future<void> _waitForSessionThenSave() async {
     final session = context.read<SessionProvider>();
 
@@ -80,7 +75,6 @@ class _ProblemSolvingLessonCompletePageState
     await _autoSaveCompletion();
   }
 
-  // ----- helpers -----
 
   List<Map<String, dynamic>> _extractDataList(Map<String, dynamic> res) {
     final raw = res["data"];
@@ -90,7 +84,7 @@ class _ProblemSolvingLessonCompletePageState
           .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
           .toList();
     }
-    // if backend returns single object, wrap it
+ 
     if (raw is Map) {
       return [raw.map((k, v) => MapEntry(k.toString(), v))];
     }
@@ -104,7 +98,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   DateTime? _readDate(Map<String, dynamic> item) {
-    // try common fields (optional)
+    //common fields (optional)
     final s = item["createdAt"] ?? item["created_at"] ?? item["timestamp"];
     if (s == null) return null;
     try {
@@ -115,7 +109,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   List<Map<String, dynamic>> _sortRecordsSmart(List<Map<String, dynamic>> list) {
-    // If createdAt exists -> sort by date; else keep original order
+    // If createdAt exists -> sort by date; else  original order
     final hasAnyDate = list.any((e) => _readDate(e) != null);
     if (!hasAnyDate) return list;
 
@@ -137,7 +131,6 @@ class _ProblemSolvingLessonCompletePageState
     final sorted = _sortRecordsSmart(records);
 
     if (sorted.length == 1) {
-      // only 1 record -> improvement can be 0 (or same as score). We'll keep 0.
       return 0.0;
     }
 
@@ -169,16 +162,13 @@ class _ProblemSolvingLessonCompletePageState
         throw Exception("Caregiver ID not found in session");
       }
 
-      // ✅ get child list by caregiver
       final children = await ChildApi.getChildrenByCaregiver(caregiverId);
       if (children.isEmpty) throw Exception("No child found for this caregiver");
 
-      // ✅ choose first child (replace later with selected child)
       final first = children.first;
       final childId = (first['_id'] ?? first['id'] ?? '').toString();
       if (childId.isEmpty) throw Exception("Child ID not found");
 
-      // ✅ store for UI display
       if (mounted) {
         setState(() {
           _caregiverId = caregiverId;
@@ -283,7 +273,6 @@ class _ProblemSolvingLessonCompletePageState
 
                     const SizedBox(height: 10),
 
-                    // // ✅ ID DISPLAY CARD
                     // _IdInfoCard(
                     //   lessonId: _lessonId,
                     //   caregiverId: _caregiverId,
