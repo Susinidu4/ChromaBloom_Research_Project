@@ -36,24 +36,11 @@ const recommendationSchema = new Schema(
         "calm reset",
         "positivity",
         "hydration",
-        "routine ease",
-        "connection",
-        "self kindness",
+        "self awareness",
         "digital break",
-        "fresh air",
-        "support seeking",
         "grounding",
-        "movement",
-        "sensory soothing",
-        "emotional awareness",
         "communication",
-        "de-escalation",
-        "safety",
-        "mini gratitude",
-        "eye care",
-        "emotional safety",
-        "restorative",
-        "rest",
+        "wellbeing"
       ],
       required: true,
     },
@@ -70,7 +57,7 @@ const recommendationSchema = new Schema(
 
     source: {
       type: String,
-      required: true,
+      required: false,
     },
 
     is_active: {

@@ -1,4 +1,3 @@
-// lib/pages/auth/signup/child_step.dart
 import 'package:flutter/material.dart';
 import 'form_fields.dart';
 
@@ -79,14 +78,12 @@ class ChildStep extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFFB37A41),
             decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFB37A41),
           ),
         ),
         const SizedBox(height: 16),
 
-        RoundedTextField(
-          label: "Child Name",
-          controller: childNameController,
-        ),
+        RoundedTextField(label: "Child Name", controller: childNameController),
         const SizedBox(height: 12),
 
         RoundedDateField(
@@ -100,6 +97,10 @@ class ChildStep extends StatelessWidget {
           label: "Gender",
           value: childGender,
           items: const ["Male", "Female", "Other"],
+          hint: const Text(
+            "Gender",
+            style: TextStyle(color: Color(0xFFC89B62)),
+          ),
           onChanged: onGenderChanged,
         ),
         const SizedBox(height: 12),
@@ -125,6 +126,7 @@ class ChildStep extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFFB37A41),
             decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFB37A41),
           ),
         ),
         const SizedBox(height: 12),
@@ -139,6 +141,10 @@ class ChildStep extends StatelessWidget {
             "Not Confirmed",
             "Other",
           ],
+          hint: const Text(
+            "Down Syndrome Type",
+            style: TextStyle(color: Color(0xFFC89B62)),
+          ),
           onChanged: onDownTypeChanged,
         ),
         const SizedBox(height: 12),
@@ -146,12 +152,11 @@ class ChildStep extends StatelessWidget {
         RoundedDropdown(
           label: "Down Syndrome Confirmed by",
           value: downSyndromeConfirmedBy,
-          items: const [
-            "Pediatrician",
-            "Neurologist",
-            "Geneticist",
-            "Other",
-          ],
+          items: const ["Pediatrician", "Neurologist", "Geneticist", "Other"],
+          hint: const Text(
+            "Down Syndrome Confirmed by",
+            style: TextStyle(color: Color(0xFFC89B62)),
+          ),
           onChanged: onConfirmedByChanged,
         ),
 
@@ -165,6 +170,7 @@ class ChildStep extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFFB37A41),
             decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFB37A41),
           ),
         ),
         const SizedBox(height: 8),
@@ -172,28 +178,52 @@ class ChildStep extends StatelessWidget {
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
-          title: const Text("Heart Issues"),
+          title: const Text(
+            "Heart Issues",
+            style: TextStyle(
+              color: Color(0xFFB37A41),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           value: hasHeartIssues,
           onChanged: onHeartIssuesChanged ?? (_) {},
         ),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
-          title: const Text("Thyroid Problems"),
+          title: const Text(
+            "Thyroid Problems",
+            style: TextStyle(
+              color: Color(0xFFB37A41),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           value: hasThyroidIssues,
           onChanged: onThyroidChanged ?? (_) {},
         ),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
-          title: const Text("Hearing Problems"),
+          title: const Text(
+            "Hearing Problems",
+            style: TextStyle(
+              color: Color(0xFFB37A41),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           value: hasHearingProblems,
           onChanged: onHearingChanged ?? (_) {},
         ),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
-          title: const Text("Vision Problems"),
+          title: const Text(
+            "Vision Problems",
+            style: TextStyle(
+              color: Color(0xFFB37A41),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           value: hasVisionProblems,
           onChanged: onVisionChanged ?? (_) {},
         ),
@@ -208,6 +238,7 @@ class ChildStep extends StatelessWidget {
             fontSize: 16,
             color: Color(0xFFB37A41),
             decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFFB37A41),
           ),
         ),
         const SizedBox(height: 8),
@@ -215,16 +246,17 @@ class ChildStep extends StatelessWidget {
         if (therapistItems.isEmpty)
           const Text(
             "No therapists available to select.",
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey),
           )
         else
           RoundedDropdown(
             label: "Select Therapist",
             value: selectedTherapist,
             items: therapistItems,
+            hint: const Text(
+              "Select Therapist",
+              style: TextStyle(color: Color(0xFFC89B62)),
+            ),
             onChanged: onTherapistChanged ?? (_) {},
           ),
       ],

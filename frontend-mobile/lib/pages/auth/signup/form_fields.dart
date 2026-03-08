@@ -4,7 +4,7 @@ const Color _gold = Color(0xFFC89B62);
 
 InputBorder _roundedBorder(Color color) => OutlineInputBorder(
       borderSide: BorderSide(color: color, width: 1.4),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(10),
     );
 
 class RoundedTextField extends StatelessWidget {
@@ -86,6 +86,7 @@ class RoundedDropdown extends StatelessWidget {
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+  final Widget? hint;
 
   const RoundedDropdown({
     super.key,
@@ -93,13 +94,13 @@ class RoundedDropdown extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
     return InputDecorator(
       decoration: InputDecoration(
-        labelText: label,
         labelStyle: const TextStyle(color: _gold),
         enabledBorder: _roundedBorder(_gold),
         focusedBorder: _roundedBorder(_gold),
@@ -112,6 +113,7 @@ class RoundedDropdown extends StatelessWidget {
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
+          hint: hint,
           icon: const Icon(Icons.keyboard_arrow_down, color: _gold),
           items: items
               .map(

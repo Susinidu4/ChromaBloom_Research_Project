@@ -20,6 +20,7 @@ const TherapistSchema = new mongoose.Schema(
     profile_picture: { type: String },
     terms_and_conditions: { type: Boolean, default: false },
     privacy_policy: { type: Boolean, default: false },
+    account_status: { type: String, default: "active", enum: ["active", "inactive", "disabled"] },
   },
   { timestamps: true }
 );

@@ -1,8 +1,11 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/session_provider.dart';
+import '../../services/user_services/child_api.dart';
+import '../../services/Gemified/drawing_level_service.dart';
+import '../../services/Gemified/problem_solving_level.dart';
+import '../../services/api_config.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -112,6 +115,14 @@ class ProfilePage extends StatelessWidget {
                         letterSpacing: 0.6,
                       ),
                     ),
+                    _DrawingLessonBatches(
+                      caregiverId: (caregiver?['_id'] ?? caregiver?['id'] ?? '').toString(),
+                      token: session.token,
+                    ),
+                    _ProblemSolvingBatches(
+                      caregiverId: (caregiver?['_id'] ?? caregiver?['id'] ?? '').toString(),
+                      token: session.token,
+                    ),
                     const SizedBox(height: 22),
                     const Text(
                       "GENERAL",
@@ -137,7 +148,21 @@ class ProfilePage extends StatelessWidget {
                       subtitle: "Update and Modify your child details",
                       onTap: () => Navigator.pushNamed(context, '/child_details'),
                     ),
-                    const SizedBox(height: 26),
+                    const SizedBox(height: 12),
+                    ProfileMenuItem(
+                      icon: Icons.lock_outline,
+                      title: "Login and Recovery",
+                      subtitle: "Your login credentials",
+                      onTap: () => Navigator.pushNamed(context, '/login_recovery'),
+                    ),
+                    const SizedBox(height: 12),
+                    ProfileMenuItem(
+                      icon: Icons.warning_rounded,
+                      title: "Terms Of Use",
+                      subtitle: "Your consent agreement",
+                      onTap: () => Navigator.pushNamed(context, '/terms_of_use'),
+                    ),
+                    const SizedBox(height: 22),
                     const Text(
                       "LOGIN",
                       style: TextStyle(
@@ -171,7 +196,7 @@ class ProfilePage extends StatelessWidget {
                           if (context.mounted) {
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              '/welcome_screen',
+                              '/caregiver_login',
                               (route) => false,
                             );
                           }
@@ -185,6 +210,33 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Delete Account
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () => _showDeleteConfirmation(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 187, 69, 14),
+                          foregroundColor: const Color.fromARGB(255, 255, 255, 255),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          "Delete Account",
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 255, 255, 255),
+                            
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -192,6 +244,50 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Account"),
+          content: const Text(
+              "Are you sure you want to delete your account? This action is permanent and cannot be undone."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await context.read<SessionProvider>().deleteAccount();
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/welcome_screen',
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error deleting account: $e")),
+                    );
+                  }
+                }
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -421,6 +517,288 @@ class ProfileMenuItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ================= DRAWING LESSON BATCHES =================
+
+class _DrawingLessonBatches extends StatefulWidget {
+  final String caregiverId;
+  final String? token;
+
+  const _DrawingLessonBatches({required this.caregiverId, this.token});
+
+  @override
+  State<_DrawingLessonBatches> createState() => _DrawingLessonBatchesState();
+}
+
+class _DrawingLessonBatchesState extends State<_DrawingLessonBatches> {
+  String? _drawingLevel;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDrawingLevel();
+  }
+
+  Future<void> _fetchDrawingLevel() async {
+    try {
+      final children = await ChildApi.getChildrenByCaregiver(widget.caregiverId);
+      if (children.isNotEmpty) {
+        final child = children.first;
+        final childId = (child['_id'] ?? child['id'] ?? '').toString();
+
+        final drawingLevelService = DrawingLevelService(
+          baseUrl: '${ApiConfig.baseUrl}/chromabloom/drawing-levels',
+          token: widget.token,
+        );
+
+        final levelData = await drawingLevelService.getDrawingLevelByUserId(childId);
+        if (levelData.isNotEmpty) {
+          final level = (levelData[0]['level'] ?? '').toString();
+          if (mounted) {
+            setState(() {
+              _drawingLevel = level;
+              _isLoading = false;
+            });
+          }
+        } else {
+           if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching drawing level: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const SizedBox.shrink();
+    if (_drawingLevel == null || _drawingLevel!.isEmpty) return const SizedBox.shrink();
+
+    // Use lowercase for comparisons to be safe
+    final level = _drawingLevel!.toLowerCase();
+    
+    // Check for "Intermediate" (including possible misspelling "Intermediat")
+    bool isIntermediate = level.contains('intermediat') || level == 'intermediate';
+    // Check for "Advance" (including "Advanced")
+    bool isAdvance = level.contains('advance') || level == 'advanced';
+
+    if (!isIntermediate && !isAdvance) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 22),
+        const Text(
+          "DRAWING LESSON BATCHES",
+          style: TextStyle(
+            color: ProfilePage.textGold,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (isIntermediate || isAdvance)
+              _buildBatchImage("assets/images/d_beginner.png", "Beginner Batch"),
+            if (isAdvance) const SizedBox(width: 12),
+            if (isAdvance)
+              _buildBatchImage("assets/images/d_intermediate.png", "Intermediate Batch"),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBatchImage(String assetPath, String title) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ProfilePage.cardBg,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            assetPath,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            color: ProfilePage.textGold,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ================= PROBLEM SOLVING BATCHES =================
+
+class _ProblemSolvingBatches extends StatefulWidget {
+  final String caregiverId;
+  final String? token;
+
+  const _ProblemSolvingBatches({required this.caregiverId, this.token});
+
+  @override
+  State<_ProblemSolvingBatches> createState() => _ProblemSolvingBatchesState();
+}
+
+class _ProblemSolvingBatchesState extends State<_ProblemSolvingBatches> {
+  String? _problemSolvingLevel;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProblemSolvingLevel();
+  }
+
+  Future<void> _fetchProblemSolvingLevel() async {
+    try {
+      final children = await ChildApi.getChildrenByCaregiver(widget.caregiverId);
+      if (children.isNotEmpty) {
+        final child = children.first;
+        final childId = (child['_id'] ?? child['id'] ?? '').toString();
+
+        final levelData = await ProblemSolvingLevelService.getLevelByUserId(childId);
+        
+        // Match backend response: it returns a map for this specific user
+        final level = (levelData['level'] ?? '').toString();
+        
+        if (mounted) {
+          setState(() {
+            _problemSolvingLevel = level;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching problem solving level: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const SizedBox.shrink();
+    if (_problemSolvingLevel == null || _problemSolvingLevel!.isEmpty) return const SizedBox.shrink();
+
+    // Use lowercase for comparisons to be safe
+    final level = _problemSolvingLevel!.toLowerCase();
+    
+    // Check for "Intermediate" (including possible misspelling "Intermediat")
+    bool isIntermediate = level.contains('intermediat') || level == 'intermediate';
+    // Check for "Advance" (including "Advanced")
+    bool isAdvance = level.contains('advance') || level == 'advanced';
+
+    if (!isIntermediate && !isAdvance) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 22),
+        const Text(
+          "PROBLEM SOLVING BATCHES",
+          style: TextStyle(
+            color: ProfilePage.textGold,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (isIntermediate || isAdvance)
+              _buildBatchImage("assets/images/p_beginner.png", "Beginner Batch"),
+            if (isAdvance) const SizedBox(width: 12),
+            if (isAdvance)
+              _buildBatchImage("assets/images/p_intermediate.png", "Intermediate Batch"),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBatchImage(String assetPath, String title) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ProfilePage.cardBg,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            assetPath,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            color: ProfilePage.textGold,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

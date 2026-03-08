@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+
+import '../../../state/session_provider.dart';
+import '../../../services/Gemified/drawing_level_service.dart';
+import '../../../services/Gemified/complete_drawing_lesson_service.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/api_config.dart';
+
+import '../../../services/Gemified/problem_solving_level.dart';
+import '../../../services/Gemified/complete_problem_solving_session_service.dart';
+import '../../../services/Gemified/problem_solving_lesson_service.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -14,18 +25,219 @@ class SkillSelectionPage extends StatefulWidget {
 }
 
 class _SkillSelectionPageState extends State<SkillSelectionPage> {
+  // Existing drawing key
   static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
+
+  // ✅ New problem solving keys
+  static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
 
   Future<void> _handleDrawingTap() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool levelSet = prefs.getBool(_prefKeyDrawingLevelSet) ?? false;
+    
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiverProps = session.caregiver;
+      if (caregiverProps == null) throw Exception("No caregiver session found");
 
-    if (!mounted) return;
+      final caregiverId = (caregiverProps['_id'] ?? caregiverProps['id'] ?? "").toString();
+      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found");
 
-    if (!levelSet) {
-      Navigator.pushNamed(context, '/skillKnowlageLevel');
-    } else {
+      // 1. Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+        return;
+      }
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? "").toString();
+
+      // 2. Fetch drawing level data
+      final drawingLevelService = DrawingLevelService(
+        baseUrl: "${ApiConfig.baseUrl}/chromabloom/drawing-levels",
+        token: session.token,
+      );
+      final List<dynamic> levels = await drawingLevelService.getDrawingLevelByUserId(childId);
+      
+      if (levels.isEmpty) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+        return;
+      }
+
+      final currentLevelData = levels[0];
+      final String currentLevel = (currentLevelData['level'] ?? "Beginner").toString();
+
+      // 3. Level progression logic
+      if (currentLevel != "Advanced") {
+        // Fetch completed lessons for average calculation
+        final res = await CompleteDrawingLessonService.getCompletedLessonsByUser(childId);
+        final data = res["data"];
+
+        if (data is List && data.isNotEmpty) {
+          // Take first 10 data
+          final lessonsToAverage = data.take(10).toList();
+          
+          if (lessonsToAverage.length == 10) {
+            double totalCorrectness = 0;
+            for (var lesson in lessonsToAverage) {
+              final rate = lesson['correctness_rate'] ?? 0.0;
+              totalCorrectness += (rate is num) ? rate.toDouble() : 0.0;
+            }
+
+            double average = (totalCorrectness / lessonsToAverage.length) * 100;
+
+            if (average >= 60) {
+              String nextLevel = "";
+              if (currentLevel == "Beginner") {
+                nextLevel = "Intermediate";
+              } else if (currentLevel == "Intermediate") {
+                nextLevel = "Advanced";
+              }
+
+              if (nextLevel.isNotEmpty) {
+                // Update the drawing level
+                await drawingLevelService.updateLevelByUserId(
+                  userId: childId,
+                  level: nextLevel,
+                );
+                
+                // Update local preferences
+                await prefs.setBool(_prefKeyDrawingLevelSet, true);
+                await prefs.setString("drawing_skill_level_value", nextLevel);
+                
+
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
       Navigator.pushNamed(context, '/drawingUnit1');
+
+    } catch (e) {
+      debugPrint("Error in handleDrawingTap: $e");
+      final bool levelSet = prefs.getBool(_prefKeyDrawingLevelSet) ?? false;
+      if (!mounted) return;
+      if (!levelSet) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel');
+      } else {
+        Navigator.pushNamed(context, '/drawingUnit1');
+      }
+    }
+  }
+
+  // ✅ NEW: Problem solving logic with progression
+  Future<void> _handleProblemSolvingTap() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiverProps = session.caregiver;
+      if (caregiverProps == null) throw Exception("No caregiver session found");
+
+      final caregiverId = (caregiverProps['_id'] ?? caregiverProps['id'] ?? "").toString();
+      if (caregiverId.isEmpty) throw Exception("Caregiver ID not found");
+
+      // 1. Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) {
+        // No child found, fallback to initial selection screen
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+        return;
+      }
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? "").toString();
+
+      // 2. Fetch current problem solving level from backend
+      Map<String, dynamic> levelData;
+      try {
+        levelData = await ProblemSolvingLevelService.getLevelByUserId(childId);
+      } catch (e) {
+        // If level entry doesn't exist, go to selection screen
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+        return;
+      }
+
+      final String currentLevel = (levelData['level'] ?? "Beginner").toString();
+
+      // 3. Level progression logic (Only if not already Advanced)
+      if (currentLevel.toLowerCase() != "advanced" && currentLevel.toLowerCase() != "advance") {
+        
+        // Fetch all completed problem solving sessions for this child
+        final res = await CompleteProblemSolvingSessionService.getCompletedSessionsByUser(childId);
+        final List<dynamic> allCompletedSessions = res["data"] ?? [];
+
+        if (allCompletedSessions.isNotEmpty) {
+          // We need to know the difficulty of each lesson to filter sessions by current level
+          final List<dynamic> allLessons = await ProblemSolvingLessonService.getAllLessons();
+          final Map<String, String> lessonDifficultyMap = {
+            for (var l in allLessons) 
+              (l['_id'] ?? l['id']).toString(): (l['difficulty_level'] ?? "").toString()
+          };
+
+          // Filter sessions: Only those that match the child's CURRENT level
+          final List<dynamic> sessionsAtCurrentLevel = allCompletedSessions.where((session) {
+            final lessonId = (session['lessons'] is Map) 
+              ? (session['lessons']['_id'] ?? session['lessons']['id']).toString()
+              : session['lessons'].toString();
+            final lessonDiff = lessonDifficultyMap[lessonId] ?? "";
+            return lessonDiff.toLowerCase() == currentLevel.toLowerCase();
+          }).toList();
+
+          // REQUIREMENT: Must have completed at least 10 lessons (sessions) at this level
+          // The backend returns sessions sorted by newest first, so we take the 10 most recent.
+          final sessionsToAnalyze = sessionsAtCurrentLevel.take(10).toList();
+          
+          if (sessionsToAnalyze.length == 10) {
+            double totalCorrectness = 0;
+            for (var session in sessionsToAnalyze) {
+              final score = session['correctness_score'] ?? 0.0;
+              totalCorrectness += (score is num) ? score.toDouble() : 0.0;
+            }
+
+            // Calculate percentage average (assuming score is 0..1 scale)
+            double averagePercent = (totalCorrectness / sessionsToAnalyze.length) * 100;
+
+            // REQUIREMENT: Average correctness must be >= 60%
+            if (averagePercent >= 60) {
+              String nextLevel = "";
+              if (currentLevel.toLowerCase() == "beginner") {
+                nextLevel = "Intermediate";
+              } else if (currentLevel.toLowerCase() == "intermediate") {
+                nextLevel = "Advanced";
+              }
+
+              if (nextLevel.isNotEmpty) {
+                // Update the problem solving level in backend
+                await ProblemSolvingLevelService.updateLevelByUserId(
+                  userId: childId,
+                  level: nextLevel,
+                );
+                
+                // Keep local preference in sync
+                await prefs.setBool(_prefKeyProblemLevelSet, true);
+                await prefs.setString("problem_solving_skill_level_value", nextLevel);
+                
+
+              }
+            }
+          }
+        }
+      }
+
+
+      if (!mounted) return;
+      // Navigate to the lessons page (will now show lessons for the potentially updated level)
+      Navigator.pushNamed(context, '/problemSolvingLessons');
+
+    } catch (e) {
+      debugPrint("Error in handleProblemSolvingTap: $e");
+      // Fallback navigate to lessons if preferences exist, otherwise to level selection
+      final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
+      if (!mounted) return;
+      if (!levelSet) {
+        Navigator.pushNamed(context, '/skillKnowlageLevel_2');
+      } else {
+        Navigator.pushNamed(context, '/problemSolvingLessons');
+      }
     }
   }
 
@@ -46,8 +258,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: LearnContent(
                   onTapDrawing: _handleDrawingTap,
-                  onTapProblemSolving: () =>
-                      Navigator.pushNamed(context, '/problemSolvingLessons'),
+                  onTapProblemSolving: _handleProblemSolvingTap, // ✅ changed
                 ),
               ),
             ),
@@ -203,12 +414,10 @@ class _LearnTile extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(width: 26),
-
                     Center(
                       child: Image.asset(
                         iconAsset,
@@ -222,9 +431,7 @@ class _LearnTile extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 28),
-
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -240,7 +447,6 @@ class _LearnTile extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 32),
                   ],
                 ),

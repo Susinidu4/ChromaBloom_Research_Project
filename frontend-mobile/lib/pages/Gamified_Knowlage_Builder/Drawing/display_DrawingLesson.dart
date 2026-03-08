@@ -3,10 +3,15 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 
 // ✅ Existing lesson service
-import '../../../services/Gemified/drawing_lesson_service.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// ✅ Completed lesson service
+import '../../../state/session_provider.dart';
+import '../../../services/Gemified/drawing_lesson_service.dart';
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
+import '../../../services/Gemified/drawing_level_service.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/api_config.dart';
 
 class DrawingUnit1Page extends StatefulWidget {
   const DrawingUnit1Page({super.key});
@@ -33,9 +38,8 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
-  // ✅ TODO: Replace with real logged-in caregiver/parent id
-  // In your example response: "user_id": "p-0001"
-  final String hardcodedUserId = "p-0001";
+  // ✅ Real caregiver ID will be fetched from SessionProvider
+  String? _caregiverId;
 
   @override
   void initState() {
@@ -54,86 +58,152 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
     // Completed lesson service baseUrl (global)
     CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
-    _futureLessons = _fetchLessons();
+    // ✅ Get real caregiver ID from SessionProvider
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    _caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
+            .toString();
+
+    _futureLessons = _fetchLessons(_caregiverId!);
   }
 
-  Future<List<_LessonItem>> _fetchLessons() async {
-    // 1) Fetch all lessons first (to show all cards even if not completed)
-    final raw = await _service.getAllLessons(); // List<dynamic>
+  Future<List<_LessonItem>> _fetchLessons(String caregiverId) async {
+    try {
+      // 1) Get child ID
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      if (children.isEmpty) return [];
+      
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? '').toString();
+      if (childId.isEmpty) return [];
 
-    final lessons = raw.map<_LessonItem>((e) {
-      final m = (e as Map).cast<String, dynamic>();
-      return _LessonItem(
-        id: (m["_id"] ?? "").toString(),
-        title: (m["title"] ?? "Untitled").toString(),
-        desc: (m["description"] ?? "").toString(),
-        progress: 0.0,
-        correctnessPercent: 0,
+      // 2) Get drawing level from database
+      final drawingLevelService = DrawingLevelService(
+        baseUrl: "${ApiConfig.baseUrl}/chromabloom/drawing-levels",
+        token: Provider.of<SessionProvider>(context, listen: false).token,
       );
-    }).toList();
 
-    // 2) For each lesson, call getCompletedByLessonAndUser()
-    //    If completed: use populated lesson_id fields + correctness_rate
-    final updated = await Future.wait(
-      lessons.map((lesson) async {
-        try {
-          final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
-            lessonId: lesson.id,
-            userId: hardcodedUserId,
-          );
-
-          final data = res["data"];
-
-          if (data is List && data.isNotEmpty) {
-            final latest = (data.first as Map).cast<String, dynamic>();
-
-            // ✅ correctness_rate comes as a number (in your example: 62.0047...)
-            final cr = latest["correctness_rate"];
-            int percent;
-            if (cr is num) {
-              percent = cr.round();
-            } else {
-              percent = int.tryParse("$cr") ?? 0;
-            }
-            percent = percent.clamp(0, 100);
-
-            // ✅ Use populated lesson_id object (complete lesson details)
-            // lesson_id could be a Map (populated) OR a string id
-            final lessonObj = latest["lesson_id"];
-            String title = lesson.title;
-            String desc = lesson.desc;
-
-            if (lessonObj is Map) {
-              final lm = lessonObj.cast<String, dynamic>();
-              title = (lm["title"] ?? title).toString();
-              desc = (lm["description"] ?? desc).toString();
-            }
-
-            final progress = (percent / 100.0).clamp(0.0, 1.0);
-
-            return lesson.copyWith(
-              title: title,
-              desc: desc,
-              progress: progress,
-              correctnessPercent: percent,
-            );
+      String filterLevel = "Beginner";
+      try {
+        final List<dynamic> levels = await drawingLevelService.getDrawingLevelByUserId(childId);
+        if (levels.isNotEmpty) {
+          filterLevel = (levels[0]['level'] ?? "Beginner").toString();
+        } else {
+          // Fallback to SharedPreferences if DB record doesn't exist
+          final prefs = await SharedPreferences.getInstance();
+          final levelValue = prefs.getString("drawing_skill_level_value") ?? "new";
+          if (levelValue == "basic") {
+            filterLevel = "Intermediate";
+          } else if (levelValue == "most") {
+            filterLevel = "Advanced";
           }
-
-          // Not completed => keep defaults
-          return lesson;
-        } catch (_) {
-          // If this lesson completion call fails, keep lesson card without breaking screen
-          return lesson;
         }
-      }),
-    );
+      } catch (_) {
+        // Silent fallback to Beginner or SharedPreferences
+      }
 
-    return updated;
+      // 3) Fetch all lessons
+      final raw = await _service.getAllLessons(); // List<dynamic>
+
+      // 4) Filter lessons by difficulty_level & Sort by date (descending)
+      final lessons = raw
+          .where((e) {
+            final m = (e as Map).cast<String, dynamic>();
+            final dl = (m["difficulty_level"] ?? "").toString();
+            return dl.toLowerCase() == filterLevel.toLowerCase();
+          })
+          .toList();
+
+      // Sort by createdAt ascending (oldest first - 1st record first)
+      lessons.sort((a, b) {
+        final ma = (a as Map).cast<String, dynamic>();
+        final mb = (b as Map).cast<String, dynamic>();
+        final da = DateTime.tryParse(ma["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final db = DateTime.tryParse(mb["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return da.compareTo(db);
+      });
+
+      final mappedLessons = lessons.map<_LessonItem>((e) {
+            final m = (e as Map).cast<String, dynamic>();
+            return _LessonItem(
+              id: (m["_id"] ?? "").toString(),
+              title: (m["title"] ?? "Untitled").toString(),
+              desc: (m["description"] ?? "").toString(),
+              progress: 0.0,
+              correctnessPercent: 0,
+            );
+          })
+          .toList();
+
+      // 5) For each filtered lesson, call getCompletedByLessonAndUser()
+      // Using childId for activity tracking
+      final updated = await Future.wait(
+        mappedLessons.map((lesson) async {
+          try {
+            final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
+              lessonId: lesson.id,
+              userId: caregiverId,
+            );
+
+            final data = res["data"];
+
+            if (data is List && data.isNotEmpty) {
+              // Take the first (latest) attempt
+              final latest = (data.first as Map).cast<String, dynamic>();
+
+              final cr = latest["correctness_rate"];
+              double rawRate = 0.0;
+              if (cr is num) {
+                rawRate = cr.toDouble();
+              } else {
+                rawRate = double.tryParse("$cr") ?? 0.0;
+              }
+
+              // The progress bar needs a 0..1 value. 
+              // Based on user JSON 52.81..., it's on a 0..100 scale.
+              final progress = (rawRate / 100.0).clamp(0.0, 1.0);
+              final percent = rawRate.round().clamp(0, 100);
+
+              final lessonObj = latest["lesson_id"];
+              String title = lesson.title;
+              String desc = lesson.desc;
+
+              if (lessonObj is Map) {
+                final lm = lessonObj.cast<String, dynamic>();
+                title = (lm["title"] ?? title).toString();
+                desc = (lm["description"] ?? desc).toString();
+              }
+
+              return lesson.copyWith(
+                title: title,
+                desc: desc,
+                progress: progress,
+                correctnessPercent: percent,
+              );
+            }
+
+            return lesson;
+          } catch (e) {
+            debugPrint("Error fetching completion for lesson ${lesson.id}: $e");
+            return lesson;
+          }
+        }),
+      );
+
+      return updated;
+    } catch (e) {
+      debugPrint("Error fetching lessons: $e");
+      rethrow;
+    }
   }
 
   Future<void> _refresh() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    _caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
+            .toString();
+
     setState(() {
-      _futureLessons = _fetchLessons();
+      _futureLessons = _fetchLessons(_caregiverId!);
     });
     await _futureLessons;
   }
@@ -180,7 +250,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                     ),
                   ),
                   _CircleActionButton(
-                    icon: Icons.add,
+                    icon: Icons.close,
                     onTap: () {
                       Navigator.pushNamed(context, '/skillSelection');
                     },
@@ -472,20 +542,9 @@ class _LessonCard extends StatelessWidget {
               // ✅ Progress section with percent text
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _ProgressPill(progress: p),
-                    const SizedBox(height: 4),
-                    Text(
-                      "$percent%",
-                      style: const TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF8C6B55),
-                      ),
-                    ),
-                  ],
+                child: _ProgressPill(
+                  progress: p,
+                  percent: percent,
                 ),
               ),
             ],
@@ -513,29 +572,44 @@ class _Dot extends StatelessWidget {
 }
 
 class _ProgressPill extends StatelessWidget {
-  const _ProgressPill({required this.progress});
+  const _ProgressPill({required this.progress, required this.percent});
   final double progress;
+  final int percent;
 
   static const Color track = Color(0xFFD8C6B4);
   static const Color fill = Color(0xFFB89A76);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 10,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: Stack(
-          children: [
-            Container(color: track),
-            FractionallySizedBox(
-              widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(color: fill),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 10,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Stack(
+              children: [
+                Container(color: track),
+                FractionallySizedBox(
+                  widthFactor: progress.clamp(0.0, 1.0),
+                  child: Container(color: fill),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          "$percent%",
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFB89A76),
+          ),
+        ),
+      ],
     );
   }
 }

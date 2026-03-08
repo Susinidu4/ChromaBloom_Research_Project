@@ -1,18 +1,58 @@
-import express from 'express';
-import { createSystemActivity, getAllSystemActivities, getOrCreateStarterPlan, updateSystemActivityProgress, getRoutineRunProgress, closeCycleAndSendToML, closeCycleSendToMLAndCreateNextPlan } from '../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js';   
-import upload from "../../middlewares/uploadImage.js";
+import express from "express";
+import {
+  createSystemActivity,
+  getAllSystemActivities,
+  getOrCreateStarterPlan,
+  updateSystemActivityProgress,
+  getRoutineRunProgress,
+  closeCycleAndSendToML,
+  closeCycleSendToMLAndCreateNextPlan,
+  getLatestRoutineSummary,
+  getRoutineDashboard,
+  getSystemActivityById,
+  updateSystemActivity,
+  deleteSystemActivity,
+  getDailyRoutineRunsEnsureRecords,
+} from "../../controllers/Interactive_Visual_Task_Scheduler_Controller/systemActivityController.js";
+import uploadVideo from "../../middlewares/uploadVideo.js";
 
 const router = express.Router();
 
+// ------------------------- Admin routes -------------------------//
+
 // Create a new system activity
 // POST /chromabloom/systemActivities/createSystemActivity
-router.post("/createSystemActivity", upload.single("image"), createSystemActivity);
+router.post(
+  "/createSystemActivity",
+  uploadVideo.single("video"),
+  createSystemActivity,
+);
 
 // Display all system activities
 // GET /chromabloom/systemActivities/getAllSystemActivities
 router.get("/getAllSystemActivities", getAllSystemActivities);
 
+// Get system activity by ID
+// GET /chromabloom/systemActivities/getSystemActivityById/:id
+router.get("/getSystemActivityById/:id", getSystemActivityById);
 
+// Update an existing system activity
+// PATCH /chromabloom/systemActivities/updateSystemActivity/:id
+router.patch("/updateSystemActivity/:id", uploadVideo.single("video"), updateSystemActivity);
+
+// Delete a system activity
+// DELETE /chromabloom/systemActivities/deleteSystemActivity/:id
+router.delete("/deleteSystemActivity/:id", deleteSystemActivity);
+
+// ------------------------- Caregiver routes ------------------------- //
+
+// Get the latest routine summary for a child
+// GET /chromabloom/systemActivities/getLatestRoutineSummary/:caregiverId
+router.get("/getLatestRoutineSummary/:caregiverId", getLatestRoutineSummary);
+
+// Get routine dashboard for a caregiver (line chart / bar chart / pie chart)
+// GET /chromabloom/systemActivities/dashboard/:caregiverId
+router.get("/dashboard/:caregiverId", getRoutineDashboard);
 
 //------------------------- special routes -------------------------//
 
@@ -25,10 +65,12 @@ router.post("/getOrCreateStarterSystemActivity", getOrCreateStarterPlan);
 router.post("/updateSystemActivityProgress", updateSystemActivityProgress);
 
 // Get routine run progress by planId and activityId
+// GET /chromabloom/systemActivities/routineRun/daily
+router.get("/routineRun/daily", getDailyRoutineRunsEnsureRecords);
+
+// Get routine run progress by planId and activityId
 // GET /chromabloom/systemActivities/getRoutineRunProgress/:planId/:activityId
 router.get("/getRoutineRunProgress/:planId/:activityId", getRoutineRunProgress);
-
-
 
 //------------------------- cycle management routes -------------------------//
 
@@ -38,7 +80,9 @@ router.post("/closeCycleAndSendToML", closeCycleAndSendToML);
 
 // Close cycle, send to ML, and create next plan
 // POST /chromabloom/systemActivities/closeCycleAndCreateNextPlan
-router.post("/closeCycleAndCreateNextPlan", closeCycleSendToMLAndCreateNextPlan);
-
+router.post(
+  "/closeCycleAndCreateNextPlan",
+  closeCycleSendToMLAndCreateNextPlan,
+);
 
 export default router;

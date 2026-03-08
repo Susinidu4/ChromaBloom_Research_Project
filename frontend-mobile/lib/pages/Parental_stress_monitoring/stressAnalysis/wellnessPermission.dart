@@ -5,6 +5,7 @@ Future<void> showDigitalWellbeingPermissionGate({
   required Future<void> Function() onCancel,
   required Future<void> Function() onAllow,
 }) async {
+  // Show a custom dialog to request Digital Wellbeing access 
   await showGeneralDialog(
     context: context,
     barrierDismissible: false,
@@ -55,6 +56,7 @@ class _DigitalWellbeingPermissionDialogState
   static const Color allowBtn = Color(0xFFC9B28A);
   static const Color shadow = Color(0x55000000);
 
+// Helper to run async functions safely without allowing multiple taps
   Future<void> _safeRun(Future<void> Function() fn) async {
     if (_loading) return;
     setState(() => _loading = true);
@@ -65,6 +67,7 @@ class _DigitalWellbeingPermissionDialogState
     }
   }
 
+// Build the custom dialog UI
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -220,6 +223,7 @@ class _DigitalWellbeingPermissionDialogState
   }
 }
 
+// Below are helper widgets for the dialog content, like section titles, bullet points, and action buttons
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
@@ -242,6 +246,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+// Simple widget to display a list of bullet points with a custom color
 class _Bullets extends StatelessWidget {
   final List<String> items;
   final Color color;
@@ -276,6 +281,7 @@ class _Bullets extends StatelessWidget {
   }
 }
 
+// Custom styled button used for both Cancel and Allow actions in the dialog
 class _ActionButton extends StatelessWidget {
   final String text;
   final Color bg;

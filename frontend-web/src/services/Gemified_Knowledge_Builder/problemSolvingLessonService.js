@@ -1,58 +1,87 @@
+// src/services/problemSolvingLessonService.js
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000";
-const BASE_URL = `${API_BASE}/chromabloom/problem-solving-lessons`;
+// Put your backend base URL in .env (recommended)
+// VITE_API_BASE_URL=http://localhost:5000
+const API_BASE =  "http://localhost:5000";
 
-const buildLessonFormData = ({
-  title,
-  content,
-  difficultyLevel,
-  correct_answer,
-  tips,
-  images,
-  catergory,
-}) => {
-  const fd = new FormData();
-  fd.append("title", title);
-  if (content) fd.append("content", content);
-  fd.append("difficultyLevel", difficultyLevel);
-  fd.append("correct_answer", correct_answer);
+// Your router is mounted like:
+// app.use("/chromabloom/problem-solving-lessons", router)
+const ENDPOINT = `${API_BASE}/chromabloom/problem-solving-lessons`;
 
-  if (tips && Array.isArray(tips)) fd.append("tips", JSON.stringify(tips));
-  if (catergory) fd.append("catergory", catergory);
+// ---------- helpers ----------
+const normalizeMiniTutorials = (miniTutorials) => {
+  // Allow:
+  // - array (recommended)
+  // - stringified JSON array
+  // - undefined/null
+  if (miniTutorials === undefined || miniTutorials === null) return undefined;
 
-  if (images && images.length) {
-    images.forEach((file) => fd.append("images", file));
+  // If already an array -> ok
+  if (Array.isArray(miniTutorials)) return miniTutorials;
+
+  // If string -> try parse
+  if (typeof miniTutorials === "string") {
+    try {
+      const parsed = JSON.parse(miniTutorials);
+      return parsed;
+    } catch {
+      // Keep as string (backend will throw a nice error)
+      return miniTutorials;
+    }
   }
 
-  return fd;
+  // otherwise send as-is (backend will validate)
+  return miniTutorials;
 };
 
-export const problemSolvingLessonService = {
-  async getAll() {
-    const res = await axios.get(BASE_URL);
-    return res.data;
-  },
-  async getById(id) {
-    const res = await axios.get(`${BASE_URL}/${id}`);
-    return res.data;
-  },
-  async create(payload) {
-    const fd = buildLessonFormData(payload);
-    const res = await axios.post(BASE_URL, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
+// ---------- API calls ----------
+export const ProblemSolvingLessonService = {
+  // CREATE
+  // payload: { title, description, difficulty_level, miniTutorialsName, miniTutorials: [] }
+  create: async (payload) => {
+    const body = {
+      ...payload,
+      miniTutorials: normalizeMiniTutorials(payload?.miniTutorials),
+    };
+
+    const res = await axios.post(ENDPOINT, body, {
+      headers: { "Content-Type": "application/json" },
     });
-    return res.data;
+    return res.data; // { success, data }
   },
-  async update(id, payload) {
-    const fd = buildLessonFormData(payload);
-    const res = await axios.put(`${BASE_URL}/${id}`, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
+
+  // GET ALL
+  getAll: async () => {
+    const res = await axios.get(ENDPOINT);
+    return res.data; // { success, data: [] }
+  },
+
+  // GET BY ID (LP-0001)
+  getById: async (id) => {
+    const res = await axios.get(`${ENDPOINT}/${id}`);
+    return res.data; // { success, data }
+  },
+
+  // UPDATE
+  // payload can be partial
+  update: async (id, payload) => {
+    const body = {
+      ...payload,
+      miniTutorials: normalizeMiniTutorials(payload?.miniTutorials),
+    };
+
+    const res = await axios.put(`${ENDPOINT}/${id}`, body, {
+      headers: { "Content-Type": "application/json" },
     });
-    return res.data;
+    return res.data; // { success, data }
   },
-  async remove(id) {
-    const res = await axios.delete(`${BASE_URL}/${id}`);
-    return res.data;
+
+  // DELETE
+  remove: async (id) => {
+    const res = await axios.delete(`${ENDPOINT}/${id}`);
+    return res.data; // { success, message }
   },
 };
+
+export default ProblemSolvingLessonService;

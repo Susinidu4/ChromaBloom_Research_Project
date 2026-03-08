@@ -54,10 +54,10 @@ class ChildRoutinePlanService {
       "$_base/chromabloom/systemActivities/updateSystemActivityProgress",
     );
 
-final dateStr  =
-    "${runDate.year.toString().padLeft(4, '0')}-"
-    "${runDate.month.toString().padLeft(2, '0')}-"
-    "${runDate.day.toString().padLeft(2, '0')}";
+    final dateStr =
+        "${runDate.year.toString().padLeft(4, '0')}-"
+        "${runDate.month.toString().padLeft(2, '0')}-"
+        "${runDate.day.toString().padLeft(2, '0')}";
 
     final res = await http.post(
       uri,
@@ -81,6 +81,50 @@ final dateStr  =
     }
   }
 
+  static String _fmtYmd(DateTime d) {
+    final yyyy = d.year.toString().padLeft(4, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return "$yyyy-$mm-$dd";
+  }
+
+  // NEW: Ensure daily routineRun docs exist for all plan activities
+  // Backend: GET /chromabloom/systemActivities/routineRun/daily?caregiverId=...&childId=...&planId=...&run_date=YYYY-MM-DD
+  // NEW: Ensure daily routineRun docs exist for all plan activities
+  static Future<Map<String, dynamic>> ensureDailyRoutineRuns({
+    required String caregiverId,
+    required String childId,
+    required String planMongoId,
+    required DateTime runDate,
+  }) async {
+    final dateStr = _fmtYmd(runDate);
+
+    final uri =
+        Uri.parse(
+          "$_base/chromabloom/systemActivities/routineRun/daily",
+        ).replace(
+          queryParameters: {
+            "caregiverId": caregiverId,
+            "childId": childId,
+            "planId": planMongoId,
+            "run_date": dateStr,
+          },
+        );
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 20));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      try {
+        final parsed = jsonDecode(res.body);
+        throw Exception(parsed["error"] ?? parsed["message"] ?? res.body);
+      } catch (_) {
+        throw Exception(res.body);
+      }
+    }
+  }
+
   // GET routine run progress by planId and activityId
   static Future<Map<String, dynamic>?> getRoutineRunProgress({
     required String caregiverId,
@@ -89,15 +133,21 @@ final dateStr  =
     required String activityMongoId,
     required DateTime runDate,
   }) async {
+    final dateStr =
+        "${runDate.year.toString().padLeft(4, '0')}-"
+        "${runDate.month.toString().padLeft(2, '0')}-"
+        "${runDate.day.toString().padLeft(2, '0')}";
 
-    final dateStr  =
-    "${runDate.year.toString().padLeft(4, '0')}-"
-    "${runDate.month.toString().padLeft(2, '0')}-"
-    "${runDate.day.toString().padLeft(2, '0')}";
-
-    final uri = Uri.parse(
-      "$_base/chromabloom/systemActivities/getRoutineRunProgress/$planMongoId/$activityMongoId",
-    ).replace(queryParameters: {"caregiverId": caregiverId, "childId": childId, "run_date": dateStr });
+    final uri =
+        Uri.parse(
+          "$_base/chromabloom/systemActivities/getRoutineRunProgress/$planMongoId/$activityMongoId",
+        ).replace(
+          queryParameters: {
+            "caregiverId": caregiverId,
+            "childId": childId,
+            "run_date": dateStr,
+          },
+        );
 
     final res = await http.get(uri);
 
@@ -113,6 +163,58 @@ final dateStr  =
       } catch (_) {
         throw Exception(res.body);
       }
+    }
+  }
+
+  // GET latest routine difficulty summary
+  static Future<Map<String, dynamic>> getLatestRoutineSummary({
+    required String caregiverId,
+  }) async {
+    final uri = Uri.parse(
+      "$_base/chromabloom/systemActivities/getLatestRoutineSummary/$caregiverId",
+    );
+
+    final res = await http.get(uri);
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } else {
+      try {
+        final parsed = jsonDecode(res.body);
+        throw Exception(parsed["error"] ?? parsed["message"] ?? res.body);
+      } catch (_) {
+        throw Exception(res.body);
+      }
+    }
+  }
+
+  // Fetches aggregated dashboard data for caregiver routines
+  static Future<Map<String, dynamic>> getRoutineDashboard({
+    required String caregiverId,
+    String? childId,
+    String? planId,
+    String? cycleStart,
+    String? cycleEnd,
+  }) async {
+    final uri =
+        Uri.parse(
+          "$_base/chromabloom/systemActivities/dashboard/$caregiverId",
+        ).replace(
+          queryParameters: {
+            if (planId != null && planId.isNotEmpty) "planId": planId,
+            if (cycleStart != null && cycleStart.isNotEmpty)
+              "cycleStart": cycleStart,
+            if (cycleEnd != null && cycleEnd.isNotEmpty) "cycleEnd": cycleEnd,
+          },
+        );
+
+    final res = await http.get(uri).timeout(const Duration(seconds: 15));
+    final body = jsonDecode(res.body);
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return body;
+    } else {
+      throw Exception(body["message"] ?? "Failed to load routine dashboard");
     }
   }
 }

@@ -124,7 +124,6 @@ class ProfileSettingsPage extends StatelessWidget {
     final addressCtrl = TextEditingController(text: resolveAddress());
     final childCtrl =
         TextEditingController(text: resolveChildCount().toString());
-    final passwordCtrl = TextEditingController(text: "");
 
     String gender = resolveGender().isEmpty ? "male" : resolveGender();
     DateTime? dob = resolveDob();
@@ -194,9 +193,6 @@ class ProfileSettingsPage extends StatelessWidget {
                   gender: gender,
                   dob: dobStr,
                   childCount: childCount,
-                  password: passwordCtrl.text.trim().isEmpty
-                      ? null
-                      : passwordCtrl.text.trim(),
                 );
 
                 if (context.mounted) Navigator.pop(context); // close loader
@@ -311,14 +307,6 @@ class ProfileSettingsPage extends StatelessWidget {
                           controller: addressCtrl,
                           keyboard: TextInputType.streetAddress,
                         ),
-                        const SizedBox(height: 10),
-                        ProfileEditField(
-                          label: "New Password (optional)",
-                          controller: passwordCtrl,
-                          keyboard: TextInputType.visiblePassword,
-                          obscure: true,
-                          helper: "Leave blank to keep your current password.",
-                        ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -382,7 +370,6 @@ class ProfileSettingsPage extends StatelessWidget {
     emailCtrl.dispose();
     addressCtrl.dispose();
     childCtrl.dispose();
-    passwordCtrl.dispose();
   }
 
   @override

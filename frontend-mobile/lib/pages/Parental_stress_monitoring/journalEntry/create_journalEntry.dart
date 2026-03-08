@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+
+import 'package:provider/provider.dart';
+import '../../../state/session_provider.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
@@ -15,13 +19,34 @@ class CreateJournalEntryScreen extends StatefulWidget {
 
 class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
+
+  // Helper to show themed QuickAlert dialogs for errors, warnings, and success messages
+  void showThemedAlert({
+    required QuickAlertType type,
+    required String title,
+    required String text,
+  }) {
+    QuickAlert.show(
+      context: context,
+      type: type,
+      title: title,
+      text: text,
+      confirmBtnText: 'OK',
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      titleColor: const Color(0xFFBD9A6B),
+      textColor: const Color(0xFFBD9A6B),
+      confirmBtnColor: const Color(0xFFBD9A6B),
+    );
+  }
+
+  // Today's date to display in the header of the journal entry form
   final DateTime _today = DateTime.now();
 
   // service instance
   final JournalEntryService _journalService = JournalEntryService();
 
   // Replace this with your real logged-in caregiver id later
-  final String _caregiverId = "p-0001";
+  // final String _caregiverId = "p-0001";
 
   // Mood list (with emoji like your image)
   final List<Map<String, String>> _moods = const [
@@ -51,33 +76,54 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}";
 
+// Handler for the Save button - validates input and calls the service to create a journal entry
   Future<void> _onSave() async {
+    final session = context.read<SessionProvider>();
+
+    final caregiverId =
+        (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
+            .toString();
+
     if (_saving) return;
 
+    if (caregiverId.isEmpty) {
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Login Required",
+        text: "User not logged in",
+      );
+      return;
+    }
+
     if (_selectedMood == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please select your mood")));
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Mood Missing",
+        text: "Please select your mood",
+      );
       return;
     }
 
     final text = _noteCtrl.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please write something")));
+      showThemedAlert(
+        type: QuickAlertType.warning,
+        title: "Journal Empty",
+        text: "Please write something",
+      );
       return;
     }
 
-    final label = _selectedMood!["label"]!; // e.g. "Happy"
-    final emoji = _selectedMood!["emoji"]!; // e.g. "😃"
+    final label = _selectedMood!["label"]!; 
+    final emoji = _selectedMood!["emoji"]!; 
     final moodEnum = _labelToMoodEnum[label] ?? "neutral";
 
     setState(() => _saving = true);
 
     try {
+      // Call the service to create a new journal entry with the caregiver ID, mood, emoji, and text note
       await _journalService.createJournalEntry(
-        caregiverId: _caregiverId,
+        caregiverId: caregiverId,
         mood: moodEnum,
         moodEmoji: emoji,
         text: text,
@@ -85,19 +131,31 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Journal saved successfully")),
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: "Saved",
+        text: "Journal saved successfully",
+        confirmBtnText: 'OK',
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        titleColor: const Color(0xFFBD9A6B),
+        textColor: const Color(0xFFBD9A6B),
+        confirmBtnColor: const Color(0xFFBD9A6B),
       );
+
+      if (!mounted) return;
 
       Navigator.of(
         context,
         rootNavigator: true,
-      ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false);
+      ).pushNamedAndRemoveUntil('/WellnessHome', (route) => false); // Go back to home after saving
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Save failed: $e")));
+      showThemedAlert(
+        type: QuickAlertType.error,
+        title: "Save Failed",
+        text: e.toString(),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -109,6 +167,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
     super.dispose();
   }
 
+// Main build method for the Create Journal Entry screen, which includes a header, form fields for mood and notes, and a save button
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,7 +208,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min, // ✅ important
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 // date + close
                                 Row(
@@ -280,7 +339,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
                                 const SizedBox(
                                   height: 18,
-                                ), // ✅ instead of Spacer()
+                                ), 
 
                                 Align(
                                   alignment: Alignment.centerRight,
@@ -328,6 +387,7 @@ class _CreateJournalEntryScreenState extends State<CreateJournalEntryScreen> {
 
 /* ===================== WIDGETS ===================== */
 
+// Custom styled chip to display the current date in the journal entry form header
 class _DateChip extends StatelessWidget {
   final String text;
   const _DateChip({required this.text});
@@ -371,6 +431,7 @@ class _DateChip extends StatelessWidget {
   }
 }
 
+// Circular button with a close icon, used to exit the journal entry form and return to the home screen
 class _CloseCircle extends StatelessWidget {
   final VoidCallback onTap;
   const _CloseCircle({required this.onTap});
@@ -404,6 +465,7 @@ class _CloseCircle extends StatelessWidget {
   }
 }
 
+// Custom dropdown widget for selecting the user's mood, displaying both an emoji and a label for each option
 class _MoodDropdown extends StatelessWidget {
   final List<Map<String, String>> moods;
   final Map<String, String>? value;
