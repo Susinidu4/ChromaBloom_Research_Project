@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+import '../../../state/session_provider.dart';
+import '../../../services/user_services/child_api.dart';
+import '../../../services/Gemified/problem_solving_level.dart';
 
 // ignore: camel_case_types
 class SkillKnowledgeLevelPage_2 extends StatelessWidget {
@@ -14,10 +18,60 @@ class SkillKnowledgeLevelPage_2 extends StatelessWidget {
   static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
   static const String _prefKeyProblemLevelValue = "problem_solving_skill_level_value";
 
-  Future<void> _saveLevelAndGo(BuildContext context, String level) async {
+  Future<void> _saveLevelAndGo(BuildContext context, String rawSelection) async {
+    // 1. Map raw selection to level
+    String mappedLevel = "Beginner";
+    if (rawSelection == "basic") {
+      mappedLevel = "Intermediate";
+    } else if (rawSelection == "most") {
+      mappedLevel = "Advanced";
+    }
+
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final caregiver = session.caregiver;
+
+      if (caregiver != null) {
+        final caregiverId = (caregiver['_id'] ?? caregiver['id']).toString();
+        
+        // 2. Get children
+        final children = await ChildApi.getChildrenByCaregiver(caregiverId);
+        
+        if (children.isNotEmpty) {
+          final child = children.first;
+          final childId = (child['_id'] ?? child['id']).toString();
+
+          // 3. Try to get existing level to decide if we create or update
+          bool exists = false;
+          try {
+            await ProblemSolvingLevelService.getLevelByUserId(childId);
+            exists = true;
+          } catch (e) {
+            exists = false;
+          }
+
+          // 4. Create or Update
+          if (exists) {
+            await ProblemSolvingLevelService.updateLevelByUserId(
+              userId: childId,
+              level: mappedLevel,
+            );
+          } else {
+            await ProblemSolvingLevelService.createLevel(
+              userId: childId,
+              level: mappedLevel,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error storing problem solving level: $e");
+      // Continue anyway to not block user flow, or show a snackbar
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefKeyProblemLevelSet, true);
-    await prefs.setString(_prefKeyProblemLevelValue, level);
+    await prefs.setString(_prefKeyProblemLevelValue, mappedLevel);
 
     if (!context.mounted) return;
 

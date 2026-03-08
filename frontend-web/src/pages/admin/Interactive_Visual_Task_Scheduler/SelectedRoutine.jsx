@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
+
 import { useNavigate, useParams } from "react-router-dom";
 import { FaArrowLeft, FaRegEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { FiClock } from "react-icons/fi";
+
 import AdminLayout from "../Admin_Management/AdminLayout";
-import Swal from "sweetalert2";
 
 import {
   getSystemActivityByIdService,
@@ -13,11 +15,12 @@ import {
 
 export default function SelectedRoutine() {
   const navigate = useNavigate();
-  const { id } = useParams();
 
+  const { id } = useParams();
   const [routine, setRoutine] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Alert helpers
   const alertError = (msg) =>
     Swal.fire({
       icon: "error",
@@ -26,6 +29,7 @@ export default function SelectedRoutine() {
       confirmButtonColor: "#BD9A6B",
     });
 
+  // Success alert with auto-close
   const alertSuccess = (msg) =>
     Swal.fire({
       icon: "success",
@@ -36,14 +40,16 @@ export default function SelectedRoutine() {
       showConfirmButton: false,
     });
 
+  // Fetch routine details on mount
   useEffect(() => {
     const fetchOne = async () => {
       try {
         setLoading(true);
 
         const res = await getSystemActivityByIdService(id);
-        const a = res?.data?.data ?? res?.data; // ✅ safe (handles both formats)
+        const a = res?.data?.data ?? res?.data; //
 
+        // Map API response to our routine format
         const mapped = {
           id: a?._id,
           title: a?.title || "Untitled",
@@ -68,9 +74,11 @@ export default function SelectedRoutine() {
     fetchOne();
   }, [id]);
 
+  // Navigation handlers
   const onBack = () => navigate("/routine_list");
+  // Edit handler
   const onEdit = () => navigate(`/routine_edit/${id}`);
-
+  // Delete handler with confirmation
   const onDelete = async () => {
     const result = await Swal.fire({
       title: "Delete this routine?",
@@ -86,6 +94,7 @@ export default function SelectedRoutine() {
     if (!result.isConfirmed) return;
 
     try {
+      // Call delete API
       await deleteSystemActivityByIdService(id);
 
       await Swal.fire({
@@ -97,6 +106,7 @@ export default function SelectedRoutine() {
         showConfirmButton: false,
       });
 
+      // Redirect back to list after deletion
       navigate("/routine_list");
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || "Delete failed";
@@ -107,7 +117,6 @@ export default function SelectedRoutine() {
   return (
     <AdminLayout>
       <div className="w-full min-h-screen bg-[#F3E8E8]">
-        {/* Responsive padding */}
         <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10">
           <div className="relative rounded-[14px]">
             {/* Back Button (top-left on desktop, normal flow on mobile) */}
@@ -134,7 +143,7 @@ export default function SelectedRoutine() {
                          shadow-[0_10px_18px_rgba(0,0,0,0.18)]
                          px-5 sm:px-8 lg:px-10 py-8 sm:py-10"
               >
-                {/* Title + icons (stack on mobile) */}
+                {/* Title + icons */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>
                     <h2 className="text-[20px] sm:text-[22px] font-semibold text-[#BD9A6B]">
@@ -153,6 +162,7 @@ export default function SelectedRoutine() {
                   </div>
 
                   <div className="flex items-center gap-4">
+                    {/* Edit Button */}
                     <button
                       onClick={onEdit}
                       className="text-[#BD9A6B] hover:brightness-90"
@@ -161,6 +171,7 @@ export default function SelectedRoutine() {
                       <FaRegEdit size={20} />
                     </button>
 
+                    {/* Delete Button */}
                     <button
                       onClick={onDelete}
                       disabled={loading}
@@ -172,7 +183,7 @@ export default function SelectedRoutine() {
                   </div>
                 </div>
 
-                {/* Video (responsive height) */}
+                {/* Video */}
                 <div className="mt-8 flex justify-center">
                   {routine.videoUrl ? (
                     <video
@@ -205,13 +216,14 @@ export default function SelectedRoutine() {
                   </ol>
                 </div>
 
-                {/* Bottom Meta */}
                 <div className="mt-10 space-y-3 text-[13px] text-[#BD9A6B]">
+                  {/* Difficulty Level */}
                   <div className="flex flex-wrap gap-2">
                     <span className="font-semibold">DIFFICULTY LEVEL:</span>
                     <span className="text-[#B79A6A]">{routine.difficulty}</span>
                   </div>
 
+                  {/* Development Area */}
                   <div className="flex flex-wrap gap-2">
                     <span className="font-semibold">DEVELOPMENT AREA:</span>
                     <span className="text-[#B79A6A]">{routine.devArea}</span>

@@ -460,12 +460,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       );
 
       await _loadHistory();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Prediction saved for child: $childId ✅")),
-        );
-      }
     } catch (e) {
       setState(() => errorMsg = e.toString());
     } finally {

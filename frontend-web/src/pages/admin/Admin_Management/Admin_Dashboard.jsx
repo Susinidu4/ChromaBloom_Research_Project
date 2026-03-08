@@ -394,7 +394,7 @@ export const Admin_Dashboard = () => {
                         </div>
 
                         {/* Delete button */}
-                        <div className="flex justify-center">
+                        {/* <div className="flex justify-center">
                           <button
                             onClick={() => handleDeleteAdmin(row._id)}
                             className="h-9 w-9 rounded-[10px] bg-red-600 text-white
@@ -404,7 +404,7 @@ export const Admin_Dashboard = () => {
                           >
                             <FaTrash size={16} />
                           </button>
-                        </div>
+                        </div> */}
 
                         {/* More button */}
                         <div className="flex justify-center">

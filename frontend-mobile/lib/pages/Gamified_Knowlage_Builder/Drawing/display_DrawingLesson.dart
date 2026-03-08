@@ -104,14 +104,25 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
       // 3) Fetch all lessons
       final raw = await _service.getAllLessons(); // List<dynamic>
 
-      // 4) Filter lessons by difficulty_level
+      // 4) Filter lessons by difficulty_level & Sort by date (descending)
       final lessons = raw
           .where((e) {
             final m = (e as Map).cast<String, dynamic>();
             final dl = (m["difficulty_level"] ?? "").toString();
             return dl.toLowerCase() == filterLevel.toLowerCase();
           })
-          .map<_LessonItem>((e) {
+          .toList();
+
+      // Sort by createdAt ascending (oldest first - 1st record first)
+      lessons.sort((a, b) {
+        final ma = (a as Map).cast<String, dynamic>();
+        final mb = (b as Map).cast<String, dynamic>();
+        final da = DateTime.tryParse(ma["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final db = DateTime.tryParse(mb["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return da.compareTo(db);
+      });
+
+      final mappedLessons = lessons.map<_LessonItem>((e) {
             final m = (e as Map).cast<String, dynamic>();
             return _LessonItem(
               id: (m["_id"] ?? "").toString(),
@@ -126,26 +137,31 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
       // 5) For each filtered lesson, call getCompletedByLessonAndUser()
       // Using childId for activity tracking
       final updated = await Future.wait(
-        lessons.map((lesson) async {
+        mappedLessons.map((lesson) async {
           try {
             final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
               lessonId: lesson.id,
-              userId: childId,
+              userId: caregiverId,
             );
 
             final data = res["data"];
 
             if (data is List && data.isNotEmpty) {
+              // Take the first (latest) attempt
               final latest = (data.first as Map).cast<String, dynamic>();
 
               final cr = latest["correctness_rate"];
-              int percent;
+              double rawRate = 0.0;
               if (cr is num) {
-                percent = cr.round();
+                rawRate = cr.toDouble();
               } else {
-                percent = int.tryParse("$cr") ?? 0;
+                rawRate = double.tryParse("$cr") ?? 0.0;
               }
-              percent = percent.clamp(0, 100);
+
+              // The progress bar needs a 0..1 value. 
+              // Based on user JSON 52.81..., it's on a 0..100 scale.
+              final progress = (rawRate / 100.0).clamp(0.0, 1.0);
+              final percent = rawRate.round().clamp(0, 100);
 
               final lessonObj = latest["lesson_id"];
               String title = lesson.title;
@@ -157,8 +173,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                 desc = (lm["description"] ?? desc).toString();
               }
 
-              final progress = (percent / 100.0).clamp(0.0, 1.0);
-
               return lesson.copyWith(
                 title: title,
                 desc: desc,
@@ -168,7 +182,8 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
             }
 
             return lesson;
-          } catch (_) {
+          } catch (e) {
+            debugPrint("Error fetching completion for lesson ${lesson.id}: $e");
             return lesson;
           }
         }),
@@ -527,20 +542,9 @@ class _LessonCard extends StatelessWidget {
               // ✅ Progress section with percent text
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _ProgressPill(progress: p),
-                    const SizedBox(height: 4),
-                    Text(
-                      "$percent%",
-                      style: const TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF8C6B55),
-                      ),
-                    ),
-                  ],
+                child: _ProgressPill(
+                  progress: p,
+                  percent: percent,
                 ),
               ),
             ],
@@ -568,29 +572,44 @@ class _Dot extends StatelessWidget {
 }
 
 class _ProgressPill extends StatelessWidget {
-  const _ProgressPill({required this.progress});
+  const _ProgressPill({required this.progress, required this.percent});
   final double progress;
+  final int percent;
 
   static const Color track = Color(0xFFD8C6B4);
   static const Color fill = Color(0xFFB89A76);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 10,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: Stack(
-          children: [
-            Container(color: track),
-            FractionallySizedBox(
-              widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(color: fill),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 10,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Stack(
+              children: [
+                Container(color: track),
+                FractionallySizedBox(
+                  widthFactor: progress.clamp(0.0, 1.0),
+                  child: Container(color: fill),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          "$percent%",
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFB89A76),
+          ),
+        ),
+      ],
     );
   }
 }
