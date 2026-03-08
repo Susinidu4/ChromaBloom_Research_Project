@@ -43,34 +43,41 @@ class _DetailedSystemActivityScreenState
   String? caregiverID;
   String? childID;
 
+  // Identity loading state
   bool loadingIdentity = true;
   String? identityError;
 
+  // Get caregiver ID from session
   String _getCaregiverIdFromSession() {
     final session = context.read<SessionProvider>();
     return (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? '')
         .toString();
   }
 
+  // Check if selected date is today (for enabling checkboxes and input)
   bool get _isToday {
     final d = widget.selectedDate;
     final now = DateTime.now();
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
+  // Load caregiver and child info based on session
   Future<void> _loadCaregiverAndChild() async {
     try {
+      // Get caregiver ID from session
       final caregiverID = _getCaregiverIdFromSession();
       if (caregiverID.isEmpty) {
         throw Exception("Session error. Please login again.");
       }
 
+      // Fetch children linked to caregiver
       final children = await ChildApi.getChildrenByCaregiver(caregiverID);
       if (children.isEmpty) {
         throw Exception("No child profile found.");
       }
 
       final child = children.first;
+      // Extract child ID
       final childID = (child['_id'] ?? child['id'] ?? '').toString();
       if (childID.isEmpty) {
         throw Exception("Child ID missing.");
@@ -125,6 +132,7 @@ class _DetailedSystemActivityScreenState
   bool loadingVideo = true;
   String? videoError;
 
+  // Load saved progress from RoutineRun collection
   @override
   void initState() {
     super.initState();
@@ -156,6 +164,7 @@ class _DetailedSystemActivityScreenState
     });
   }
 
+  // Dispose controllers to prevent memory leaks
   @override
   void dispose() {
     TtsService.stop();
@@ -165,12 +174,14 @@ class _DetailedSystemActivityScreenState
     super.dispose();
   }
 
+  // Calculate completion percentage based on steps done
   int _calcPercent() {
     if (steps.isEmpty) return 0;
     final done = stepDone.where((x) => x).length;
     return ((done / steps.length) * 100).round();
   }
 
+  // Increment completed minutes with upper limit of 60
   void onIncCompleted() {
     setState(() {
       completedMinutes = (completedMinutes + 1).clamp(0, 60);
@@ -178,6 +189,7 @@ class _DetailedSystemActivityScreenState
     });
   }
 
+  // Decrement completed minutes with lower limit of 0
   void onDecCompleted() {
     setState(() {
       completedMinutes = (completedMinutes - 1).clamp(0, 60);
@@ -185,6 +197,7 @@ class _DetailedSystemActivityScreenState
     });
   }
 
+  // Text-to-speech functions for title, description, and steps
   String _title() => (widget.activity["title"] ?? "").toString();
   String _desc() =>
       (widget.activity["description"] ?? widget.activity["desc"] ?? "")
@@ -201,6 +214,7 @@ class _DetailedSystemActivityScreenState
     await TtsService.speak("Step $n. $instruction");
   }
 
+  // Speak all steps in one go (optional, can be triggered by a button if needed)
   Future<void> _speakAllSteps() async {
     if (steps.isEmpty) return;
     final buffer = StringBuffer();
@@ -214,6 +228,7 @@ class _DetailedSystemActivityScreenState
     await TtsService.speak(buffer.toString());
   }
 
+  // Load saved progress from RoutineRun collection and update UI accordingly
   Future<void> _loadSavedProgress() async {
     try {
       final caregiverId = caregiverID;
@@ -232,6 +247,7 @@ class _DetailedSystemActivityScreenState
         return;
       }
 
+      // fetch the routine run for the given caregiver, child, plan, activity, and date
       final run = await ChildRoutinePlanService.getRoutineRunProgress(
         caregiverId: caregiverId,
         childId: childId,
@@ -281,6 +297,7 @@ class _DetailedSystemActivityScreenState
     return widget.activity;
   }
 
+  // Load video from media_links in activity and initialize controllers
   Future<void> _loadVideo() async {
     try {
       final activity = _getActivityObj();
@@ -306,6 +323,7 @@ class _DetailedSystemActivityScreenState
         return;
       }
 
+      // Initialize video player controller with the video URL
       _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
       await _videoController!.initialize();
 
@@ -338,6 +356,7 @@ class _DetailedSystemActivityScreenState
     }
   }
 
+  // Build method to render the UI based on loading states, errors, and activity data
   @override
   Widget build(BuildContext context) {
     if (loadingIdentity) {
@@ -363,8 +382,7 @@ class _DetailedSystemActivityScreenState
 
     final title = (widget.activity["title"] ?? "").toString();
     final description =
-        (activity["description"] ?? widget.activity["desc"] ?? "")
-            .toString();
+        (activity["description"] ?? widget.activity["desc"] ?? "").toString();
 
     final est = (widget.activity["estimated_duration_minutes"] ?? 0);
     final percent = _calcPercent();
@@ -1011,38 +1029,6 @@ class _DetailedSystemActivityScreenState
         ),
       ),
       bottomNavigationBar: const MainNavBar(currentIndex: 1),
-    );
-  }
-}
-
-/* Small square button like your UI */
-class _MiniSquareIconButton extends StatelessWidget {
-  const _MiniSquareIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  static const Color stroke = Color(0xFFBD9A6B);
-  static const Color shadow = Color(0x22000000);
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 28,
-        height: 18,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF6F0EC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: stroke.withOpacity(0.65), width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: shadow, blurRadius: 10, offset: Offset(0, 6)),
-          ],
-        ),
-        child: Icon(icon, color: stroke, size: 18),
-      ),
     );
   }
 }

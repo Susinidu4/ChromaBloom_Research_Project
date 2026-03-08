@@ -1,17 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+
 import { getRoutineDashboardService } from "../../services/Therapist/Interactive_Visual_Task_Scheduler/routineDashboardService.js";
 
-// Optional image
 import therapist_routine_progress from "../../assets/Interactive_Visual_Task_Scheduler/therapist_routine_progress.png";
 
 export default function RoutineProgress({ caregiverId, childId }) {
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
   const [cycles, setCycles] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedLabel, setSelectedLabel] = useState("Select Cycle");
-
   // chart data
   const [completedSteps, setCompletedSteps] = useState(0);
   const [skippedSteps, setSkippedSteps] = useState(0);
@@ -20,6 +19,7 @@ export default function RoutineProgress({ caregiverId, childId }) {
 
   const canLoad = Boolean(caregiverId);
 
+  // converts "easy"/"medium"/"hard" to 1/2/3 for line chart plotting
   const diffToNumber = (diff) => {
     const d = String(diff || "")
       .toLowerCase()
@@ -30,6 +30,7 @@ export default function RoutineProgress({ caregiverId, childId }) {
     return 0;
   };
 
+  // this is the raw data for the line chart (overall progress across plans)
   const lineValues = useMemo(
     () => overallProgressRaw.map((p) => diffToNumber(p?.difficulty)),
     [overallProgressRaw],
@@ -61,11 +62,13 @@ export default function RoutineProgress({ caregiverId, childId }) {
     [normalizedDaily],
   );
 
+  // these are just the x-axis labels for the bar chart (1 to 14)
   const barIndexLabels = useMemo(
     () => Array.from({ length: 14 }, (_, i) => String(i + 1)),
     [],
   );
 
+  // these are just the x-axis labels for the line chart (plan versions)
   const planLabels = useMemo(
     () => overallProgressRaw.map((p) => String(p?.version ?? "")),
     [overallProgressRaw],
@@ -88,6 +91,7 @@ export default function RoutineProgress({ caregiverId, childId }) {
         throw new Error(res?.message || "Failed to load dashboard");
       }
 
+      // normalize and set all data from the API
       const data = res?.data || {};
 
       const apiCycles = Array.isArray(data.cycles) ? data.cycles : [];
@@ -128,9 +132,9 @@ export default function RoutineProgress({ caregiverId, childId }) {
 
   useEffect(() => {
     loadDashboard(undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caregiverId, childId]);
 
+  // when user changes cycle from dropdown, we get the planId and reload the dashboard for that plan
   const onCycleChange = async (e) => {
     const planId = e.target.value;
     setSelectedPlanId(planId);
@@ -245,6 +249,7 @@ function Card({ title, subtitle, rightSlot, className = "", children }) {
   );
 }
 
+// a small pill badge for dates 
 function DatePill({ label }) {
   return (
     <div className="text-[11px] text-[#BD9A6B] bg-[#F2E9E3] border border-[#BD9A6B] rounded-md px-3 py-2 whitespace-nowrap shadow-sm">
@@ -253,6 +258,7 @@ function DatePill({ label }) {
   );
 }
 
+// small legend item with colored box and label (used in pie chart)
 function LegendItem({ label, boxColor = "bg-[#CBB79B]" }) {
   return (
     <div className="flex items-center gap-3">
@@ -264,8 +270,7 @@ function LegendItem({ label, boxColor = "bg-[#CBB79B]" }) {
   );
 }
 
-/* ---------- PIE slice chart (matches design) ---------- */
-
+// pie slice chart that can show 2 categories 
 function PieSliceChart({ completed = 0, skipped = 0 }) {
   const total = completed + skipped;
 
@@ -278,7 +283,7 @@ function PieSliceChart({ completed = 0, skipped = 0 }) {
   const cy = 110;
   const r = 85;
 
-  // 🟢 CASE 1: No completed steps → show solid skipped circle
+  // No completed steps → show solid skipped circle
   if (completed === 0) {
     return (
       <svg width={size} height={size} viewBox="0 0 220 220">
@@ -299,7 +304,7 @@ function PieSliceChart({ completed = 0, skipped = 0 }) {
     );
   }
 
-  // 🟢 CASE 2: Normal chart (both exist)
+  // Normal chart (both exist)
 
   const completedPct = completed / total;
   const skippedPct = skipped / total;
@@ -391,8 +396,7 @@ function PieSliceChart({ completed = 0, skipped = 0 }) {
   );
 }
 
-/* ---------- Bar chart with grid & y-axis ticks ---------- */
-
+// bar chart with grid lines and axes, used for daily completion % over 14 days
 function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
   const safeBars = bars.length ? bars : Array.from({ length: 14 }, () => 0);
 
@@ -473,8 +477,7 @@ function MiniBarChartWithGrid({ bars = [], labels = [], loading }) {
   );
 }
 
-/* ---------- Line chart (keep yours but slightly softer fill) ---------- */
-
+// line chart for overall progress across plans
 function MiniLineChart({ values = [], labels = [], loading }) {
   const safe = values.length ? values : [3, 2, 3, 2, 1, 2, 1, 3, 3, 1];
 
