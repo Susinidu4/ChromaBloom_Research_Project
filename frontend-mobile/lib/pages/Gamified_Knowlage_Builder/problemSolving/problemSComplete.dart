@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-import '../../../state/session_provider.dart'; // adjust path
+import '../../../state/session_provider.dart';
 import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 
@@ -13,7 +13,7 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.correctness,
-    required this.improvement, // kept for compatibility, but we compute improvement from API now
+    required this.improvement,
   });
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -30,9 +30,9 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
 
   static const Color labelColor = Color(0xFF111111);
 
-  final String lessonId; // ✅ REQUIRED for saving
-  final double correctness; // 0.0 - 1.0
-  final double improvement; // not used for UI anymore (API-based improvement)
+  final String lessonId;
+  final double correctness;
+  final double improvement;
 
   @override
   State<ProblemSolvingLessonCompletePage> createState() =>
@@ -44,10 +44,8 @@ class _ProblemSolvingLessonCompletePageState
   bool _saving = false;
   bool _savedOnce = false;
 
-  // ✅ computed from backend last 2 records
   double _computedImprovement = 0.0;
 
-  // ✅ show IDs on UI
   String _caregiverId = "";
   String _childId = "";
   late final String _lessonId = widget.lessonId;
@@ -55,14 +53,14 @@ class _ProblemSolvingLessonCompletePageState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _waitForSessionThenSave());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _waitForSessionThenSave(),
+    );
   }
 
-  // ✅ NEW: wait until SessionProvider finishes loadFromStorage()
   Future<void> _waitForSessionThenSave() async {
     final session = context.read<SessionProvider>();
 
-    // wait up to ~2 seconds for loadFromStorage() to finish
     for (int i = 0; i < 20; i++) {
       if (session.isLoggedIn && session.caregiver != null) break;
       await Future.delayed(const Duration(milliseconds: 100));
@@ -72,15 +70,15 @@ class _ProblemSolvingLessonCompletePageState
 
     if (!session.isLoggedIn || session.caregiver == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Session is still loading. Please try again.")),
+        const SnackBar(
+          content: Text("Session is still loading. Please try again."),
+        ),
       );
       return;
     }
 
     await _autoSaveCompletion();
   }
-
-  // ----- helpers -----
 
   List<Map<String, dynamic>> _extractDataList(Map<String, dynamic> res) {
     final raw = res["data"];
@@ -90,7 +88,6 @@ class _ProblemSolvingLessonCompletePageState
           .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
           .toList();
     }
-    // if backend returns single object, wrap it
     if (raw is Map) {
       return [raw.map((k, v) => MapEntry(k.toString(), v))];
     }
@@ -104,7 +101,6 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   DateTime? _readDate(Map<String, dynamic> item) {
-    // try common fields (optional)
     final s = item["createdAt"] ?? item["created_at"] ?? item["timestamp"];
     if (s == null) return null;
     try {
@@ -115,7 +111,6 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   List<Map<String, dynamic>> _sortRecordsSmart(List<Map<String, dynamic>> list) {
-    // If createdAt exists -> sort by date; else keep original order
     final hasAnyDate = list.any((e) => _readDate(e) != null);
     if (!hasAnyDate) return list;
 
@@ -137,14 +132,12 @@ class _ProblemSolvingLessonCompletePageState
     final sorted = _sortRecordsSmart(records);
 
     if (sorted.length == 1) {
-      // only 1 record -> improvement can be 0 (or same as score). We'll keep 0.
       return 0.0;
     }
 
     final last = _readScore(sorted[sorted.length - 1]);
     final prev = _readScore(sorted[sorted.length - 2]);
 
-    // improvement as positive delta (0..1)
     final delta = (last - prev);
     return delta.clamp(0.0, 1.0);
   }
@@ -169,16 +162,17 @@ class _ProblemSolvingLessonCompletePageState
         throw Exception("Caregiver ID not found in session");
       }
 
-      // ✅ get child list by caregiver
       final children = await ChildApi.getChildrenByCaregiver(caregiverId);
-      if (children.isEmpty) throw Exception("No child found for this caregiver");
+      if (children.isEmpty) {
+        throw Exception("No child found for this caregiver");
+      }
 
-      // ✅ choose first child (replace later with selected child)
       final first = children.first;
       final childId = (first['_id'] ?? first['id'] ?? '').toString();
-      if (childId.isEmpty) throw Exception("Child ID not found");
+      if (childId.isEmpty) {
+        throw Exception("Child ID not found");
+      }
 
-      // ✅ store for UI display
       if (mounted) {
         setState(() {
           _caregiverId = caregiverId;
@@ -188,7 +182,6 @@ class _ProblemSolvingLessonCompletePageState
 
       final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
 
-      // 1) fetch existing records (before save)
       double prevScore = 0.0;
       try {
         final res = await CompleteProblemSolvingSessionService.getByChildAndLesson(
@@ -201,35 +194,30 @@ class _ProblemSolvingLessonCompletePageState
           prevScore = _readScore(sorted.last);
         }
       } catch (_) {
-        // ignore (might be 404)
+        // ignore
       }
 
-      // 2) Upsert the session (update existing if it exists, otherwise create)
       await CompleteProblemSolvingSessionService.upsert(
         childId: childId,
         lessonId: widget.lessonId,
         correctnessScore: correctnessClamped,
       );
 
-      // 3) improvement as positive delta (0..1)
       final computed = (correctnessClamped - prevScore).clamp(0.0, 1.0);
 
       if (!mounted) return;
       setState(() {
         _computedImprovement = computed;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Lesson record updated")),
-      );
-
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Save failed: $e")),
       );
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -285,10 +273,8 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
 
-                    // // ✅ ID DISPLAY CARD
                     // _IdInfoCard(
                     //   lessonId: _lessonId,
                     //   caregiverId: _caregiverId,
@@ -319,9 +305,7 @@ class _ProblemSolvingLessonCompletePageState
                           ),
                       ],
                     ),
-
                     const SizedBox(height: 18),
-
                     Center(
                       child: Image.asset(
                         "assets/win2.png",
@@ -342,9 +326,7 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 18),
-
                     Text(
                       "Improvement  (+${(improvementClamped * 100).round()}%)",
                       style: const TextStyle(
@@ -355,9 +337,7 @@ class _ProblemSolvingLessonCompletePageState
                     ),
                     const SizedBox(height: 6),
                     _ThickProgressBar(value: improvementClamped),
-
                     const SizedBox(height: 14),
-
                     Text(
                       "Correctness  (${(correctnessClamped * 100).round()}%)",
                       style: const TextStyle(
@@ -457,7 +437,10 @@ class _IdInfoCard extends StatelessWidget {
 }
 
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({required this.icon, required this.onTap});
+  const _CircleActionButton({
+    required this.icon,
+    required this.onTap,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
@@ -500,6 +483,7 @@ class _CircleActionButton extends StatelessWidget {
 
 class _ThickProgressBar extends StatelessWidget {
   const _ThickProgressBar({required this.value});
+
   final double value;
 
   @override
