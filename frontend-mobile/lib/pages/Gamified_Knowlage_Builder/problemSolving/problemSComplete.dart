@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import '../../../state/session_provider.dart'; 
+
+
+import '../../../state/session_provider.dart';
+
 import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 
@@ -11,7 +14,9 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.correctness,
-    required this.improvement, 
+
+    required this.improvement,
+
   });
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -28,9 +33,11 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
 
   static const Color labelColor = Color(0xFF111111);
 
-  final String lessonId; 
-  final double correctness; 
-  final double improvement; 
+
+  final String lessonId;
+  final double correctness;
+  final double improvement;
+
 
   @override
   State<ProblemSolvingLessonCompletePage> createState() =>
@@ -51,13 +58,14 @@ class _ProblemSolvingLessonCompletePageState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _waitForSessionThenSave());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _waitForSessionThenSave(),
+    );
   }
 
   Future<void> _waitForSessionThenSave() async {
     final session = context.read<SessionProvider>();
 
-    // wait up to ~2 seconds for loadFromStorage() to finish
     for (int i = 0; i < 20; i++) {
       if (session.isLoggedIn && session.caregiver != null) break;
       await Future.delayed(const Duration(milliseconds: 100));
@@ -67,7 +75,9 @@ class _ProblemSolvingLessonCompletePageState
 
     if (!session.isLoggedIn || session.caregiver == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Session is still loading. Please try again.")),
+        const SnackBar(
+          content: Text("Session is still loading. Please try again."),
+        ),
       );
       return;
     }
@@ -84,7 +94,7 @@ class _ProblemSolvingLessonCompletePageState
           .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
           .toList();
     }
- 
+
     if (raw is Map) {
       return [raw.map((k, v) => MapEntry(k.toString(), v))];
     }
@@ -98,7 +108,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   DateTime? _readDate(Map<String, dynamic> item) {
-    //common fields (optional)
+
     final s = item["createdAt"] ?? item["created_at"] ?? item["timestamp"];
     if (s == null) return null;
     try {
@@ -109,7 +119,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   List<Map<String, dynamic>> _sortRecordsSmart(List<Map<String, dynamic>> list) {
-    // If createdAt exists -> sort by date; else  original order
+
     final hasAnyDate = list.any((e) => _readDate(e) != null);
     if (!hasAnyDate) return list;
 
@@ -137,7 +147,6 @@ class _ProblemSolvingLessonCompletePageState
     final last = _readScore(sorted[sorted.length - 1]);
     final prev = _readScore(sorted[sorted.length - 2]);
 
-    // improvement as positive delta (0..1)
     final delta = (last - prev);
     return delta.clamp(0.0, 1.0);
   }
@@ -163,11 +172,15 @@ class _ProblemSolvingLessonCompletePageState
       }
 
       final children = await ChildApi.getChildrenByCaregiver(caregiverId);
-      if (children.isEmpty) throw Exception("No child found for this caregiver");
+      if (children.isEmpty) {
+        throw Exception("No child found for this caregiver");
+      }
 
       final first = children.first;
       final childId = (first['_id'] ?? first['id'] ?? '').toString();
-      if (childId.isEmpty) throw Exception("Child ID not found");
+      if (childId.isEmpty) {
+        throw Exception("Child ID not found");
+      }
 
       if (mounted) {
         setState(() {
@@ -178,7 +191,6 @@ class _ProblemSolvingLessonCompletePageState
 
       final correctnessClamped = widget.correctness.clamp(0.0, 1.0);
 
-      // 1) fetch existing records (before save)
       double prevScore = 0.0;
       try {
         final res = await CompleteProblemSolvingSessionService.getByChildAndLesson(
@@ -191,35 +203,30 @@ class _ProblemSolvingLessonCompletePageState
           prevScore = _readScore(sorted.last);
         }
       } catch (_) {
-        // ignore (might be 404)
+        // ignore
       }
 
-      // 2) Upsert the session (update existing if it exists, otherwise create)
       await CompleteProblemSolvingSessionService.upsert(
         childId: childId,
         lessonId: widget.lessonId,
         correctnessScore: correctnessClamped,
       );
 
-      // 3) improvement as positive delta (0..1)
       final computed = (correctnessClamped - prevScore).clamp(0.0, 1.0);
 
       if (!mounted) return;
       setState(() {
         _computedImprovement = computed;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Lesson record updated")),
-      );
-
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Save failed: $e")),
       );
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -275,7 +282,6 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
 
                     // _IdInfoCard(
@@ -308,9 +314,7 @@ class _ProblemSolvingLessonCompletePageState
                           ),
                       ],
                     ),
-
                     const SizedBox(height: 18),
-
                     Center(
                       child: Image.asset(
                         "assets/win2.png",
@@ -331,9 +335,7 @@ class _ProblemSolvingLessonCompletePageState
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 18),
-
                     Text(
                       "Improvement  (+${(improvementClamped * 100).round()}%)",
                       style: const TextStyle(
@@ -344,9 +346,7 @@ class _ProblemSolvingLessonCompletePageState
                     ),
                     const SizedBox(height: 6),
                     _ThickProgressBar(value: improvementClamped),
-
                     const SizedBox(height: 14),
-
                     Text(
                       "Correctness  (${(correctnessClamped * 100).round()}%)",
                       style: const TextStyle(
@@ -446,7 +446,10 @@ class _IdInfoCard extends StatelessWidget {
 }
 
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({required this.icon, required this.onTap});
+  const _CircleActionButton({
+    required this.icon,
+    required this.onTap,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
@@ -489,6 +492,7 @@ class _CircleActionButton extends StatelessWidget {
 
 class _ThickProgressBar extends StatelessWidget {
   const _ThickProgressBar({required this.value});
+
   final double value;
 
   @override

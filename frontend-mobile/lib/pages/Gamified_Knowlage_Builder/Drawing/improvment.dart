@@ -278,7 +278,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                         _CircleActionButton(
                           icon: Icons.close_rounded,
                           onTap: () {
-                            Navigator.pushNamed(context, '/skillSelection');
+                            Navigator.pushNamed(context, '/drawingUnit1');
                           },
                         ),
                       ],
@@ -363,16 +363,26 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 18),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "${(_improvement * 100).toStringAsFixed(0)}%",
-                        style: const TextStyle(
-                          color: LessonCompletePage.labelColor,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Improvement",
+                          style: TextStyle(
+                            color: LessonCompletePage.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                        Text(
+                          "${(_improvement * 100).toStringAsFixed(0)}%",
+                          style: const TextStyle(
+                            color: LessonCompletePage.labelColor,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     _ProgressBar(value: _loading ? 0 : _improvement),
@@ -392,16 +402,26 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
 
                     const SizedBox(height: 14),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "${(_correctness * 100).toStringAsFixed(0)}%",
-                        style: const TextStyle(
-                          color: LessonCompletePage.labelColor,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Correctness Score",
+                          style: TextStyle(
+                            color: LessonCompletePage.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                        Text(
+                          "${(_correctness * 100).toStringAsFixed(0)}%",
+                          style: const TextStyle(
+                            color: LessonCompletePage.labelColor,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     _ProgressBar(value: _loading ? 0 : _correctness),
