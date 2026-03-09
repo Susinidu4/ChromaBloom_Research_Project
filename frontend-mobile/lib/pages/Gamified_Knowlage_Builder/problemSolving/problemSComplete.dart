@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
+
 import '../../../state/session_provider.dart';
+
 import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 
@@ -13,7 +14,9 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
     super.key,
     required this.lessonId,
     required this.correctness,
+
     required this.improvement,
+
   });
 
   static const Color pageBg = Color(0xFFF5ECEC);
@@ -30,9 +33,11 @@ class ProblemSolvingLessonCompletePage extends StatefulWidget {
 
   static const Color labelColor = Color(0xFF111111);
 
+
   final String lessonId;
   final double correctness;
   final double improvement;
+
 
   @override
   State<ProblemSolvingLessonCompletePage> createState() =>
@@ -80,6 +85,7 @@ class _ProblemSolvingLessonCompletePageState
     await _autoSaveCompletion();
   }
 
+
   List<Map<String, dynamic>> _extractDataList(Map<String, dynamic> res) {
     final raw = res["data"];
     if (raw is List) {
@@ -88,6 +94,7 @@ class _ProblemSolvingLessonCompletePageState
           .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
           .toList();
     }
+
     if (raw is Map) {
       return [raw.map((k, v) => MapEntry(k.toString(), v))];
     }
@@ -101,6 +108,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   DateTime? _readDate(Map<String, dynamic> item) {
+
     final s = item["createdAt"] ?? item["created_at"] ?? item["timestamp"];
     if (s == null) return null;
     try {
@@ -111,6 +119,7 @@ class _ProblemSolvingLessonCompletePageState
   }
 
   List<Map<String, dynamic>> _sortRecordsSmart(List<Map<String, dynamic>> list) {
+
     final hasAnyDate = list.any((e) => _readDate(e) != null);
     if (!hasAnyDate) return list;
 
