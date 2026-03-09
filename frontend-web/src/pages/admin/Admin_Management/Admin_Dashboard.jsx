@@ -268,13 +268,11 @@ export const Admin_Dashboard = () => {
                   </div>
                 ) : (
                   // Admin Header
-                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3">
+                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr] gap-3">
                     <div>Name</div>
                     <div className="text-center">Email</div>
                     <div className="text-center">Mobile</div>
                     <div className="text-center">Status</div>
-                    <div className="text-center" />
-                    <div className="text-center" />
                     <div className="text-center" />
                   </div>
                 )}
@@ -350,7 +348,7 @@ export const Admin_Dashboard = () => {
                       </div>
                     ) : (
                       // Admin Row
-                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3 text-[13px] text-[#B0896E]">
+                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr] gap-3 text-[13px] text-[#B0896E]">
                         <div className="truncate">{row.full_name}</div>
                         <div className="text-center truncate">{row.email}</div>
                         <div className="text-center">{row.phone || "N/A"}</div>
@@ -380,18 +378,6 @@ export const Admin_Dashboard = () => {
                           </button>
                         </div> */}
 
-                        {/* More button */}
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => handleMore(row._id)}
-                            className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
-                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
-                                         hover:brightness-95 active:scale-[0.99]"
-                            title="More"
-                          >
-                            <HiDotsHorizontal size={18} />
-                          </button>
-                        </div>
                       </div>
                     )}
 
