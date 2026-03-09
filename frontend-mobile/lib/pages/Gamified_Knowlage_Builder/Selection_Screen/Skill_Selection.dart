@@ -216,6 +216,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
         }
       }
 
+
       if (!mounted) return;
       Navigator.pushNamed(context, '/problemSolvingLessons');
 

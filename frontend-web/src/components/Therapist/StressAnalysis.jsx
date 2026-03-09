@@ -5,6 +5,7 @@ import StressAnalysisService from "../../services/Therapist/Parental_Stress_Moni
 export default function StressAnalysis({ caregiverId }) {
   const [items, setItems] = useState([]);
 
+  // fetch stress score history for the caregiver when component mounts or caregiverId changes
   useEffect(() => {
     if (!caregiverId) return;
 
@@ -25,6 +26,7 @@ export default function StressAnalysis({ caregiverId }) {
     };
   }, [caregiverId]);
 
+  // get the date label of the latest stress score (from score_date or computed_at), formatted as "dd/mm/yyyy"
   const latestDateLabel = useMemo(() => {
     if (!items.length) return "—";
     const last = items[items.length - 1];
@@ -44,7 +46,7 @@ export default function StressAnalysis({ caregiverId }) {
             </h2>
           </div>
 
-          <StressLine items={items} />
+          <StressLine items={items} /> {/* line chart of stress levels over time */}
         </div>
       </div>
 
@@ -60,7 +62,7 @@ export default function StressAnalysis({ caregiverId }) {
     </div>
   );
 }
-
+ // Line chart component to visualize stress levels over time, with y-axis labels and x-axis date labels
 function StressLine({ items }) {
   const levelToRow = (level) => {
     switch ((level || "").toLowerCase()) {
