@@ -292,7 +292,7 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
                         _CircleActionButton(
                           icon: Icons.close_rounded,
                           onTap: () {
-                            Navigator.pushNamed(context, '/skillSelection');
+                            Navigator.pushNamed(context, '/drawingUnit1');
                           },
                         ),
                       ],
