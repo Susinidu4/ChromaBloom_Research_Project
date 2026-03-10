@@ -1,10 +1,8 @@
-// controllers/completeDrawingLesson.controller.js
 import Complete_Drawing_Lesson from "../../models/Gamified_Knowlage_Builder_Model/Complete_Drawing_Lesson.js";
 import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js"; // optional
 
-// Helper: convert incoming correctness_rate to percentage
+//convert incoming correctness_rate to percentage
 // Expects value like 0.76 -> store 76
-
 const toPercentage = (value) => {
   if (value === undefined || value === null) return undefined;
   const num = Number(value);
@@ -12,7 +10,7 @@ const toPercentage = (value) => {
   return num * 100; // 👈 you said: "multiply by 100"
 };
 
-// @desc   Create a "completed drawing lesson" record
+//Create a "completed drawing lesson" record
 // @route  POST /chromabloom/completed-drawing-lessons
 export const createCompleteDrawingLesson = async (req, res, next) => {
   try {
@@ -58,7 +56,7 @@ export const createCompleteDrawingLesson = async (req, res, next) => {
   }
 };
 
-// @desc   Get all completed drawing lessons
+//Get all completed drawing lessons
 // @route  GET /chromabloom/completed-drawing-lessons
 export const getAllCompleteDrawingLessons = async (req, res, next) => {
   try {
@@ -72,7 +70,7 @@ export const getAllCompleteDrawingLessons = async (req, res, next) => {
   }
 };
 
-// @desc   Get one completed lesson by its _id (CLD-000x)
+//Get one completed lesson by its _id (CLD-000x)
 // @route  GET /chromabloom/completed-drawing-lessons/:id
 export const getCompleteDrawingLessonById = async (req, res, next) => {
   try {
@@ -129,7 +127,7 @@ export const hasUserCompletedLesson = async (req, res, next) => {
   }
 }
 
-// @desc   Get all completed lessons for a specific user
+//Get all completed lessons for a specific user
 // @route  GET /chromabloom/completed-drawing-lessons/user/:userId
 export const getCompleteDrawingLessonsByUserId = async (req, res, next) => {
   try {
@@ -145,7 +143,7 @@ export const getCompleteDrawingLessonsByUserId = async (req, res, next) => {
   }
 };
 
-// @desc   Update a completed lesson record
+//Update a completed lesson record
 // @route  PUT /chromabloom/completed-drawing-lessons/:id
 export const updateCompleteDrawingLesson = async (req, res, next) => {
   try {
@@ -174,7 +172,7 @@ export const updateCompleteDrawingLesson = async (req, res, next) => {
   }
 };
 
-// @desc   Delete a completed lesson record
+//Delete a completed lesson record
 // @route  DELETE /chromabloom/completed-drawing-lessons/:id
 export const deleteCompleteDrawingLesson = async (req, res, next) => {
   try {
