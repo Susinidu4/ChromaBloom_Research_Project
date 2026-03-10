@@ -1,13 +1,10 @@
 import axios from "axios";
 import FormData from "form-data";
 
-// Put this in .env if you want: FASTAPI_BASE_URL=http://127.0.0.1:8000
 const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://localhost:8000";
 
-/**
- * POST /chromabloom/gamified/drawing/predict
- * body: multipart/form-data with field "file"
- */
+
+// Predict drawing
 export const predictDrawing = async (req, res) => {
   try {
     if (!req.file) {
@@ -53,9 +50,7 @@ export const predictDrawing = async (req, res) => {
   }
 };
 
-/**
- * GET /chromabloom/gamified/drawing/health
- */
+/* GET /chromabloom/gamified/drawing/health*/
 export const drawingModelHealth = async (req, res) => {
   try {
     const response = await axios.get(`${FASTAPI_BASE_URL}/health`, {
