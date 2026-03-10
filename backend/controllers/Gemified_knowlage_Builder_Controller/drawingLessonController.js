@@ -64,7 +64,7 @@ export const createDrawingLesson = async (req, res, next) => {
       title,
       description,
       difficulty_level,
-      video_url: safeUrl,                 // ✅ use safe url
+      video_url: safeUrl,                 // use safe url
       video_public_id: uploadResult.public_id,
       tips: parsedTips,
     });
