@@ -1,13 +1,10 @@
 import axios from "axios";
 import FormData from "form-data";
 
-// Put this in .env if you want: FASTAPI_BASE_URL=http://127.0.0.1:8000
 const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://localhost:8000";
 
-/**
- * POST /chromabloom/gamified/drawing/predict
- * body: multipart/form-data with field "file"
- */
+
+// Predict drawing
 export const predictDrawing = async (req, res) => {
   try {
     if (!req.file) {
@@ -23,7 +20,7 @@ export const predictDrawing = async (req, res) => {
       contentType: req.file.mimetype || "image/jpeg",
     });
 
-    // ✅ Your FastAPI routes are:
+    // Your FastAPI routes are:
     // GET  /health
     // POST /predict
     // (NOT /drawing/predict)
@@ -33,7 +30,7 @@ export const predictDrawing = async (req, res) => {
     });
 
     // FastAPI returns: { top1, top3 }
-    // ✅ Return only top1 to Flutter
+    // Return only top1 to Flutter
     return res.status(200).json({
       message: "Prediction success",
       top1: response.data.top1, // { label, confidence }
@@ -53,9 +50,7 @@ export const predictDrawing = async (req, res) => {
   }
 };
 
-/**
- * GET /chromabloom/gamified/drawing/health
- */
+/* GET /chromabloom/gamified/drawing/health*/
 export const drawingModelHealth = async (req, res) => {
   try {
     const response = await axios.get(`${FASTAPI_BASE_URL}/health`, {

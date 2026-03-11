@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class MlApiService {
-  // ✅ Change this depending on device:
+  // Change this depending on device:
   // Android emulator: http://10.0.2.2:8000
   // Real phone / Chrome: http://<YOUR_PC_IP>:8000  (example: http://192.168.1.5:8000)
   final String baseUrl;

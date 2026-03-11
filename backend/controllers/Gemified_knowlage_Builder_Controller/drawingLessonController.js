@@ -1,7 +1,7 @@
 import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js";
 import cloudinary from "../../config/cloudinary.js";
 
-// helper: upload video buffer to Cloudinary
+//upload video to Cloudinary
 const uploadVideoToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -19,8 +19,6 @@ const uploadVideoToCloudinary = (fileBuffer) => {
   });
 };
 
-// ✅ helper: always generate a "safe" MP4 url (H.264 + AAC)
-// Fixes: audio works but video stuck/black on many devices
 const buildSafeMp4Url = (publicId) => {
   return cloudinary.url(publicId, {
     resource_type: "video",
@@ -33,7 +31,7 @@ const buildSafeMp4Url = (publicId) => {
   });
 };
 
-// @desc    Create a drawing lesson (with video upload)
+// Create a drawing lesson
 // @route   POST /chromabloom/drawing-lessons
 export const createDrawingLesson = async (req, res, next) => {
   try {
@@ -66,7 +64,7 @@ export const createDrawingLesson = async (req, res, next) => {
       title,
       description,
       difficulty_level,
-      video_url: safeUrl,                 // ✅ use safe url
+      video_url: safeUrl,                 // use safe url
       video_public_id: uploadResult.public_id,
       tips: parsedTips,
     });
@@ -77,7 +75,7 @@ export const createDrawingLesson = async (req, res, next) => {
   }
 };
 
-// @desc    Get all drawing lessons
+// Get all drawing lessons
 // @route   GET /chromabloom/drawing-lessons
 export const getAllDrawingLessons = async (req, res, next) => {
   try {
@@ -88,7 +86,7 @@ export const getAllDrawingLessons = async (req, res, next) => {
   }
 };
 
-// @desc    Get a single lesson by ID
+//Get a single lesson by ID
 // @route   GET /chromabloom/drawing-lessons/:id
 export const getDrawingLessonById = async (req, res, next) => {
   try {
@@ -106,7 +104,7 @@ export const getDrawingLessonById = async (req, res, next) => {
   }
 };
 
-// @desc    Update a lesson (optionally replace video)
+// Update a lesson 
 // @route   PUT /chromabloom/drawing-lessons/:id
 export const updateDrawingLesson = async (req, res, next) => {
   try {
@@ -150,7 +148,7 @@ export const updateDrawingLesson = async (req, res, next) => {
   }
 };
 
-// @desc    Delete a drawing lesson
+// Delete a drawing lesson
 // @route   DELETE /chromabloom/drawing-lessons/:id
 export const deleteDrawingLesson = async (req, res, next) => {
   try {

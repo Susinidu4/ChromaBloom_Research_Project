@@ -30,7 +30,7 @@ class DigitalWellbeingService {
   if (res.statusCode >= 200 && res.statusCode < 300) {
     final decoded = jsonDecode(res.body);
 
-    // ✅ API returns: { "logs": [ ... ] }
+    // API returns: { "logs": [ ... ] }
     final logsRaw = (decoded is Map && decoded["logs"] is List)
         ? decoded["logs"] as List
         : <dynamic>[];
