@@ -6,7 +6,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
 class DrawingPredictService {
-  /// ✅ IMPORTANT:
+
   /// - Android emulator: use http://10.0.2.2:5000
   /// - Real device: use http://YOUR_PC_IP:5000  (PC + phone same WiFi)
   /// - Flutter web: use http://localhost:5000
@@ -35,7 +35,7 @@ class DrawingPredictService {
     }
   }
 
-  /// ✅ Node returns:
+  /// Node returns:
   /// {
   ///   "message": "Prediction success",
   ///   "top1": { "label": "...", "confidence": 21.5 }
@@ -53,7 +53,7 @@ class DrawingPredictService {
 
     request.files.add(
       await http.MultipartFile.fromPath(
-        "file", // ✅ MUST be "file"
+        "file", // MUST be "file"
         imageFile.path,
         contentType: mediaType,
       ),
@@ -72,7 +72,7 @@ class DrawingPredictService {
     }
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      // ✅ Validate expected structure
+      // Validate expected structure
       if (data["top1"] is! Map) {
         throw Exception("Prediction failed: 'top1' missing in response");
       }
