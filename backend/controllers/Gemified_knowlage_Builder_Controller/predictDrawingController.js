@@ -20,7 +20,7 @@ export const predictDrawing = async (req, res) => {
       contentType: req.file.mimetype || "image/jpeg",
     });
 
-    // ✅ Your FastAPI routes are:
+    // Your FastAPI routes are:
     // GET  /health
     // POST /predict
     // (NOT /drawing/predict)
@@ -30,7 +30,7 @@ export const predictDrawing = async (req, res) => {
     });
 
     // FastAPI returns: { top1, top3 }
-    // ✅ Return only top1 to Flutter
+    // Return only top1 to Flutter
     return res.status(200).json({
       message: "Prediction success",
       top1: response.data.top1, // { label, confidence }

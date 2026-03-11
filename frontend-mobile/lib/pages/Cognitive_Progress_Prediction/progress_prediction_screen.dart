@@ -55,14 +55,14 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   String diagnosisType = "Trisomy21";
   int ageYears = 5;
 
-  // -------------------- TEMP HARDCODED (no input fields) --------------------
+
   static const String _hardActivity = "Matching picture cards";
   static const String _hardMoodLabel = "tired";
   static const int _hardTimeDurationMin = 5;
   static const double _hardSentimentScore = -0.2;
   static const double _hardSleepHours = 6.5;
 
-  // -------------------- TEMP HARDCODED (removed user inputs) --------------------
+ 
   static const String _hardCaregiverMoodLabel = "stressed";
 
   static const double _hardStressScoreCombined = 0.68;

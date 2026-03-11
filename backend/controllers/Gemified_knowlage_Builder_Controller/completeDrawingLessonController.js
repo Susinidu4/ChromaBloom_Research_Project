@@ -7,7 +7,7 @@ const toPercentage = (value) => {
   if (value === undefined || value === null) return undefined;
   const num = Number(value);
   if (Number.isNaN(num)) return undefined;
-  return num * 100; // 👈 you said: "multiply by 100"
+  return num * 100; // you said: "multiply by 100"
 };
 
 //Create a "completed drawing lesson" record
