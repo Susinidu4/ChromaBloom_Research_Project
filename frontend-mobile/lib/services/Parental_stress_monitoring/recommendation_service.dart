@@ -26,7 +26,7 @@ class WellnessRecommendationService {
         final err = json.decode(response.body);
         msg = (err["error"] ?? msg).toString();
 
-        // ✅ Detect the “no journal today” case
+        // Detect the “no journal today” case
         if (response.statusCode == 404 &&
             msg.toLowerCase().contains("journalentry") &&
             msg.toLowerCase().contains("today")) {

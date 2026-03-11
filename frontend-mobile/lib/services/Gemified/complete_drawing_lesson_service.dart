@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class CompleteDrawingLessonService {
-  // ✅ Set this correctly:
+  // Set this correctly:
   // Android emulator  : http://10.0.2.2:5000
   // Real device (WiFi): http://192.168.x.x:5000   (your PC IP)
   // Flutter web       : http://localhost:5000
   static String baseUrl = "http://localhost:5000";
 
-  // ✅ Route base (matches your Express mount)
+  // Route base (matches your Express mount)
   static const String _path = "/chromabloom/completed-drawing-lessons";
 
   static const Duration _timeout = Duration(seconds: 20);
@@ -46,7 +46,7 @@ class CompleteDrawingLessonService {
 
   static Uri _uri(String subPath) => Uri.parse("$baseUrl$_path$subPath");
 
-  // ✅ Normalize lessonId to avoid saving null/empty/"null"
+  // Normalize lessonId to avoid saving null/empty/"null"
   static String _normalizeLessonId(String lessonId) {
     final id = lessonId.trim();
     if (id.isEmpty || id.toLowerCase() == "null" || id.toLowerCase() == "undefined") {
@@ -55,7 +55,7 @@ class CompleteDrawingLessonService {
     return id;
   }
 
-  /// ✅ POST /chromabloom/completed-drawing-lessons
+  /// POST /chromabloom/completed-drawing-lessons
   /// Body: { lesson_id, user_id, correctness_rate }  correctness_rate = 0..1
   static Future<Map<String, dynamic>> createCompletedLesson({
     required String lessonId,
@@ -64,12 +64,12 @@ class CompleteDrawingLessonService {
   }) async {
     final normalizedLessonId = _normalizeLessonId(lessonId);
 
-    // ✅ Send aliases too (in case backend expects a different field name)
+    // Send aliases too (in case backend expects a different field name)
     final body = <String, dynamic>{
-      "lesson_id": normalizedLessonId,          // ✅ your current expected key
-      "lessonId": normalizedLessonId,           // ✅ common alternative
-      "lesson": normalizedLessonId,             // ✅ common alternative
-      "drawing_lesson_id": normalizedLessonId,  // ✅ common alternative
+      "lesson_id": normalizedLessonId,          // your current expected key
+      "lessonId": normalizedLessonId,           // common alternative
+      "lesson": normalizedLessonId,             // common alternative
+      "drawing_lesson_id": normalizedLessonId,  // common alternative
       "user_id": userId.trim(),
       if (correctnessRate != null)
         "correctness_rate": correctnessRate.clamp(0.0, 1.0),
@@ -89,7 +89,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ GET /chromabloom/completed-drawing-lessons
+  /// GET /chromabloom/completed-drawing-lessons
   static Future<Map<String, dynamic>> getAllCompletedLessons() async {
     try {
       final res = await http.get(_uri(""), headers: _headers()).timeout(_timeout);
@@ -103,7 +103,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ GET /chromabloom/completed-drawing-lessons/user/:userId
+  /// GET /chromabloom/completed-drawing-lessons/user/:userId
   static Future<Map<String, dynamic>> getCompletedLessonsByUser(String userId) async {
     try {
       final res = await http
@@ -119,7 +119,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ GET /chromabloom/completed-drawing-lessons/:id
+  /// GET /chromabloom/completed-drawing-lessons/:id
   static Future<Map<String, dynamic>> getCompletedLessonById(String recordId) async {
     try {
       final res = await http
@@ -135,7 +135,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ GET /chromabloom/completed-drawing-lessons/lesson/:lessonId/user/:userId
+  /// GET /chromabloom/completed-drawing-lessons/lesson/:lessonId/user/:userId
   static Future<Map<String, dynamic>> getCompletedByLessonAndUser({
     required String lessonId,
     required String userId,
@@ -156,7 +156,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ GET /chromabloom/completed-drawing-lessons/has-completed/lesson/:lessonId/user/:userId
+  /// GET /chromabloom/completed-drawing-lessons/has-completed/lesson/:lessonId/user/:userId
   static Future<bool> hasCompletedLesson({
     required String lessonId,
     required String userId,
@@ -182,7 +182,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ PUT /chromabloom/completed-drawing-lessons/:id
+  /// PUT /chromabloom/completed-drawing-lessons/:id
   static Future<Map<String, dynamic>> updateCompletedLesson({
     required String recordId,
     String? lessonId,
@@ -212,7 +212,7 @@ class CompleteDrawingLessonService {
     }
   }
 
-  /// ✅ DELETE /chromabloom/completed-drawing-lessons/:id
+  /// DELETE /chromabloom/completed-drawing-lessons/:id
   static Future<Map<String, dynamic>> deleteCompletedLesson(String recordId) async {
     try {
       final res = await http

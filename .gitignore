@@ -26,3 +26,5 @@ frontend/android/local.properties
 frontend/ios/Pods/ 
 frontend/ios/build/ 
 frontend/ios/.symlinks/ 
+config.bat
+node_modules
