@@ -333,7 +333,7 @@ class _RecommendationCard extends StatelessWidget {
                 fontFamily: "Poppins",
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Colors.black54,
+                color: gold,
               ),
             ),
 
