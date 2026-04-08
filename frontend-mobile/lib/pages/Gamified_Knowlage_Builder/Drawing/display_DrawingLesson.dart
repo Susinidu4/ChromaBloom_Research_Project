@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
+
+// ✅ Existing lesson service
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../state/session_provider.dart';
 import '../../../services/Gemified/drawing_lesson_service.dart';
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
@@ -35,12 +38,17 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
-  // Real caregiver ID will be fetched from SessionProvider
+  // ✅ Real caregiver ID will be fetched from SessionProvider
   String? _caregiverId;
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ IMPORTANT BASE URL NOTES:
+    // Android Emulator: http://10.0.2.2:5000
+    // Real device:     http://YOUR_PC_IP:5000
+    // Flutter web:     http://localhost:5000
 
     // Drawing lessons service
     _service = DrawingLessonService(
@@ -50,7 +58,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
     // Completed lesson service baseUrl (global)
     CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
-    //Get real caregiver ID from SessionProvider
+    // ✅ Get real caregiver ID from SessionProvider
     final session = Provider.of<SessionProvider>(context, listen: false);
     _caregiverId =
         (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
@@ -126,7 +134,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
           })
           .toList();
 
-      //For each filtered lesson, call getCompletedByLessonAndUser()
+      // 5) For each filtered lesson, call getCompletedByLessonAndUser()
       // Using childId for activity tracking
       final updated = await Future.wait(
         mappedLessons.map((lesson) async {
@@ -213,7 +221,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               notificationCount: 5,
             ),
 
-            // Top row 
+            // ===== Top row =====
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
@@ -251,7 +259,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               ),
             ),
 
-            //List 
+            // ===== List =====
             Expanded(
               child: FutureBuilder<List<_LessonItem>>(
                 future: _futureLessons,
@@ -346,7 +354,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   }
 }
 
-/*DATA */
+/* ===================== DATA ===================== */
 
 class _LessonItem {
   final String id;
@@ -384,7 +392,7 @@ class _LessonItem {
   }
 }
 
-/* TOP RIGHT BUTTON */
+/* ===================== TOP RIGHT BUTTON ===================== */
 
 class _CircleActionButton extends StatelessWidget {
   const _CircleActionButton({
@@ -428,7 +436,7 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-/* LESSON CARD  */
+/* ===================== LESSON CARD ===================== */
 
 class _LessonCard extends StatelessWidget {
   const _LessonCard({
@@ -531,6 +539,7 @@ class _LessonCard extends StatelessWidget {
                 ),
               ),
 
+              // ✅ Progress section with percent text
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: _ProgressPill(
