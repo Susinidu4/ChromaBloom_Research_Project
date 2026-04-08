@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
 import { IoArrowBack, IoChevronDownSharp } from "react-icons/io5";
-
+/**
+ * Usage:
+ * - If you're using React Router:
+ *   <Route path="/problem-solving-lessons/edit/:id" element={<ProblemSolvingLessonEdit />} />
+ *
+ * This component expects an id from route params OR you can pass as prop.
+ */
 
 const LEVELS = [
   { label: "Beginner", value: "Beginner" },
@@ -12,7 +18,8 @@ const LEVELS = [
 ];
 
 export default function ProblemSolvingLessonEdit() {
-
+  // If you use react-router-dom v6, uncomment:
+  // import { useParams } from "react-router-dom";
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -64,13 +71,14 @@ export default function ProblemSolvingLessonEdit() {
     });
   };
 
-  // ---- validations  ----
+  // ---- validations (same style as create) ----
   const validate = () => {
     if (!form.title.trim()) return "Title is required";
     if (!form.description.trim()) return "Description is required";
     if (!form.difficulty_level) return "Difficulty level is required";
 
-  
+    // Here we allow miniTutorials optional:
+    // If user kept 1 empty row -> we'll treat as "no tips"
     const tips = form.miniTutorials || [];
     const hasAnyTipText = tips.some((t) => (t.tip_content || "").trim().length > 0);
 
@@ -94,7 +102,7 @@ export default function ProblemSolvingLessonEdit() {
       description,
       difficulty_level: form.difficulty_level,
       miniTutorialsName,
-      
+      // If no tip text, send empty array (cleaner)
       miniTutorials: hasAnyTipText
         ? tips
           .map((t, i) => ({
