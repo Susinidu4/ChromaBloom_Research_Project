@@ -125,6 +125,7 @@ class _WellnessRecommendationDetailPageState
                         durationText: "${data["duration"]} min",
                         description: data["message"],
                         steps: List<String>.from(data["steps"]),
+                        source: data["source"] ?? data["Source"] ?? "Unknown source",
                         imagePath: "assets/recomendation_1.png",
                         onDone: () => Navigator.pop(context),
                       ),
@@ -148,6 +149,7 @@ class _RecommendationCard extends StatelessWidget {
   final String description;
   final List<String> steps;
   final String imagePath;
+  final String source;
   final VoidCallback onDone;
 
   const _RecommendationCard({
@@ -156,6 +158,7 @@ class _RecommendationCard extends StatelessWidget {
     required this.description,
     required this.steps,
     required this.imagePath,
+    required this.source,
     required this.onDone,
   });
 
@@ -307,6 +310,30 @@ class _RecommendationCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              "Source:",
+              style: TextStyle(
+                fontFamily: "Poppins",
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: gold,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              source,
+              style: TextStyle(
+                fontFamily: "Poppins",
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54,
               ),
             ),
 
