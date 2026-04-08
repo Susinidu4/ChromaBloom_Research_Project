@@ -5,6 +5,7 @@ import '../api_config.dart';
 class DigitalWellbeingService {
   static final String _base = ApiConfig.baseUrl;
 
+// Creates a new digital wellbeing log entry with the provided payload
   Future<void> createLog(Map<String, dynamic> payload) async {
 
     final uri = Uri.parse('$_base/chromabloom/digitalWellbeingLog/create');
@@ -30,7 +31,7 @@ class DigitalWellbeingService {
   if (res.statusCode >= 200 && res.statusCode < 300) {
     final decoded = jsonDecode(res.body);
 
-    // ✅ API returns: { "logs": [ ... ] }
+    // API returns: { "logs": [ ... ] }
     final logsRaw = (decoded is Map && decoded["logs"] is List)
         ? decoded["logs"] as List
         : <dynamic>[];
