@@ -14,6 +14,7 @@ class WellnessRecommendationService {
   static final String _base = ApiConfig.baseUrl;
   static const String _prefix = "/chromabloom/stressAnalysis";
 
+// Fetches a wellness recommendation based on the caregiver's stress level. Returns a map containing title, message, duration, steps, source, and stressLevel.
   static Future<Map<String, dynamic>> fetchRecommendation(String caregiverId) async {
     final url = Uri.parse("$_base$_prefix/compute/$caregiverId");
 
