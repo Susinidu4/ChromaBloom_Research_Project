@@ -1,8 +1,5 @@
 import Drawing_Level from "../../models/Gamified_Knowlage_Builder_Model/Drawing_level.js";
 
-// @desc    Create a new drawing level
-// @route   POST /api/drawing-levels/create
-// @access  Public
 export const createDrawingLevel = async (req, res) => {
     try {
         const { user_id, level } = req.body;
@@ -23,9 +20,8 @@ export const createDrawingLevel = async (req, res) => {
     }
 };
 
-// @desc    Update a drawing level
+//Update a drawing level
 // @route   PUT /api/drawing-levels/update/:id
-// @access  Public
 export const updateDrawingLevel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -47,9 +43,8 @@ export const updateDrawingLevel = async (req, res) => {
     }
 };
 
-// @desc    Get drawing level by user ID
+// Get drawing level by user ID
 // @route   GET /api/drawing-levels/user/:userId
-// @access  Public
 export const getDrawingLevelByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -65,9 +60,8 @@ export const getDrawingLevelByUserId = async (req, res) => {
     }
 };
 
-// @desc    Update a drawing level by user ID
+// Update a drawing level by user ID
 // @route   PUT /api/drawing-levels/user/update/:userId
-// @access  Public
 export const updateDrawingLevelByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
