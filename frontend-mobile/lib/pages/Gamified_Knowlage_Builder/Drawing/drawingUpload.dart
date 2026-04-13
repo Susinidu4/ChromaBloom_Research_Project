@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -13,9 +12,7 @@ import './improvment.dart'; // ✅ LessonCompletePage is here
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
     super.key,
-
     this.previousCorrectness, // optional (0.0 - 1.0)
-
   });
 
   final double? previousCorrectness;
@@ -52,7 +49,6 @@ class _DrawingImprovementCheckPageState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
 
     final args = ModalRoute.of(context)?.settings.arguments;
     final lessonId = args?.toString() ?? "";
@@ -261,9 +257,7 @@ class _DrawingImprovementCheckPageState
   }
 }
 
-
 /*  BACK BUTTON  */
-
 
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
@@ -301,9 +295,7 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-
 /*UPLOAD TILE*/
-
 
 class _UploadTile extends StatelessWidget {
   const _UploadTile({
@@ -382,9 +374,7 @@ class _UploadTile extends StatelessWidget {
   }
 }
 
-
 /*PRIMARY BUTTON*/
-
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

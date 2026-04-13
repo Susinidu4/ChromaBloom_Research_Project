@@ -12,7 +12,6 @@ import '../../../services/Gemified/problem_solving_level.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
 
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -275,7 +274,6 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
   }
 }
 
-
 /*  BODY CONTENT  */
 
 
@@ -464,7 +462,6 @@ class _LearnTile extends StatelessWidget {
     );
   }
 }
-
 
 
 class _SpeechBubble extends StatelessWidget {

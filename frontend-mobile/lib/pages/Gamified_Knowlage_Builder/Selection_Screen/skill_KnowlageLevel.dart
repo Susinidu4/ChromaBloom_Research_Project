@@ -27,7 +27,7 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
     } else if (inputLevel == "most") {
       dbLevel = "Advanced";
     } else {
-
+      
       dbLevel = "Beginner"; // Default fallback
 
     }
@@ -163,7 +163,6 @@ class _BackCircleButton extends StatelessWidget {
     );
   }
 }
-
 
 
 class _KnowledgeCard extends StatelessWidget {

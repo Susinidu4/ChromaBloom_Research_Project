@@ -1,4 +1,3 @@
-
 import Quize from "../../models/Gamified_Knowlage_Builder_Model/Quize.js";
 import cloudinary from "../../config/cloudinary.js";
 
@@ -16,8 +15,8 @@ const uploadImageToCloudinary = (fileBuffer, folder = "chromabloom/quizes") => {
   });
 };
 
-
 // CREATE QUIZ
+
 export const createQuize = async (req, res) => {
   try {
     const {
@@ -94,7 +93,6 @@ export const createQuize = async (req, res) => {
   }
 };
 
-
 // GET ALL QUIZZES (NO FILTER)
 
 export const getAllQuizes = async (req, res) => {
@@ -106,7 +104,6 @@ export const getAllQuizes = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 // GET ONE BY ID
 // GET /quizes/:id
@@ -125,7 +122,6 @@ export const getQuizeById = async (req, res) => {
   }
 };
 
-
 // GET QUIZ BY LESSON ID
 // GET /quizes/lesson/:lessonId
 
@@ -140,8 +136,6 @@ export const getQuizeByLessonId = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-
 
 // UPDATE QUIZ (partial update)
 
@@ -214,7 +208,6 @@ export const updateQuize = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 // DELETE QUIZ
 // DELETE /quizes/:id

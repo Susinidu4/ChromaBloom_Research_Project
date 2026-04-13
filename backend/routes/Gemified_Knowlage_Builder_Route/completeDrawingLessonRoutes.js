@@ -1,4 +1,3 @@
-
 // routes/Gamified_Knowlage_Builder_Route/completeDrawingLesson.routes.js
 
 import express from "express";
