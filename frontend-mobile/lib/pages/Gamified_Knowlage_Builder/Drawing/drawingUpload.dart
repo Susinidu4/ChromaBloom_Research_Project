@@ -1,15 +1,18 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
-import './improvment.dart'; 
+import './improvment.dart'; // ✅ LessonCompletePage is here
+
 
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
     super.key,
-    this.previousCorrectness, 
+    this.previousCorrectness, // optional (0.0 - 1.0)
   });
 
   final double? previousCorrectness;
@@ -130,7 +133,9 @@ class _DrawingImprovementCheckPageState
       context,
       MaterialPageRoute(
         builder: (_) => LessonCompletePage(
-          lessonId: _lessonId, 
+
+          lessonId: _lessonId, // ✅ PASS LESSON ID
+
           imageFile: _imageFile!,
           previousCorrectness: widget.previousCorrectness ?? 0.0,
         ),

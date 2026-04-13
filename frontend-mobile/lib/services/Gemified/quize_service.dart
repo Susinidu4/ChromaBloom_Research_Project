@@ -44,12 +44,12 @@ class QuizeService {
 
   // ============================================================
   // NOTE:
-  // As you requested: ✅ DO NOT add create/update (edit) methods.
+  // As you requested: DO NOT add create/update (edit) methods.
   // Only updated the "GET" + "DELETE" methods to match new backend.
   // ============================================================
 
   // ----------------------------
-  // GET ALL QUIZZES  ✅ UPDATED (no lesson_id query anymore)
+  // GET ALL QUIZZES  UPDATED (no lesson_id query anymore)
   // GET /chromabloom/quizes
   // ----------------------------
   static Future<List<dynamic>> getAllQuizes() async {
@@ -63,7 +63,7 @@ class QuizeService {
   }
 
   // ----------------------------
-  // GET QUIZ BY LESSON ID ✅ UPDATED (route-based filter)
+  // GET QUIZ BY LESSON ID UPDATED (route-based filter)
   // GET /chromabloom/quizes/lesson/:lessonId
   // ----------------------------
   static Future<List<dynamic>> getQuizeByLessonId(String lessonId) async {
@@ -111,3 +111,4 @@ class QuizeService {
     throw Exception(body["message"] ?? "Failed to delete quiz");
   }
 }
+

@@ -57,7 +57,7 @@ class CompleteProblemSolvingSessionService {
     return _decodeMap(res.body);
   }
 
-  /// ✅ returns:
+  /// returns:
   /// { count: 1, data: [ {...} ] }
   static Future<Map<String, dynamic>> getByChildAndLesson({
     required String childId,
@@ -119,7 +119,7 @@ class CompleteProblemSolvingSessionService {
     return _decodeMap(res.body);
   }
 
-  /// ✅ Helper: extract correctness_score safely from {count, data:[...]}
+  /// Helper: extract correctness_score safely from {count, data:[...]}
   static double extractCorrectnessScore(Map<String, dynamic> res) {
     try {
       final list = (res["data"] as List<dynamic>? ?? []);
