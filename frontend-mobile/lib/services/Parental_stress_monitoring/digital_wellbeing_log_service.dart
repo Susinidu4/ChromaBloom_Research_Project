@@ -5,7 +5,6 @@ import '../api_config.dart';
 class DigitalWellbeingService {
   static final String _base = ApiConfig.baseUrl;
 
-// Creates a new digital wellbeing log entry with the provided payload
   Future<void> createLog(Map<String, dynamic> payload) async {
 
     final uri = Uri.parse('$_base/chromabloom/digitalWellbeingLog/create');

@@ -135,3 +135,4 @@ def stress_health():
 @app.post("/stress/predict")
 def stress_predict(req: StressPredictRequest):
     return stress_service.predict(req.model_dump())
+

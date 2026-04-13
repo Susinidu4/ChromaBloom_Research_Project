@@ -41,7 +41,8 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
 
   List<_LessonItem> lessons = [];
 
-  // ✅ store progress by lessonId (0..1)
+  // store progress by lessonId (0..1)
+
   final Map<String, double> _progressByLesson = {};
 
   @override
@@ -135,7 +136,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
           );
           p = CompleteProblemSolvingSessionService.extractCorrectnessScore(res);
         } catch (_) {
+
           p = 0.0; // no completion found
+
         }
 
         // clamp 0..1
@@ -309,7 +312,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
         return _LessonCard(
           title: item.title,
           desc: item.desc,
+
           progress: progress, // ✅ correctness_score shown here
+
           onTap: () {
             Navigator.push(
               context,

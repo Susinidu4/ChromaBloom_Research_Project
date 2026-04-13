@@ -1,3 +1,4 @@
+
 import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js";
 import cloudinary from "../../config/cloudinary.js";
 
@@ -66,7 +67,7 @@ export const createDrawingLesson = async (req, res, next) => {
       title,
       description,
       difficulty_level,
-      video_url: safeUrl,                 // ✅ use safe url
+      video_url: safeUrl,                 // use safe url
       video_public_id: uploadResult.public_id,
       tips: parsedTips,
     });

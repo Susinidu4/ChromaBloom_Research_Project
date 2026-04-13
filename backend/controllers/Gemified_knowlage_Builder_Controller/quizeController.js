@@ -1,4 +1,3 @@
-// controllers/quizeController.js
 import Quize from "../../models/Gamified_Knowlage_Builder_Model/Quize.js";
 import cloudinary from "../../config/cloudinary.js";
 
@@ -16,13 +15,8 @@ const uploadImageToCloudinary = (fileBuffer, folder = "chromabloom/quizes") => {
   });
 };
 
-// ------------------------------
 // CREATE QUIZ
-// multipart/form-data fields:
-// - correctImage (single)  -> correct_img_url
-// - answerImages (multiple)-> answers[i].img_url in order
-// also supports JSON-only (no files)
-// ------------------------------
+
 export const createQuize = async (req, res) => {
   try {
     const {
@@ -99,10 +93,8 @@ export const createQuize = async (req, res) => {
   }
 };
 
-// ------------------------------
 // GET ALL QUIZZES (NO FILTER)
-// GET /quizes
-// ------------------------------
+
 export const getAllQuizes = async (req, res) => {
   try {
     const list = await Quize.find().sort({ _id: 1 });
@@ -113,10 +105,9 @@ export const getAllQuizes = async (req, res) => {
   }
 };
 
-// ------------------------------
 // GET ONE BY ID
 // GET /quizes/:id
-// ------------------------------
+
 export const getQuizeById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -131,10 +122,9 @@ export const getQuizeById = async (req, res) => {
   }
 };
 
-// ------------------------------
 // GET QUIZ BY LESSON ID
 // GET /quizes/lesson/:lessonId
-// ------------------------------
+
 export const getQuizeByLessonId = async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -147,12 +137,8 @@ export const getQuizeByLessonId = async (req, res) => {
   }
 };
 
-// ------------------------------
 // UPDATE QUIZ (partial update)
-// multipart/form-data fields (optional):
-// - correctImage (single)  -> replaces correct_img_url
-// - answerImages (multiple)-> replaces answers[] in order
-// ------------------------------
+
 export const updateQuize = async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,10 +209,9 @@ export const updateQuize = async (req, res) => {
   }
 };
 
-// ------------------------------
 // DELETE QUIZ
 // DELETE /quizes/:id
-// ------------------------------
+
 export const deleteQuize = async (req, res) => {
   try {
     const { id } = req.params;

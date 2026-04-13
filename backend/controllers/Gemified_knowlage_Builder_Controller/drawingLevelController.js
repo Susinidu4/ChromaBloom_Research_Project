@@ -26,6 +26,7 @@ export const createDrawingLevel = async (req, res) => {
 // @desc    Update a drawing level
 // @route   PUT /api/drawing-levels/update/:id
 // @access  Public
+
 export const updateDrawingLevel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -47,9 +48,12 @@ export const updateDrawingLevel = async (req, res) => {
     }
 };
 
+
 // @desc    Get drawing level by user ID
 // @route   GET /api/drawing-levels/user/:userId
 // @access  Public
+
+
 export const getDrawingLevelByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -68,6 +72,7 @@ export const getDrawingLevelByUserId = async (req, res) => {
 // @desc    Update a drawing level by user ID
 // @route   PUT /api/drawing-levels/user/update/:userId
 // @access  Public
+
 export const updateDrawingLevelByUserId = async (req, res) => {
     try {
         const { userId } = req.params;

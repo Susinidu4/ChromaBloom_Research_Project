@@ -195,4 +195,3 @@ export const deleteCompleteDrawingLesson = async (req, res, next) => {
     next(err);
   }
 };
-
