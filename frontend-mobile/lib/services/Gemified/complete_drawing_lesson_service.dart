@@ -234,3 +234,4 @@ class CompleteDrawingLessonService {
     return (p <= 1.0) ? p : (p / 100.0);
   }
 }
+

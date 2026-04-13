@@ -49,7 +49,7 @@ def predict(req: PredictRequest):
 MODEL_PATH_DRAWING = BASE_DIR / "gemified" / "chromabloom_model.tflite"
 LABELS_PATH_DRAWING = BASE_DIR / "gemified" / "class_labels.json"
 
-# Create service once (loaded at startup)
+# ✅ Create service once (loaded at startup)
 drawing_service = TFLiteDrawingService(
     model_path=MODEL_PATH_DRAWING,
     labels_path=LABELS_PATH_DRAWING,

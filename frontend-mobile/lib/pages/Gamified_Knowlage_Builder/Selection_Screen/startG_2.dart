@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
-
 // ignore: camel_case_types
 class UnitStartPage_2 extends StatelessWidget {
   const UnitStartPage_2({super.key});
@@ -100,7 +99,6 @@ class UnitStartPage_2 extends StatelessWidget {
     );
   }
 }
-
 
 
 class _BackCircleButton extends StatelessWidget {

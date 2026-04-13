@@ -335,7 +335,6 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
                           const SizedBox(height: 12),
 
-
                           Center(
                             child: _NetworkMainImage(
                               url: correctUrl,
@@ -384,7 +383,6 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
     );
   }
 }
-
 
 /* MODELS */
 
@@ -444,9 +442,7 @@ class QuizAnswer {
   }
 }
 
-
 /* PROGRESS */
-
 
 class _ThinProgressBar extends StatelessWidget {
   const _ThinProgressBar({required this.value});
@@ -527,7 +523,6 @@ class _NetworkMainImage extends StatelessWidget {
     );
   }
 }
-
 
 
 class _OptionTileNetwork extends StatelessWidget {

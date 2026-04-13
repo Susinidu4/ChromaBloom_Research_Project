@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -12,7 +11,6 @@ import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 import '../../../services/Gemified/problem_solving_level.dart';
-
 
 import './lessonDetails.dart';
 
@@ -42,7 +40,6 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
   String? error;
 
   List<_LessonItem> lessons = [];
-
 
   // store progress by lessonId (0..1)
 

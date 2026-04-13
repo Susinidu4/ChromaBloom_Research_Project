@@ -455,9 +455,7 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-
 /*  BULLETS */
-
 
 class _MiniBullet extends StatelessWidget {
   const _MiniBullet(this.text);
@@ -535,7 +533,6 @@ class _OrBullet extends StatelessWidget {
 
 
 /* BUTTON  */
-
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

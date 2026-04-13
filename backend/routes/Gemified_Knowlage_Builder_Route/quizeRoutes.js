@@ -11,7 +11,6 @@ import {
 
 const router = express.Router();
 
-
 const quizUpload = upload.fields([
   { name: "correctImage", maxCount: 1 },
   { name: "answerImages", maxCount: 10 },
@@ -22,9 +21,6 @@ router.post("/", quizUpload, createQuize);
 
 // Get all quizzes (no lesson filter)
 router.get("/", getAllQuizes);
-
-
-// Get quizzes by lesson ID
 
 router.get("/lesson/:lessonId", getQuizeByLessonId);
 

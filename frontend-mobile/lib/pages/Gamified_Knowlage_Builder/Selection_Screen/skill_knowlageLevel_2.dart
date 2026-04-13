@@ -14,6 +14,7 @@ class SkillKnowledgeLevelPage_2 extends StatelessWidget {
 
   static const Color pageBg = Color(0xFFF3E8E8);
 
+
   static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
   static const String _prefKeyProblemLevelValue = "problem_solving_skill_level_value";
 
@@ -151,7 +152,6 @@ class _BackCircleButton extends StatelessWidget {
     );
   }
 }
-
 
 
 class _KnowledgeCard extends StatelessWidget {

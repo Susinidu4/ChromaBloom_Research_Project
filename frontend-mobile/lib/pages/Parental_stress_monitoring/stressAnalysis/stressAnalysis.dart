@@ -24,8 +24,9 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
 
   String? caregiverId;
 
-  Future<StressComputeResponse>? _future;
-  Future<StressHistoryResponse>? _historyFuture;
+  late Future<StressComputeResponse> _future;
+
+  late Future<StressHistoryResponse> _historyFuture;
 
   @override
   void initState() {
@@ -152,56 +153,51 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                     const SizedBox(height: 18),
 
                     // Current Stress Analysis
-                    _future == null
-                        ? const _LoadingCard()
-                        : FutureBuilder<StressComputeResponse>(
-                            future: _future,
-                            builder: (context, snap) {
-                              if (snap.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const _LoadingCard();
-                              }
-                              if (snap.hasError) {
-                                return _ErrorCard(
-                                  message: friendlyErrorMessage(snap.error),
-                                  onRetry: _reload,
-                                );
-                              }
+                    FutureBuilder<StressComputeResponse>(
+                      future: _future,
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const _LoadingCard();
+                        }
+                        if (snap.hasError) {
+                          return _ErrorCard(
+                            message: friendlyErrorMessage(snap.error),
+                            onRetry: _reload,
+                          );
+                        }
 
-                              final data = snap.data;
+                        final data = snap.data;
 
-                              if (data == null || data.stress == null) {
-                                return _EmptyStressCard();
-                              }
+                        if (data == null || data.stress == null) {
+                          return _EmptyStressCard();
+                        }
 
-                              final stress = data.stress;
-                              final rec = data.recommendation;
+                        final stress = data.stress;
+                        final rec = data.recommendation;
 
-                              final date =
-                                  stress.scoreDate ??
-                                  stress.computedAt ??
-                                  DateTime.now();
+                        final date =
+                            stress.scoreDate ??
+                            stress.computedAt ??
+                            DateTime.now();
 
-                              // Add recommendation card below stress card if rec != null
-                              return Column(
-                                children: [
-                                  _LatestStressCard(
-                                    stressLevel: stress.stressLevel,
-                                    date: date,
-                                    stressScore: stress.stressScore,
-                                    stressProbability: stress.stressProbability,
-                                    consecutiveHighDays:
-                                        stress.consecutiveHighDays,
-                                    escalationTriggered:
-                                        stress.escalationTriggered,
-                                    raw: stress.raw,
-                                  ),
-                                  const SizedBox(height: 14),
-                                  // _RecommendationCard(recommendation: rec),
-                                ],
-                              );
-                            },
-                          ),
+                        // Add recommendation card below stress card if rec != null
+                        return Column(
+                          children: [
+                            _LatestStressCard(
+                              stressLevel: stress.stressLevel,
+                              date: date,
+                              stressScore: stress.stressScore,
+                              stressProbability: stress.stressProbability,
+                              consecutiveHighDays: stress.consecutiveHighDays,
+                              escalationTriggered: stress.escalationTriggered,
+                              raw: stress.raw,
+                            ),
+                            const SizedBox(height: 14),
+                            // _RecommendationCard(recommendation: rec),
+                          ],
+                        );
+                      },
+                    ),
 
                     // History Chart
                     const SizedBox(height: 22),
@@ -217,9 +213,7 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
                     const SizedBox(height: 20),
 
                     // Keep your chart section if you already have it
-                    _historyFuture == null
-                        ? const Center(child: CircularProgressIndicator())
-                        : _HistoryChartCard(historyFuture: _historyFuture!),
+                    _HistoryChartCard(historyFuture: _historyFuture),
                   ],
                 ),
               ),

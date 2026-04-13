@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "gemified" / "chromabloom_model.tflite"
 LABELS_PATH = BASE_DIR / "gemified" / "class_labels.json"
 
-# Create service once (loaded at startup)
+# ✅ Create service once (loaded at startup)
 drawing_service = TFLiteDrawingService(
     model_path=MODEL_PATH,
     labels_path=LABELS_PATH,
@@ -39,3 +39,4 @@ async def predict(file: UploadFile = File(...)):
     image_bytes = await file.read()
     result = drawing_service.predict_topk(image_bytes, k=3)
     return {"top1": result["top1"], "top3": result["topk"]}
+

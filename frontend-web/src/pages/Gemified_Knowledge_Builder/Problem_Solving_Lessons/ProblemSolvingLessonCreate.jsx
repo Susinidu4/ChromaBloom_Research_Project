@@ -50,7 +50,11 @@ export default function ProblemSolvingLessonCreate() {
     setForm((p) => {
       const next = [...p.miniTutorials];
       next.splice(index, 1);
+<<<<<<< HEAD
 
+=======
+      // re-number sequentially (1..n)
+>>>>>>> origin/Interactive-Visual-Task-Scheduler
       const renumbered = next.map((t, i) => ({
         ...t,
         tip_number: i + 1,
@@ -64,7 +68,11 @@ export default function ProblemSolvingLessonCreate() {
     if (!form.description.trim()) return "Description is required";
     if (!form.difficulty_level) return "Difficulty level is required";
 
+<<<<<<< HEAD
 
+=======
+    // miniTutorials optional, but if provided validate tip_content
+>>>>>>> origin/Interactive-Visual-Task-Scheduler
     if (Array.isArray(form.miniTutorials) && form.miniTutorials.length > 0) {
       const bad = form.miniTutorials.find((t) => !t.tip_content?.trim());
       if (bad) return "Please fill all mini tutorial tip contents (or remove empty ones).";
