@@ -27,7 +27,9 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
     } else if (inputLevel == "most") {
       dbLevel = "Advanced";
     } else {
+      
       dbLevel = "Beginner"; // Default fallback
+
     }
 
     try {
@@ -162,7 +164,6 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/* ===================== CARD ===================== */
 
 class _KnowledgeCard extends StatelessWidget {
   const _KnowledgeCard({required this.onSelect});

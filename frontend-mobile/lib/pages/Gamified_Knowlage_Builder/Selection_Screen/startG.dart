@@ -74,7 +74,7 @@ class UnitStartPage extends StatelessWidget {
                           _PrimaryButton(
                             label: "Continue",
                             onTap: () {
-                              // ✅ Go to drawing unit 1
+
                               Navigator.pushReplacementNamed(context, '/drawingUnit1');
                             },
                           ),
@@ -95,7 +95,6 @@ class UnitStartPage extends StatelessWidget {
   }
 }
 
-/* ===================== BACK BUTTON ===================== */
 
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
@@ -134,7 +133,6 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/* ===================== PRIMARY BUTTON ===================== */
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

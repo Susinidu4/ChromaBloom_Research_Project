@@ -39,3 +39,4 @@ async def predict(file: UploadFile = File(...)):
     image_bytes = await file.read()
     result = drawing_service.predict_topk(image_bytes, k=3)
     return {"top1": result["top1"], "top3": result["topk"]}
+

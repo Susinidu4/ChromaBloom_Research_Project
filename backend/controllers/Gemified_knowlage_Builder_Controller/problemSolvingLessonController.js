@@ -2,6 +2,7 @@
 import ProblemSolvingLesson from "../../models/Gamified_Knowlage_Builder_Model/Problem_Solving_Lesson.js";
 
 // @desc    Create a problem solving lesson
+
 // @route   POST /chromabloom/problem-solving-lessons
 export const createProblemSolvingLesson = async (req, res, next) => {
   try {
@@ -52,7 +53,8 @@ export const createProblemSolvingLesson = async (req, res, next) => {
   }
 };
 
-// @desc    Get all problem solving lessons
+
+// Get all problem solving lessons
 // @route   GET /chromabloom/problem-solving-lessons
 export const getAllProblemSolvingLessons = async (req, res, next) => {
   try {
@@ -63,7 +65,7 @@ export const getAllProblemSolvingLessons = async (req, res, next) => {
   }
 };
 
-// @desc    Get a single lesson by ID (LP-0001)
+//Get a single lesson by ID
 // @route   GET /chromabloom/problem-solving-lessons/:id
 export const getProblemSolvingLessonById = async (req, res, next) => {
   try {
@@ -81,7 +83,7 @@ export const getProblemSolvingLessonById = async (req, res, next) => {
   }
 };
 
-// @desc    Update a problem solving lesson
+//Update a problem solving lesson
 // @route   PUT /chromabloom/problem-solving-lessons/:id
 export const updateProblemSolvingLesson = async (req, res, next) => {
   try {
@@ -129,7 +131,7 @@ export const updateProblemSolvingLesson = async (req, res, next) => {
   }
 };
 
-// @desc    Delete a problem solving lesson
+//Delete a problem solving lesson
 // @route   DELETE /chromabloom/problem-solving-lessons/:id
 export const deleteProblemSolvingLesson = async (req, res, next) => {
   try {

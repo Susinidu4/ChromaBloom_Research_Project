@@ -134,7 +134,6 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
   String _safeUpper(String s) => s.trim().isEmpty ? "" : s.trim().toUpperCase();
 
-  // ✅ UPDATED: show correct_img_url in the middle image
   String? _correctImageUrl() {
     final q = _currentQuiz;
     if (q == null) return null;
@@ -336,7 +335,6 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
                           const SizedBox(height: 12),
 
-                          // ✅ Middle image = correct_img_url
                           Center(
                             child: _NetworkMainImage(
                               url: correctUrl,
@@ -386,7 +384,8 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
   }
 }
 
-/* ===================== MODELS ===================== */
+/* MODELS */
+
 
 class QuizItem {
   final String id;
@@ -395,7 +394,6 @@ class QuizItem {
   final String nameTag;
   final String difficultyLevel;
 
-  // ✅ NEW: correct_img_url from backend
   final String? correctImgUrl;
 
   final int correctAnswer;
@@ -444,7 +442,7 @@ class QuizAnswer {
   }
 }
 
-/* ===================== PROGRESS ===================== */
+/* PROGRESS */
 
 class _ThinProgressBar extends StatelessWidget {
   const _ThinProgressBar({required this.value});
@@ -470,8 +468,6 @@ class _ThinProgressBar extends StatelessWidget {
     );
   }
 }
-
-/* ===================== MAIN NETWORK IMAGE (CORRECT IMG URL) ===================== */
 
 class _NetworkMainImage extends StatelessWidget {
   const _NetworkMainImage({required this.url, required this.height});
@@ -528,7 +524,6 @@ class _NetworkMainImage extends StatelessWidget {
   }
 }
 
-/* ===================== OPTION TILE (NETWORK) ===================== */
 
 class _OptionTileNetwork extends StatelessWidget {
   const _OptionTileNetwork({
@@ -596,8 +591,6 @@ class _OptionTileNetwork extends StatelessWidget {
     );
   }
 }
-
-/* ===================== BUTTON ===================== */
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({required this.label, required this.onTap});

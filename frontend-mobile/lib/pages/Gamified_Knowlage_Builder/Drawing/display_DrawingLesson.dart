@@ -38,17 +38,11 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   late final DrawingLessonService _service;
   late Future<List<_LessonItem>> _futureLessons;
 
-  // ✅ Real caregiver ID will be fetched from SessionProvider
   String? _caregiverId;
 
   @override
   void initState() {
     super.initState();
-
-    // ✅ IMPORTANT BASE URL NOTES:
-    // Android Emulator: http://10.0.2.2:5000
-    // Real device:     http://YOUR_PC_IP:5000
-    // Flutter web:     http://localhost:5000
 
     // Drawing lessons service
     _service = DrawingLessonService(
@@ -58,7 +52,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
     // Completed lesson service baseUrl (global)
     CompleteDrawingLessonService.baseUrl = "http://localhost:5000";
 
-    // ✅ Get real caregiver ID from SessionProvider
     final session = Provider.of<SessionProvider>(context, listen: false);
     _caregiverId =
         (session.caregiver?['_id'] ?? session.caregiver?['id'] ?? "p-0001")
@@ -70,10 +63,13 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   Future<List<_LessonItem>> _fetchLessons(String caregiverId) async {
     try {
       // 1) Get child ID
-      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(caregiverId);
+      final List<dynamic> children = await ChildApi.getChildrenByCaregiver(
+        caregiverId,
+      );
       if (children.isEmpty) return [];
-      
-      final childId = (children[0]['_id'] ?? children[0]['id'] ?? '').toString();
+
+      final childId = (children[0]['_id'] ?? children[0]['id'] ?? '')
+          .toString();
       if (childId.isEmpty) return [];
 
       // 2) Get drawing level from database
@@ -84,13 +80,15 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
 
       String filterLevel = "Beginner";
       try {
-        final List<dynamic> levels = await drawingLevelService.getDrawingLevelByUserId(childId);
+        final List<dynamic> levels = await drawingLevelService
+            .getDrawingLevelByUserId(childId);
         if (levels.isNotEmpty) {
           filterLevel = (levels[0]['level'] ?? "Beginner").toString();
         } else {
           // Fallback to SharedPreferences if DB record doesn't exist
           final prefs = await SharedPreferences.getInstance();
-          final levelValue = prefs.getString("drawing_skill_level_value") ?? "new";
+          final levelValue =
+              prefs.getString("drawing_skill_level_value") ?? "new";
           if (levelValue == "basic") {
             filterLevel = "Intermediate";
           } else if (levelValue == "most") {
@@ -105,44 +103,45 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
       final raw = await _service.getAllLessons(); // List<dynamic>
 
       // 4) Filter lessons by difficulty_level & Sort by date (descending)
-      final lessons = raw
-          .where((e) {
-            final m = (e as Map).cast<String, dynamic>();
-            final dl = (m["difficulty_level"] ?? "").toString();
-            return dl.toLowerCase() == filterLevel.toLowerCase();
-          })
-          .toList();
+      final lessons = raw.where((e) {
+        final m = (e as Map).cast<String, dynamic>();
+        final dl = (m["difficulty_level"] ?? "").toString();
+        return dl.toLowerCase() == filterLevel.toLowerCase();
+      }).toList();
 
       // Sort by createdAt ascending (oldest first - 1st record first)
       lessons.sort((a, b) {
         final ma = (a as Map).cast<String, dynamic>();
         final mb = (b as Map).cast<String, dynamic>();
-        final da = DateTime.tryParse(ma["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final db = DateTime.tryParse(mb["createdAt"]?.toString() ?? "") ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final da =
+            DateTime.tryParse(ma["createdAt"]?.toString() ?? "") ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final db =
+            DateTime.tryParse(mb["createdAt"]?.toString() ?? "") ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return da.compareTo(db);
       });
 
       final mappedLessons = lessons.map<_LessonItem>((e) {
-            final m = (e as Map).cast<String, dynamic>();
-            return _LessonItem(
-              id: (m["_id"] ?? "").toString(),
-              title: (m["title"] ?? "Untitled").toString(),
-              desc: (m["description"] ?? "").toString(),
-              progress: 0.0,
-              correctnessPercent: 0,
-            );
-          })
-          .toList();
+        final m = (e as Map).cast<String, dynamic>();
+        return _LessonItem(
+          id: (m["_id"] ?? "").toString(),
+          title: (m["title"] ?? "Untitled").toString(),
+          desc: (m["description"] ?? "").toString(),
+          progress: 0.0,
+          correctnessPercent: 0,
+        );
+      }).toList();
 
-      // 5) For each filtered lesson, call getCompletedByLessonAndUser()
       // Using childId for activity tracking
       final updated = await Future.wait(
         mappedLessons.map((lesson) async {
           try {
-            final res = await CompleteDrawingLessonService.getCompletedByLessonAndUser(
-              lessonId: lesson.id,
-              userId: caregiverId,
-            );
+            final res =
+                await CompleteDrawingLessonService.getCompletedByLessonAndUser(
+                  lessonId: lesson.id,
+                  userId: caregiverId,
+                );
 
             final data = res["data"];
 
@@ -158,7 +157,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
                 rawRate = double.tryParse("$cr") ?? 0.0;
               }
 
-              // The progress bar needs a 0..1 value. 
+              // The progress bar needs a 0..1 value.
               // Based on user JSON 52.81..., it's on a 0..100 scale.
               final progress = (rawRate / 100.0).clamp(0.0, 1.0);
               final percent = rawRate.round().clamp(0, 100);
@@ -221,7 +220,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               notificationCount: 5,
             ),
 
-            // ===== Top row =====
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
               child: Row(
@@ -259,7 +257,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
               ),
             ),
 
-            // ===== List =====
             Expanded(
               child: FutureBuilder<List<_LessonItem>>(
                 future: _futureLessons,
@@ -354,7 +351,7 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
   }
 }
 
-/* ===================== DATA ===================== */
+/*DATA */
 
 class _LessonItem {
   final String id;
@@ -392,13 +389,10 @@ class _LessonItem {
   }
 }
 
-/* ===================== TOP RIGHT BUTTON ===================== */
+/* TOP RIGHT BUTTON */
 
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _CircleActionButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -436,7 +430,7 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-/* ===================== LESSON CARD ===================== */
+/* LESSON CARD  */
 
 class _LessonCard extends StatelessWidget {
   const _LessonCard({
@@ -538,14 +532,9 @@ class _LessonCard extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // ✅ Progress section with percent text
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: _ProgressPill(
-                  progress: p,
-                  percent: percent,
-                ),
+                child: _ProgressPill(progress: p, percent: percent),
               ),
             ],
           ),
