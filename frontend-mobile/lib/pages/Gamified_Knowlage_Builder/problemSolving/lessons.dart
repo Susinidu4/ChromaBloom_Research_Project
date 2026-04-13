@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -11,6 +12,7 @@ import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 import '../../../services/Gemified/problem_solving_level.dart';
+
 
 import './lessonDetails.dart';
 
@@ -41,7 +43,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
 
   List<_LessonItem> lessons = [];
 
-  // ✅ store progress by lessonId (0..1)
+
+  // store progress by lessonId (0..1)
+
   final Map<String, double> _progressByLesson = {};
 
   @override
@@ -135,7 +139,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
           );
           p = CompleteProblemSolvingSessionService.extractCorrectnessScore(res);
         } catch (_) {
+
           p = 0.0; // no completion found
+
         }
 
         // clamp 0..1
@@ -309,7 +315,9 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
         return _LessonCard(
           title: item.title,
           desc: item.desc,
+
           progress: progress, // ✅ correctness_score shown here
+
           onTap: () {
             Navigator.push(
               context,

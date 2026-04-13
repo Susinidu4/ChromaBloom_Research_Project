@@ -13,9 +13,6 @@ class DrawingPredictApiPage extends StatefulWidget {
 class _DrawingPredictApiPageState extends State<DrawingPredictApiPage> {
   final _picker = ImagePicker();
 
-  // ✅ UPDATE THIS BASE URL
-  // Emulator: "http://10.0.2.2:8000"
-  // Phone/Chrome: "http://192.168.1.5:8000" (your PC IP)
   final MlApiService _api = MlApiService(baseUrl: "http://localhost:8000");
 
   Uint8List? _imageBytes;

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,10 +9,13 @@ import '../../others/header.dart';
 import '../../others/navBar.dart';
 import './improvment.dart'; // ✅ LessonCompletePage is here
 
+
 class DrawingImprovementCheckPage extends StatefulWidget {
   const DrawingImprovementCheckPage({
     super.key,
+
     this.previousCorrectness, // optional (0.0 - 1.0)
+
   });
 
   final double? previousCorrectness;
@@ -49,7 +53,7 @@ class _DrawingImprovementCheckPageState
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // ✅ Expecting route arguments = lessonId
+
     final args = ModalRoute.of(context)?.settings.arguments;
     final lessonId = args?.toString() ?? "";
 
@@ -133,7 +137,9 @@ class _DrawingImprovementCheckPageState
       context,
       MaterialPageRoute(
         builder: (_) => LessonCompletePage(
+
           lessonId: _lessonId, // ✅ PASS LESSON ID
+
           imageFile: _imageFile!,
           previousCorrectness: widget.previousCorrectness ?? 0.0,
         ),
@@ -255,7 +261,9 @@ class _DrawingImprovementCheckPageState
   }
 }
 
-/* ===================== BACK BUTTON ===================== */
+
+/*  BACK BUTTON  */
+
 
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
@@ -293,7 +301,9 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/* ===================== UPLOAD TILE ===================== */
+
+/*UPLOAD TILE*/
+
 
 class _UploadTile extends StatelessWidget {
   const _UploadTile({
@@ -372,7 +382,9 @@ class _UploadTile extends StatelessWidget {
   }
 }
 
-/* ===================== PRIMARY BUTTON ===================== */
+
+/*PRIMARY BUTTON*/
+
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

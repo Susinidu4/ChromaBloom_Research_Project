@@ -521,3 +521,4 @@ class _ProgressBar extends StatelessWidget {
     );
   }
 }
+

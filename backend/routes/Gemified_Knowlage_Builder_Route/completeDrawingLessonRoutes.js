@@ -1,4 +1,6 @@
+
 // routes/Gamified_Knowlage_Builder_Route/completeDrawingLesson.routes.js
+
 import express from "express";
 import {
   createCompleteDrawingLesson,
@@ -7,6 +9,7 @@ import {
   getCompleteDrawingLessonsByUserId,
   updateCompleteDrawingLesson,
   deleteCompleteDrawingLesson,
+
   // ✅ optional extra endpoints you wrote
   getCompleteDrawingLessonsByLessonIdAndUserId,
   hasUserCompletedLesson,
@@ -30,12 +33,12 @@ router.get("/", getAllCompleteDrawingLessons);
 router.get("/user/:userId", getCompleteDrawingLessonsByUserId);
 
 // ✅ Extra: get completed lessons by lessonId + userId
+
 router.get(
   "/lesson/:lessonId/user/:userId",
   getCompleteDrawingLessonsByLessonIdAndUserId
 );
 
-// ✅ Extra: check completion (returns one record or null)
 router.get(
   "/has-completed/lesson/:lessonId/user/:userId",
   hasUserCompletedLesson
@@ -48,6 +51,7 @@ router.get("/:id", getCompleteDrawingLessonById);
 router.put("/:id", updateCompleteDrawingLesson);
 
 // ✅ Delete completed lesson record
+
 router.delete("/:id", deleteCompleteDrawingLesson);
 
 export default router;
