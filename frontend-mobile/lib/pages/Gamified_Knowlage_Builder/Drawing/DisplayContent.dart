@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Gemified/drawing_lesson_service.dart';
+
+// ✅ one import works on both platforms (conditional)
 import '../../../widgets/hybrid_video_player/hybrid_video_player.dart';
 
 class DrawingLessonDetailPage extends StatefulWidget {
@@ -33,12 +36,14 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
   void initState() {
     super.initState();
 
+    // ✅ baseUrl depends on platform
     final apiBase = kIsWeb
         ? "http://localhost:5000/chromabloom/drawing-lessons"
         : "http://localhost:5000/chromabloom/drawing-lessons";
 
     _service = DrawingLessonService(
       baseUrl: apiBase,
+      // token: "YOUR_JWT_IF_NEEDED",
     );
   }
 
@@ -80,6 +85,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
   }
 
   String _extractLessonId(Map<String, dynamic> lesson) {
+    // ✅ supports both id and _id
     final id = (lesson["id"] ?? lesson["_id"] ?? "").toString();
     return id;
   }
@@ -200,7 +206,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
                             Navigator.pushNamed(
                               context,
                               '/drawingImprovementCheck',
-                              arguments: lessonId,
+                              arguments: lessonId, // ✅ PASS lessonId
                             );
                           },
                         ),
@@ -218,7 +224,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
   }
 }
 
-/* BACK BUTTON  */
+/* ===================== BACK BUTTON ===================== */
 
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
@@ -256,7 +262,7 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
-/*  TIP CARD  */
+/* ===================== TIP CARD ===================== */
 
 class _TipCard extends StatelessWidget {
   const _TipCard({
@@ -337,7 +343,7 @@ class _TipCard extends StatelessWidget {
   }
 }
 
-/*BUTTON */
+/* ===================== BUTTON ===================== */
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

@@ -16,6 +16,7 @@ const ProblemSolvingLessonSchema = new mongoose.Schema({
 }, {timestamps: true});
     
 //pass unique id to _id field like LP-0001
+
 ProblemSolvingLessonSchema.pre('save', async function (next) {
     if (this.isNew) {
         const lastLesson = await mongoose.model('ProblemSolvingLesson').findOne().sort({_id: -1});

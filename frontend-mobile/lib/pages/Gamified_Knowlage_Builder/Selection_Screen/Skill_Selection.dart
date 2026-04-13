@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+
 import '../../../state/session_provider.dart';
 import '../../../services/Gemified/drawing_level_service.dart';
 import '../../../services/Gemified/complete_drawing_lesson_service.dart';
 import '../../../services/user_services/child_api.dart';
 import '../../../services/api_config.dart';
+
 import '../../../services/Gemified/problem_solving_level.dart';
 import '../../../services/Gemified/complete_problem_solving_session_service.dart';
 import '../../../services/Gemified/problem_solving_lesson_service.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
@@ -22,7 +25,10 @@ class SkillSelectionPage extends StatefulWidget {
 }
 
 class _SkillSelectionPageState extends State<SkillSelectionPage> {
+  // Existing drawing key
   static const String _prefKeyDrawingLevelSet = "drawing_skill_level_set";
+
+  // ✅ New problem solving keys
   static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
 
   Future<void> _handleDrawingTap() async {
@@ -119,6 +125,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
     }
   }
 
+  // ✅ NEW: Problem solving logic with progression
   Future<void> _handleProblemSolvingTap() async {
     final prefs = await SharedPreferences.getInstance();
     
@@ -218,10 +225,12 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
 
 
       if (!mounted) return;
+      // Navigate to the lessons page (will now show lessons for the potentially updated level)
       Navigator.pushNamed(context, '/problemSolvingLessons');
 
     } catch (e) {
       debugPrint("Error in handleProblemSolvingTap: $e");
+      // Fallback navigate to lessons if preferences exist, otherwise to level selection
       final bool levelSet = prefs.getBool(_prefKeyProblemLevelSet) ?? false;
       if (!mounted) return;
       if (!levelSet) {
@@ -249,7 +258,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: LearnContent(
                   onTapDrawing: _handleDrawingTap,
-                  onTapProblemSolving: _handleProblemSolvingTap, 
+                  onTapProblemSolving: _handleProblemSolvingTap, // ✅ changed
                 ),
               ),
             ),
@@ -261,7 +270,7 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
   }
 }
 
-/*  BODY CONTENT  */
+/* ===================== BODY CONTENT ===================== */
 
 class LearnContent extends StatelessWidget {
   const LearnContent({
@@ -280,6 +289,8 @@ class LearnContent extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 6),
+
+        // ---- Illustration + speech bubble ----
         SizedBox(
           height: 360,
           width: double.infinity,
@@ -448,6 +459,7 @@ class _LearnTile extends StatelessWidget {
   }
 }
 
+/* ===================== SPEECH BUBBLE ===================== */
 
 class _SpeechBubble extends StatelessWidget {
   const _SpeechBubble({

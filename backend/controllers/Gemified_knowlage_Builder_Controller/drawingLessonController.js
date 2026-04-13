@@ -1,7 +1,7 @@
 import DrawingLesson from "../../models/Gamified_Knowlage_Builder_Model/Drawing_Lesson.js";
 import cloudinary from "../../config/cloudinary.js";
 
-//upload video to Cloudinary
+// helper: upload video buffer to Cloudinary
 const uploadVideoToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -19,6 +19,8 @@ const uploadVideoToCloudinary = (fileBuffer) => {
   });
 };
 
+// ✅ helper: always generate a "safe" MP4 url (H.264 + AAC)
+// Fixes: audio works but video stuck/black on many devices
 const buildSafeMp4Url = (publicId) => {
   return cloudinary.url(publicId, {
     resource_type: "video",
@@ -31,7 +33,7 @@ const buildSafeMp4Url = (publicId) => {
   });
 };
 
-// Create a drawing lesson
+// @desc    Create a drawing lesson (with video upload)
 // @route   POST /chromabloom/drawing-lessons
 export const createDrawingLesson = async (req, res, next) => {
   try {
@@ -75,7 +77,7 @@ export const createDrawingLesson = async (req, res, next) => {
   }
 };
 
-// Get all drawing lessons
+// @desc    Get all drawing lessons
 // @route   GET /chromabloom/drawing-lessons
 export const getAllDrawingLessons = async (req, res, next) => {
   try {
@@ -86,7 +88,7 @@ export const getAllDrawingLessons = async (req, res, next) => {
   }
 };
 
-//Get a single lesson by ID
+// @desc    Get a single lesson by ID
 // @route   GET /chromabloom/drawing-lessons/:id
 export const getDrawingLessonById = async (req, res, next) => {
   try {
@@ -104,7 +106,7 @@ export const getDrawingLessonById = async (req, res, next) => {
   }
 };
 
-// Update a lesson 
+// @desc    Update a lesson (optionally replace video)
 // @route   PUT /chromabloom/drawing-lessons/:id
 export const updateDrawingLesson = async (req, res, next) => {
   try {
@@ -148,7 +150,7 @@ export const updateDrawingLesson = async (req, res, next) => {
   }
 };
 
-// Delete a drawing lesson
+// @desc    Delete a drawing lesson
 // @route   DELETE /chromabloom/drawing-lessons/:id
 export const deleteDrawingLesson = async (req, res, next) => {
   try {

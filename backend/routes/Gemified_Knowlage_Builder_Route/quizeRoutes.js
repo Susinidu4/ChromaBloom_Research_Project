@@ -1,3 +1,4 @@
+// routes/quize.routes.js
 import express from "express";
 import upload from "../../middlewares/uploadImage.js";
 import {
@@ -11,6 +12,11 @@ import {
 
 const router = express.Router();
 
+/**
+ * multer fields:
+ * - correctImage: single file
+ * - answerImages: multiple files (answers)
+ */
 const quizUpload = upload.fields([
   { name: "correctImage", maxCount: 1 },
   { name: "answerImages", maxCount: 10 },
@@ -22,7 +28,7 @@ router.post("/", quizUpload, createQuize);
 // Get all quizzes (no lesson filter)
 router.get("/", getAllQuizes);
 
-// Get quizzes by lesson ID
+// ✅ IMPORTANT: keep this BEFORE "/:id"
 router.get("/lesson/:lessonId", getQuizeByLessonId);
 
 // Get one

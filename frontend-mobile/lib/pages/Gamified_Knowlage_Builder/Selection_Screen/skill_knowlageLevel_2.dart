@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../state/session_provider.dart';
 import '../../../services/user_services/child_api.dart';
 import '../../../services/Gemified/problem_solving_level.dart';
 
+// ignore: camel_case_types
 class SkillKnowledgeLevelPage_2 extends StatelessWidget {
   const SkillKnowledgeLevelPage_2({super.key});
 
   static const Color pageBg = Color(0xFFF3E8E8);
+
+  // ✅ Problem solving keys
   static const String _prefKeyProblemLevelSet = "problem_solving_skill_level_set";
   static const String _prefKeyProblemLevelValue = "problem_solving_skill_level_value";
 
   Future<void> _saveLevelAndGo(BuildContext context, String rawSelection) async {
+    // 1. Map raw selection to level
     String mappedLevel = "Beginner";
     if (rawSelection == "basic") {
       mappedLevel = "Intermediate";
@@ -69,6 +74,8 @@ class SkillKnowledgeLevelPage_2 extends StatelessWidget {
     await prefs.setString(_prefKeyProblemLevelValue, mappedLevel);
 
     if (!context.mounted) return;
+
+    // ✅ Go to unit start page for problem solving
     Navigator.pushReplacementNamed(context, '/startG');
   }
 
@@ -110,6 +117,9 @@ class SkillKnowledgeLevelPage_2 extends StatelessWidget {
     );
   }
 }
+
+/* ===================== BACK BUTTON ===================== */
+
 class _BackCircleButton extends StatelessWidget {
   const _BackCircleButton({required this.onTap});
   final VoidCallback onTap;
@@ -146,6 +156,7 @@ class _BackCircleButton extends StatelessWidget {
   }
 }
 
+/* ===================== CARD ===================== */
 
 class _KnowledgeCard extends StatelessWidget {
   const _KnowledgeCard({required this.onSelect});
@@ -234,6 +245,8 @@ class _KnowledgeCard extends StatelessWidget {
     );
   }
 }
+
+/* ===================== BUTTON ===================== */
 
 class _ChoiceButton extends StatelessWidget {
   const _ChoiceButton({
