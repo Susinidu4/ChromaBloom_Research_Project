@@ -116,12 +116,12 @@ export const getRecommendationById = async (req, res) => {
 
     let recommendation = null;
 
-    // 🔹 If Mongo ObjectId
+    // If Mongo ObjectId
     if (mongoose.Types.ObjectId.isValid(id)) {
       recommendation = await RecommendationModel.findById(id).lean();
     }
 
-    // 🔹 Otherwise, treat as custom recommendationId (REC-0001)
+    // Otherwise, treat as custom recommendationId (REC-0001)
     if (!recommendation) {
       recommendation = await RecommendationModel.findOne({
         recommendationId: id,
