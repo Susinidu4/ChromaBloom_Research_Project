@@ -3,9 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Builder/problemSolvingLessonService.js";
 import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
 import { IoArrowBack, IoChevronDownSharp } from "react-icons/io5";
-<<<<<<< HEAD
 
-=======
 /**
  * Usage:
  * - If you're using React Router:
@@ -13,7 +11,7 @@ import { IoArrowBack, IoChevronDownSharp } from "react-icons/io5";
  *
  * This component expects an id from route params OR you can pass as prop.
  */
->>>>>>> origin/Interactive-Visual-Task-Scheduler
+
 
 const LEVELS = [
   { label: "Beginner", value: "Beginner" },
@@ -22,12 +20,10 @@ const LEVELS = [
 ];
 
 export default function ProblemSolvingLessonEdit() {
-<<<<<<< HEAD
 
-=======
   // If you use react-router-dom v6, uncomment:
   // import { useParams } from "react-router-dom";
->>>>>>> origin/Interactive-Visual-Task-Scheduler
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -79,22 +75,18 @@ export default function ProblemSolvingLessonEdit() {
     });
   };
 
-<<<<<<< HEAD
 
-=======
   // ---- validations (same style as create) ----
->>>>>>> origin/Interactive-Visual-Task-Scheduler
+
   const validate = () => {
     if (!form.title.trim()) return "Title is required";
     if (!form.description.trim()) return "Description is required";
     if (!form.difficulty_level) return "Difficulty level is required";
 
-<<<<<<< HEAD
 
-=======
     // Here we allow miniTutorials optional:
     // If user kept 1 empty row -> we'll treat as "no tips"
->>>>>>> origin/Interactive-Visual-Task-Scheduler
+
     const tips = form.miniTutorials || [];
     const hasAnyTipText = tips.some((t) => (t.tip_content || "").trim().length > 0);
 
@@ -118,11 +110,9 @@ export default function ProblemSolvingLessonEdit() {
       description,
       difficulty_level: form.difficulty_level,
       miniTutorialsName,
-<<<<<<< HEAD
 
-=======
       // If no tip text, send empty array (cleaner)
->>>>>>> origin/Interactive-Visual-Task-Scheduler
+
       miniTutorials: hasAnyTipText
         ? tips
           .map((t, i) => ({
