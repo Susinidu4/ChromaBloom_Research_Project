@@ -4,6 +4,15 @@ import ProblemSolvingLessonService from "../../../services/Gemified_Knowledge_Bu
 import AdminLayout from "../../admin/Admin_Management/AdminLayout.jsx";
 import { IoArrowBack, IoChevronDownSharp } from "react-icons/io5";
 
+/**
+ * Usage:
+ * - If you're using React Router:
+ *   <Route path="/problem-solving-lessons/edit/:id" element={<ProblemSolvingLessonEdit />} />
+ *
+ * This component expects an id from route params OR you can pass as prop.
+ */
+
+
 const LEVELS = [
   { label: "Beginner", value: "Beginner" },
   { label: "Intermediate", value: "Intermediate" },
@@ -66,6 +75,7 @@ export default function ProblemSolvingLessonEdit() {
     });
   };
 
+
   // ---- validations (same style as create) ----
 
   const validate = () => {
@@ -100,6 +110,8 @@ export default function ProblemSolvingLessonEdit() {
       description,
       difficulty_level: form.difficulty_level,
       miniTutorialsName,
+
+      // If no tip text, send empty array (cleaner)
 
       miniTutorials: hasAnyTipText
         ? tips

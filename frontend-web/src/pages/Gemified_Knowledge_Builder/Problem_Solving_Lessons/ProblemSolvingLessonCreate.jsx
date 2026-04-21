@@ -51,6 +51,8 @@ export default function ProblemSolvingLessonCreate() {
       const next = [...p.miniTutorials];
       next.splice(index, 1);
 
+      // re-number sequentially (1..n)
+
       const renumbered = next.map((t, i) => ({
         ...t,
         tip_number: i + 1,
@@ -63,6 +65,9 @@ export default function ProblemSolvingLessonCreate() {
     if (!form.title.trim()) return "Title is required";
     if (!form.description.trim()) return "Description is required";
     if (!form.difficulty_level) return "Difficulty level is required";
+
+
+    // miniTutorials optional, but if provided validate tip_content
 
     if (Array.isArray(form.miniTutorials) && form.miniTutorials.length > 0) {
       const bad = form.miniTutorials.find((t) => !t.tip_content?.trim());
