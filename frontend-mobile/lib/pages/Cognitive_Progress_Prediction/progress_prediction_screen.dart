@@ -50,6 +50,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   bool stressAvgLoading = false;
   double? avgStressProbability; // 0..1
 
+  // ✅ Prediction Restriction
+  bool canPredict = true;
+  String? nextPredictDate;
+
   // -------------------- AUTO from child --------------------
   String gender = "male";
   String diagnosisType = "Trisomy21";
@@ -342,14 +346,35 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       setState(() {
         history = (data["data"] as List?) ?? [];
 
-        // ✅ If we have history, auto-select the latest record to display its results
+        // ✅ Check 2-week restriction
         if (history.isNotEmpty) {
           final latest = history.first;
+          final createdAtStr = latest["createdAt"]?.toString();
+          if (createdAtStr != null) {
+            final lastDate = DateTime.tryParse(createdAtStr);
+            if (lastDate != null) {
+              final now = DateTime.now();
+              final diff = now.difference(lastDate).inDays;
+              if (diff < 14) {
+                canPredict = false;
+                final nextDate = lastDate.add(const Duration(days: 14));
+                nextPredictDate = "${nextDate.day}/${nextDate.month}/${nextDate.year}";
+              } else {
+                canPredict = true;
+                nextPredictDate = null;
+              }
+            }
+          }
+
+          // ✅ If we have history, auto-select the latest record to display its results
           predictedScore = (latest["progress_prediction"] as num?)?.toDouble() ??
               (latest["predicted_score"] as num?)?.toDouble();
 
           positive = latest["positive_factors"] ?? [];
           negative = latest["negative_factors"] ?? [];
+        } else {
+          canPredict = true;
+          nextPredictDate = null;
         }
       });
     } catch (e) {
@@ -595,7 +620,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
           height: 48,
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (loading || childLoading || wellbeingLoading || stressAvgLoading)
+            onPressed: (loading || childLoading || wellbeingLoading || stressAvgLoading || !canPredict)
                 ? null
                 : _predict,
             style: ElevatedButton.styleFrom(
@@ -625,6 +650,21 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
             ),
           ),
         ),
+        if (!canPredict && nextPredictDate != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Center(
+              child: Text(
+                "Next prediction available after: $nextPredictDate",
+                style: const TextStyle(
+                  color: Color(0xFFBD9A6B),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         if (errorMsg != null) Text(errorMsg!, style: const TextStyle(color: Colors.red)),
         if (predictedScore != null) ...[
