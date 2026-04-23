@@ -131,19 +131,21 @@ class InsightChartCard extends StatelessWidget {
     double minY = ys.reduce((a, b) => a < b ? a : b);
     double maxY = ys.reduce((a, b) => a > b ? a : b);
 
-    // Dynamic padding based on the data range
+    // Dynamic padding based on the data range (Aggressive zoom)
     double range = maxY - minY;
-    if (range < 0.5) range = 1.0; // Ensure at least a visible range of 1.0 if points are very close
+    if (range < 0.1) range = 0.2; // tighter minimum range
     
-    final pad = range * 0.2; // 20% padding
+    final pad = range * 0.05; // 5% padding for maximum zoom
     
     minY = (minY - pad).clamp(0, 100);
     maxY = (maxY + pad).clamp(0, 100);
     
     // Ensure minY and maxY are not the same
     if (maxY <= minY) {
-      maxY = minY + 1.0;
+      maxY = minY + 0.1;
     }
+
+    final decimals = (maxY - minY) < 1.2 ? 2 : 1;
 
     return Container(
       height: 240, // Slightly taller to match aspect ratio
@@ -226,7 +228,7 @@ class InsightChartCard extends StatelessWidget {
                               reservedSize: 42, // More space for decimal labels
                               getTitlesWidget: (value, _) {
                                 return Text(
-                                  value.toStringAsFixed(1),
+                                  value.toStringAsFixed(decimals),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     color: Color(0xFF8D7B68),
