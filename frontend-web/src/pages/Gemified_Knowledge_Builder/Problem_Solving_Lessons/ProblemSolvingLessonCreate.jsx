@@ -50,6 +50,9 @@ export default function ProblemSolvingLessonCreate() {
     setForm((p) => {
       const next = [...p.miniTutorials];
       next.splice(index, 1);
+
+      // re-number sequentially (1..n)
+
       const renumbered = next.map((t, i) => ({
         ...t,
         tip_number: i + 1,
@@ -63,7 +66,9 @@ export default function ProblemSolvingLessonCreate() {
     if (!form.description.trim()) return "Description is required";
     if (!form.difficulty_level) return "Difficulty level is required";
 
-   
+
+    // miniTutorials optional, but if provided validate tip_content
+
     if (Array.isArray(form.miniTutorials) && form.miniTutorials.length > 0) {
       const bad = form.miniTutorials.find((t) => !t.tip_content?.trim());
       if (bad) return "Please fill all mini tutorial tip contents (or remove empty ones).";
@@ -106,6 +111,7 @@ export default function ProblemSolvingLessonCreate() {
       setSubmitting(false);
     }
   };
+
   return (
     <AdminLayout>
       <div className="w-full min-h-full bg-[#F3E8E8] px-10 py-16 relative">

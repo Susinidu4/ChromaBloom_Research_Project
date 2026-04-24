@@ -12,6 +12,7 @@ import '../others/navBar.dart';
 import '../../services/api_config.dart'; // ✅ Added import
 
 import './insight_chart_card.dart';
+import '../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
 
 class ProgressPredictionScreen extends StatefulWidget {
   const ProgressPredictionScreen({super.key});
@@ -50,6 +51,16 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   bool stressAvgLoading = false;
   double? avgStressProbability; // 0..1
 
+  // ✅ Activity data load
+  bool activityLoading = false;
+  int hardTotalTasksAssigned = 6;
+  int hardTotalTasksCompleted = 5;
+  double hardCompletionRate = 0.83;
+
+  // ✅ Prediction Restriction
+  bool canPredict = true;
+  String? nextPredictDate;
+
   // -------------------- AUTO from child --------------------
   String gender = "male";
   String diagnosisType = "Trisomy21";
@@ -66,9 +77,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   static const String _hardCaregiverMoodLabel = "stressed";
 
   static const double _hardStressScoreCombined = 0.68;
-  static const int _hardTotalTasksAssigned = 6;
-  static const int _hardTotalTasksCompleted = 5;
-  static const double _hardCompletionRate = 0.83;
   static const double _hardEngagementMinutes = 18.5;
 
   static const double _hardMemoryAccuracy = 0.65;
@@ -130,6 +138,13 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     } catch (_) {
       return 0;
     }
+  }
+
+  String _fmtYmdLocal(DateTime d) {
+    final yyyy = d.year.toString().padLeft(4, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return "$yyyy-$mm-$dd";
   }
 
   String _resolveCaregiverId(SessionProvider session) {
@@ -269,6 +284,50 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
   }
 
+  // -------------------- ACTIVITY COUNTS: LAST 2 WEEKS --------------------
+
+  Future<void> _loadActivityCounts() async {
+    if (!mounted) return;
+    final session = context.read<SessionProvider>();
+
+    setState(() {
+      activityLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final caregiverId = _resolveCaregiverId(session);
+
+      // Fetch dashboard for last 14 days
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 14));
+
+      final res = await ChildRoutinePlanService.getRoutineDashboard(
+        caregiverId: caregiverId,
+        cycleStart: _fmtYmdLocal(start),
+        cycleEnd: _fmtYmdLocal(now),
+      );
+
+      final data = res["data"];
+      if (data != null && data["stepAnalysis"] != null) {
+        final stepData = data["stepAnalysis"];
+        final assigned = (stepData["totalStepsTotal"] as num?)?.toInt() ?? 0;
+        final completed = (stepData["completedStepsTotal"] as num?)?.toInt() ?? 0;
+
+        setState(() {
+          hardTotalTasksAssigned = assigned;
+          hardTotalTasksCompleted = completed;
+          hardCompletionRate = (assigned == 0) ? 0.0 : (completed / assigned);
+        });
+      }
+    } catch (e) {
+      print("Error loading activity counts: $e");
+      // Fallback to defaults or keep current
+    } finally {
+      if (mounted) setState(() => activityLoading = false);
+    }
+  }
+
   // -------------------- CHILD AUTO LOAD + AUTOFILL --------------------
 
   Future<void> _loadChildAndAutofill() async {
@@ -282,9 +341,10 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     try {
       final caregiverId = _resolveCaregiverId(session);
 
-      // ✅ load wellbeing avg + stress avg first
+      // ✅ load wellbeing avg + stress avg + activity counts first
       await _loadAvgScreenTimeFromWellbeing();
       await _loadAvgStressProbability();
+      await _loadActivityCounts();
 
       final kids = await ChildApi.getChildrenByCaregiver(caregiverId);
       if (kids.isEmpty) throw Exception("No children found for this caregiver");
@@ -342,14 +402,35 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
       setState(() {
         history = (data["data"] as List?) ?? [];
 
-        // ✅ If we have history, auto-select the latest record to display its results
+        // ✅ Check 2-week restriction
         if (history.isNotEmpty) {
           final latest = history.first;
+          final createdAtStr = latest["createdAt"]?.toString();
+          if (createdAtStr != null) {
+            final lastDate = DateTime.tryParse(createdAtStr);
+            if (lastDate != null) {
+              final now = DateTime.now();
+              final diff = now.difference(lastDate).inDays;
+              if (diff < 14) {
+                canPredict = false;
+                final nextDate = lastDate.add(const Duration(days: 14));
+                nextPredictDate = "${nextDate.day}/${nextDate.month}/${nextDate.year}";
+              } else {
+                canPredict = true;
+                nextPredictDate = null;
+              }
+            }
+          }
+
+          // ✅ If we have history, auto-select the latest record to display its results
           predictedScore = (latest["progress_prediction"] as num?)?.toDouble() ??
               (latest["predicted_score"] as num?)?.toDouble();
 
           positive = latest["positive_factors"] ?? [];
           negative = latest["negative_factors"] ?? [];
+        } else {
+          canPredict = true;
+          nextPredictDate = null;
         }
       });
     } catch (e) {
@@ -405,9 +486,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         "caregiver_mood_label": _hardCaregiverMoodLabel,
         "stress_score_combined": _hardStressScoreCombined,
 
-        "total_tasks_assigned": _hardTotalTasksAssigned,
-        "total_tasks_completed": _hardTotalTasksCompleted,
-        "completion_rate": _hardCompletionRate,
+        "total_tasks_assigned": hardTotalTasksAssigned,
+        "total_tasks_completed": hardTotalTasksCompleted,
+        "completion_rate": hardCompletionRate,
         "engagement_minutes": _hardEngagementMinutes,
 
         "memory_accuracy": _hardMemoryAccuracy,
@@ -595,7 +676,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
           height: 48,
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (loading || childLoading || wellbeingLoading || stressAvgLoading)
+            onPressed: (loading || childLoading || wellbeingLoading || stressAvgLoading || !canPredict)
                 ? null
                 : _predict,
             style: ElevatedButton.styleFrom(
@@ -615,7 +696,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
                           ? "Loading wellbeing..."
                           : (stressAvgLoading
                               ? "Loading stress..."
-                              : (loading ? "Predicting..." : "Predict Now"))),
+                              : (activityLoading
+                                  ? "Loading activities..."
+                                  : (loading ? "Predicting..." : "Predict Now")))),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Poppins',
@@ -625,6 +708,21 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
             ),
           ),
         ),
+        if (!canPredict && nextPredictDate != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Center(
+              child: Text(
+                "Next prediction available after: $nextPredictDate",
+                style: const TextStyle(
+                  color: Color(0xFFBD9A6B),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         if (errorMsg != null) Text(errorMsg!, style: const TextStyle(color: Colors.red)),
         if (predictedScore != null) ...[

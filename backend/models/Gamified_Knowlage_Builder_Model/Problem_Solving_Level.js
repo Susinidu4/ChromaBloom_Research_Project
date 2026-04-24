@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const problemSolvingLevelSchema = new mongoose.Schema({
+    _id: { type: String },
     userId: { type: String },
     level: { type: String }
 });

@@ -17,6 +17,7 @@ const DrawingLessonSchema = new mongoose.Schema({
 );
 
 //pass unique id to _id field like LD-0001
+
 DrawingLessonSchema.pre('save', async function (next) {
   if (this.isNew) {
     const lastLesson = await mongoose.model('DrawingLesson').findOne().sort({ _id: -1 });

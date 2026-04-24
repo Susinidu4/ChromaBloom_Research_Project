@@ -1,3 +1,4 @@
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -291,7 +292,6 @@ class _DetailedUserActivityScreenState
                         if (!ok) return;
 
                         try {
-                          // delete from DB
                           final res =
                               await UserActivityService.deleteUserActivity(
                                 mongoId: mongoId,
@@ -999,3 +999,4 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
+
