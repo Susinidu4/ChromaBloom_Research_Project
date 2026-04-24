@@ -111,3 +111,4 @@ class QuizeService {
     throw Exception(body["message"] ?? "Failed to delete quiz");
   }
 }
+

@@ -192,15 +192,41 @@ export const Admin_Dashboard = () => {
               </span>
             </div>
 
-            {/* Create Button */}
-            {activeTab === "admins" && (
-              <Link
-                to="/create_admin"
+            {/* Create Button with Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowCreateMenu(!showCreateMenu)}
                 className="bg-[#BD9A6B] text-white px-6 py-2 rounded-[10px] text-sm font-bold shadow-[0_4px_10px_rgba(0,0,0,0.15)] hover:bg-[#a6865a] active:scale-95 transition-all flex items-center gap-2"
               >
                 <span>+ Create New</span>
-              </Link>
-            )}
+              </button>
+
+              {showCreateMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowCreateMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-[#BD9A6B]/20 py-2 z-50 overflow-hidden transform transition-all">
+                    <Link
+                      to="/create_admin"
+                      className="block px-4 py-3 text-[#7A6357] hover:bg-[#BD9A6B] hover:text-white transition-colors text-sm font-semibold"
+                      onClick={() => setShowCreateMenu(false)}
+                    >
+                      Admin Account
+                    </Link>
+                    <div className="mx-2 h-[1px] bg-[#F3E8E8]" />
+                    <Link
+                      to="/therapists_register"
+                      className="block px-4 py-3 text-[#7A6357] hover:bg-[#BD9A6B] hover:text-white transition-colors text-sm font-semibold"
+                      onClick={() => setShowCreateMenu(false)}
+                    >
+                      Therapist Account
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Tabs */}
@@ -268,11 +294,13 @@ export const Admin_Dashboard = () => {
                   </div>
                 ) : (
                   // Admin Header
-                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr] gap-3">
+                  <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3">
                     <div>Name</div>
                     <div className="text-center">Email</div>
                     <div className="text-center">Mobile</div>
                     <div className="text-center">Status</div>
+                    <div className="text-center" />
+                    <div className="text-center" />
                     <div className="text-center" />
                   </div>
                 )}
@@ -348,7 +376,7 @@ export const Admin_Dashboard = () => {
                       </div>
                     ) : (
                       // Admin Row
-                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr] gap-3 text-[13px] text-[#B0896E]">
+                      <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.2fr_48px_48px] gap-3 text-[13px] text-[#B0896E]">
                         <div className="truncate">{row.full_name}</div>
                         <div className="text-center truncate">{row.email}</div>
                         <div className="text-center">{row.phone || "N/A"}</div>
@@ -378,6 +406,18 @@ export const Admin_Dashboard = () => {
                           </button>
                         </div> */}
 
+                        {/* More button */}
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleMore(row._id)}
+                            className="h-9 w-9 rounded-[10px] bg-[#BD9A6B] text-white
+                                         shadow-[0_6px_10px_rgba(0,0,0,0.18)] grid place-items-center
+                                         hover:brightness-95 active:scale-[0.99]"
+                            title="More"
+                          >
+                            <HiDotsHorizontal size={18} />
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -419,3 +459,4 @@ export const Admin_Dashboard = () => {
 };
 
 export default Admin_Dashboard;
+

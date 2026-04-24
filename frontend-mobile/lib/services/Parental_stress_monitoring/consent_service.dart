@@ -5,6 +5,7 @@ import '../api_config.dart';
 class ConsentService {
   static final String _base = ApiConfig.baseUrl;
 
+// Returns null if no consent record exists for the caregiver
   Future<Map<String, dynamic>?> getConsent(String caregiverId) async {
     final uri = Uri.parse('$_base/chromabloom/consent/$caregiverId');
     final res = await http.get(uri);
@@ -17,6 +18,7 @@ class ConsentService {
     return data['consent'] as Map<String, dynamic>?;
   }
 
+// Saves the caregiver's consent decision. Decision should be either "allow" or "cancel".
   Future<void> saveDecision({
     required String caregiverId,
     required String decision, // allow | cancel

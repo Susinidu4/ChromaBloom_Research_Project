@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+
 import '../../../state/session_provider.dart';
 import '../../../services/Gemified/drawing_level_service.dart';
 import '../../../services/user_services/child_api.dart';
@@ -26,7 +27,9 @@ class SkillKnowledgeLevelPage extends StatelessWidget {
     } else if (inputLevel == "most") {
       dbLevel = "Advanced";
     } else {
-      dbLevel = "Beginner"; 
+      
+      dbLevel = "Beginner"; // Default fallback
+
     }
 
     try {
