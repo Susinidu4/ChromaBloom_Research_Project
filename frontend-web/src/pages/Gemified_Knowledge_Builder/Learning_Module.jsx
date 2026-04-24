@@ -7,9 +7,11 @@ import QuizeList from "./Quize/QuizeList";
 import { useNavigate } from "react-router-dom";
 
 export default function Learning_Module() {
-    const [activeTab, setActiveTab] = useState("drawing"); 
+
+    const [activeTab, setActiveTab] = useState("drawing"); // drawing | problem_solving | quizzes
     const [search, setSearch] = useState("");
-    const [difficulty, setDifficulty] = useState(""); 
+    const [difficulty, setDifficulty] = useState(""); // "" | Beginner | Intermediate | Advanced
+
     const navigate = useNavigate();
 
     const handleCreate = () => {
