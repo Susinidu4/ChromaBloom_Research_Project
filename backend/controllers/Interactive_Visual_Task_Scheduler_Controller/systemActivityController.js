@@ -1074,8 +1074,8 @@ async function callMlForNextDifficulty(payload) {
 
 // Real production flow
 
-// This function closes the ended plan, sends features to ML, gets next level,
-// picks new activities, and creates the next 14-day plan.
+// // This function closes the ended plan, sends features to ML, gets next level,
+// // picks new activities, and creates the next 14-day plan.
 // export const closeCycleSendToMLAndCreateNextPlan = async (req, res) => {
 //   try {
 //     const { caregiverId, childId } = req.body;

@@ -1,6 +1,8 @@
+// controllers/problemSolvingLesson.controller.js
 import ProblemSolvingLesson from "../../models/Gamified_Knowlage_Builder_Model/Problem_Solving_Lesson.js";
 
-// Create a problem solving lesson
+// @desc    Create a problem solving lesson
+
 // @route   POST /chromabloom/problem-solving-lessons
 export const createProblemSolvingLesson = async (req, res, next) => {
   try {
@@ -50,6 +52,7 @@ export const createProblemSolvingLesson = async (req, res, next) => {
     next(err);
   }
 };
+
 
 // Get all problem solving lessons
 // @route   GET /chromabloom/problem-solving-lessons

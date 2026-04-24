@@ -386,13 +386,16 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
 
 /* MODELS */
 
+
 class QuizItem {
   final String id;
   final String question;
   final String lessonId;
   final String nameTag;
   final String difficultyLevel;
+
   final String? correctImgUrl;
+
   final int correctAnswer;
   final List<QuizAnswer> answers;
 

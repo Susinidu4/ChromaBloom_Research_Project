@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 
+// ignore: camel_case_types
 class UnitStartPage_2 extends StatelessWidget {
   const UnitStartPage_2({super.key});
+
+
   static const Color pageBg = Color(0xFFF3E8E8);
 
   @override
@@ -73,6 +76,7 @@ class UnitStartPage_2 extends StatelessWidget {
                           _PrimaryButton(
                             label: "Continue",
                             onTap: () {
+
                               Navigator.pushReplacementNamed(
                                 context,
                                 '/problemSolvingLessons',
@@ -133,6 +137,7 @@ class _BackCircleButton extends StatelessWidget {
     );
   }
 }
+
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({

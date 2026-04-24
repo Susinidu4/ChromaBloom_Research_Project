@@ -22,7 +22,6 @@ router.post("/", quizUpload, createQuize);
 // Get all quizzes (no lesson filter)
 router.get("/", getAllQuizes);
 
-// Get quizzes by lesson ID
 router.get("/lesson/:lessonId", getQuizeByLessonId);
 
 // Get one

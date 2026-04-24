@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../../others/header.dart';
 import '../../others/navBar.dart';
 import '../../../services/Gemified/drawing_lesson_service.dart';
+
+// ✅ one import works on both platforms (conditional)
 import '../../../widgets/hybrid_video_player/hybrid_video_player.dart';
 
 class DrawingLessonDetailPage extends StatefulWidget {
@@ -39,6 +42,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
 
     _service = DrawingLessonService(
       baseUrl: apiBase,
+
     );
   }
 
@@ -80,6 +84,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
   }
 
   String _extractLessonId(Map<String, dynamic> lesson) {
+
     final id = (lesson["id"] ?? lesson["_id"] ?? "").toString();
     return id;
   }
@@ -200,7 +205,9 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
                             Navigator.pushNamed(
                               context,
                               '/drawingImprovementCheck',
-                              arguments: lessonId,
+
+                              arguments: lessonId, // ✅ PASS lessonId
+
                             );
                           },
                         ),
@@ -217,6 +224,7 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
     );
   }
 }
+
 
 /* BACK BUTTON  */
 

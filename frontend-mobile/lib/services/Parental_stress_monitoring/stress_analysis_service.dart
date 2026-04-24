@@ -169,6 +169,7 @@ class RecommendationDto {
 
 /* ===================== HISTORY DTOs ===================== */
 
+// Response for stress history endpoint, which includes metadata and a list of stress history items
 class StressHistoryResponse {
   final String caregiverId;
   final int count;
@@ -194,6 +195,7 @@ class StressHistoryResponse {
   }
 }
 
+// Represents a single stress history record for a caregiver, including stress level, probability, dates, and escalation info
 class StressHistoryItem {
   final String stressLevel;
   final double stressProbability;
