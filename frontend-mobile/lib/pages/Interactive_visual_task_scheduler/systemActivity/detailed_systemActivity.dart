@@ -395,7 +395,6 @@ class _DetailedSystemActivityScreenState
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 0,
             ),
 
             Expanded(
