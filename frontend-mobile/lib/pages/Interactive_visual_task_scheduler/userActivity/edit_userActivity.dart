@@ -415,7 +415,6 @@ class _UpdateUserActivityScreenState extends State<UpdateUserActivityScreen> {
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
-              notificationCount: 0,
             ),
             // Body
             Expanded(

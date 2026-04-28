@@ -155,7 +155,6 @@ class _DrawingImprovementCheckPageState
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Expanded(
               child: SingleChildScrollView(

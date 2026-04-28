@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 class MainHeader extends StatelessWidget {
   final String title;
   final String subtitle;
-  final int notificationCount;
 
   const MainHeader({
     super.key,
     this.title = "Hello !",
     this.subtitle = "Welcome Back.",
-    this.notificationCount = 0,
   });
 
   @override
@@ -68,26 +66,7 @@ class MainHeader extends StatelessWidget {
                     ),
                   ),
 
-                  // Notification badge
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF4E0909),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        notificationCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+                  
                 ],
               ),
             ),
