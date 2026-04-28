@@ -28,7 +28,6 @@ class WellnessHomeScreen extends StatelessWidget {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
 
             // CONTENT AREA WITH GRADIENT
