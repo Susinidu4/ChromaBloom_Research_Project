@@ -206,7 +206,6 @@ class _ProblemSolvingMatchPageState extends State<ProblemSolvingMatchPage> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Expanded(
               child: SingleChildScrollView(
