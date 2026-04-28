@@ -223,7 +223,6 @@ class _DetailedUserActivityScreenState
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             // Body
             Expanded(

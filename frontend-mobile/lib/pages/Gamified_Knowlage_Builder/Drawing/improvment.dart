@@ -257,7 +257,6 @@ class _LessonCompletePageState extends State<LessonCompletePage> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Expanded(
               child: SingleChildScrollView(

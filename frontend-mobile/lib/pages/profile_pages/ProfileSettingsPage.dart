@@ -399,8 +399,6 @@ class ProfileSettingsPage extends StatelessWidget {
             _HeaderSection(
               name: name,
               email: email,
-              notificationCount: 5,
-              onNotificationTap: () {},
               onEditAvatarTap: () => _handlePickAndUpload(context),
               profilePicUrl: profilePicUrl,
               onEditDetailsTap: () => _openEditDetails(context),
@@ -503,8 +501,6 @@ class ProfileSettingsPage extends StatelessWidget {
 class _HeaderSection extends StatelessWidget {
   final String name;
   final String email;
-  final int notificationCount;
-  final VoidCallback onNotificationTap;
   final VoidCallback onEditAvatarTap;
   final VoidCallback onEditDetailsTap;
   final String? profilePicUrl;
@@ -512,8 +508,6 @@ class _HeaderSection extends StatelessWidget {
   const _HeaderSection({
     required this.name,
     required this.email,
-    required this.notificationCount,
-    required this.onNotificationTap,
     required this.onEditAvatarTap,
     required this.onEditDetailsTap,
     required this.profilePicUrl,
@@ -537,10 +531,7 @@ class _HeaderSection extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.topRight,
-            child: _NotificationBell(
-              count: notificationCount,
-              onTap: onNotificationTap,
-            ),
+            
           ),
           const SizedBox(height: 6),
           Stack(
@@ -634,54 +625,6 @@ class _HeaderSection extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationBell extends StatelessWidget {
-  final int count;
-  final VoidCallback onTap;
-
-  const _NotificationBell({required this.count, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(40),
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(6.0),
-            child: Icon(Icons.notifications_none, color: Colors.white, size: 26),
-          ),
-          if (count > 0)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8C1D1D),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: ProfileSettingsPage.headerBlue,
-                    width: 2,
-                  ),
-                ),
-                child: Text(
-                  "$count",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

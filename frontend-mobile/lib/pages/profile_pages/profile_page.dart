@@ -88,8 +88,6 @@ class ProfilePage extends StatelessWidget {
               name: fullName,
               email: email,
               avatar: avatarProvider,
-              notificationCount: 5,
-              onNotificationTap: () {},
               onBackTap: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
@@ -299,16 +297,12 @@ class _HeaderSection extends StatelessWidget {
   final String email;
   final ImageProvider avatar;
 
-  final int notificationCount;
-  final VoidCallback onNotificationTap;
   final VoidCallback onBackTap;
 
   const _HeaderSection({
     required this.name,
     required this.email,
     required this.avatar,
-    required this.notificationCount,
-    required this.onNotificationTap,
     required this.onBackTap,
   });
 
@@ -340,10 +334,7 @@ class _HeaderSection extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _NotificationBell(
-                count: notificationCount,
-                onTap: onNotificationTap,
-              ),
+              
             ],
           ),
           const SizedBox(height: 8),
@@ -381,61 +372,6 @@ class _HeaderSection extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ================= NOTIFICATION =================
-
-class _NotificationBell extends StatelessWidget {
-  final int count;
-  final VoidCallback onTap;
-
-  const _NotificationBell({required this.count, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(40),
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(6.0),
-            child: Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 26,
-            ),
-          ),
-          if (count > 0)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8C1D1D),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: ProfilePage.headerBlue,
-                    width: 2,
-                  ),
-                ),
-                child: Text(
-                  "$count",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

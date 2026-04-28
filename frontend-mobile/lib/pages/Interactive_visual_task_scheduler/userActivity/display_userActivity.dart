@@ -553,7 +553,6 @@ class _DisplayUserActivityScreenState extends State<DisplayUserActivityScreen> {
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
-              notificationCount: 0,
             ),
             // Body
             Expanded(

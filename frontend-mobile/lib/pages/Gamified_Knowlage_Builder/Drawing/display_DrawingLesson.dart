@@ -217,7 +217,6 @@ class _DrawingUnit1PageState extends State<DrawingUnit1Page> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
 
             Padding(

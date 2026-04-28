@@ -833,7 +833,6 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Cognitive Progress Prediction",
-              notificationCount: 0,
             ),
             Expanded(
               child: ListView(
