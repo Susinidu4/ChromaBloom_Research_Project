@@ -253,7 +253,6 @@ class _SkillSelectionPageState extends State<SkillSelectionPage> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Expanded(
               child: SingleChildScrollView(

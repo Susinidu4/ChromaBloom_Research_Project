@@ -101,7 +101,6 @@ class _StressAnalysisPageState extends State<StressAnalysisPage> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             // CONTENT AREA (scrollable)
             Expanded(

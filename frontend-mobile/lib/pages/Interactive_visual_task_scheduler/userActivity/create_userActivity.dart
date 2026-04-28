@@ -394,7 +394,6 @@ class _CreateUserActivityScreenState extends State<CreateUserActivityScreen> {
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
-              notificationCount: 0,
             ),
 
             // Body

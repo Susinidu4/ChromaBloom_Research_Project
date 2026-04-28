@@ -171,7 +171,6 @@ class _ProblemSolvingUnit1PageState extends State<ProblemSolvingUnit1Page> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),

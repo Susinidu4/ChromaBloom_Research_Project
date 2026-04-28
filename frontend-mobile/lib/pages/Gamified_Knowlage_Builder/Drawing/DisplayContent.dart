@@ -99,7 +99,6 @@ class _DrawingLessonDetailPageState extends State<DrawingLessonDetailPage> {
             const MainHeader(
               title: "Hello !",
               subtitle: "Welcome Back.",
-              notificationCount: 5,
             ),
             Expanded(
               child: FutureBuilder<Map<String, dynamic>>(

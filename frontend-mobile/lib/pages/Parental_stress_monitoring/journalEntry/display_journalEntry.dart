@@ -569,7 +569,6 @@ _notLoggedIn = false;
             const MainHeader(
               title: "Hello!",
               subtitle: "Welcome back",
-              notificationCount: 5,
             ),
 
             Expanded(

@@ -299,7 +299,6 @@ class _RoutineHomeScreenState extends State<RoutineHomeScreen> {
               const MainHeader(
                 title: "Hello!",
                 subtitle: "Welcome back",
-                notificationCount: 0,
               ),
               const SizedBox(height: 14),
 
