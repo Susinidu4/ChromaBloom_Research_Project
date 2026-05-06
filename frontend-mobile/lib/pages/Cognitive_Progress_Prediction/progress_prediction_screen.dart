@@ -13,6 +13,7 @@ import '../../services/api_config.dart'; // ✅ Added import
 
 import './insight_chart_card.dart';
 import '../../services/Interactive_visual_task_scheduler_services/system_activity_service.dart';
+import '../../services/Gemified/complete_drawing_lesson_service.dart';
 
 class ProgressPredictionScreen extends StatefulWidget {
   const ProgressPredictionScreen({super.key});
@@ -51,13 +52,14 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   bool stressAvgLoading = false;
   double? avgStressProbability; // 0..1
 
-  // ✅ Activity data load
+  //  Activity data load
   bool activityLoading = false;
   int hardTotalTasksAssigned = 6;
   int hardTotalTasksCompleted = 5;
   double hardCompletionRate = 0.83;
+  int completeDrawingLessonCount = 0;
 
-  // ✅ Prediction Restriction
+  //Prediction Restriction
   bool canPredict = true;
   String? nextPredictDate;
 
@@ -82,7 +84,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
   static const double _hardMemoryAccuracy = 0.65;
   static const double _hardAttentionAccuracy = 0.72;
   static const double _hardProblemSolvingAccuracy = 0.58;
-  static const double _hardMotorSkillsAccuracy = 0.74;
+  double _hardMotorSkillsAccuracy = 0.74;
   static const double _hardAverageResponseTime = 3.4;
 
   static const double _hardCaregiverSentimentScore = -0.15;
@@ -328,6 +330,65 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     }
   }
 
+  // -------------------- MOTOR SKILLS: AVG DRAWING ACCURACY --------------------
+
+  Future<void> _loadMotorSkillsAccuracy() async {
+    if (!mounted) return;
+    final session = context.read<SessionProvider>();
+
+    setState(() {
+      activityLoading = true;
+    });
+
+    try {
+      // Using childId as drawing progress is child-specific
+      final childId = childIdResolved ?? await _resolveChildId(session);
+
+      // Initialize base URL from config
+      CompleteDrawingLessonService.baseUrl = ApiConfig.baseUrl;
+
+      // We use getCompletedLessonsByUser as it's the most efficient way to get the count
+      // and data for all lessons in a single request.
+      final res = await CompleteDrawingLessonService.getCompletedLessonsByUser(childId);
+      final List<dynamic> data = res["data"] ?? [];
+
+      if (data.isNotEmpty) {
+        // Group by lesson_id to get the latest attempt for each unique lesson
+        final Map<String, double> lessonLatestScores = {};
+
+        for (var record in data) {
+          final lessonId = (record["lesson_id"] is Map)
+              ? (record["lesson_id"]["_id"] ?? record["lesson_id"]["id"]).toString()
+              : record["lesson_id"].toString();
+
+          final cr = record["correctness_rate"];
+          if (cr != null && cr is num) {
+            double rate = CompleteDrawingLessonService.percentToRate(cr);
+            // If the records are returned latest-first, the first one we find is the latest
+            if (!lessonLatestScores.containsKey(lessonId)) {
+              lessonLatestScores[lessonId] = rate;
+            }
+          }
+        }
+
+        if (lessonLatestScores.isNotEmpty) {
+          final double sum = lessonLatestScores.values.reduce((a, b) => a + b);
+          final double avg = sum / lessonLatestScores.length;
+
+          setState(() {
+            completeDrawingLessonCount = lessonLatestScores.length;
+            _hardMotorSkillsAccuracy = avg;
+          });
+          debugPrint("Completed Drawing Lessons: $completeDrawingLessonCount, Avg Accuracy: $avg");
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading motor skills accuracy: $e");
+    } finally {
+      if (mounted) setState(() => activityLoading = false);
+    }
+  }
+
   // -------------------- CHILD AUTO LOAD + AUTOFILL --------------------
 
   Future<void> _loadChildAndAutofill() async {
@@ -341,7 +402,7 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
     try {
       final caregiverId = _resolveCaregiverId(session);
 
-      // ✅ load wellbeing avg + stress avg + activity counts first
+      //  load wellbeing avg + stress avg + activity counts first
       await _loadAvgScreenTimeFromWellbeing();
       await _loadAvgStressProbability();
       await _loadActivityCounts();
@@ -370,6 +431,9 @@ class _ProgressPredictionScreenState extends State<ProgressPredictionScreen> {
         diagnosisType = _mapDownSyndromeType(dsType);
         ageYears = safeAge;
       });
+
+      // Load motor skills accuracy now that we have childId
+      await _loadMotorSkillsAccuracy();
 
       await _loadHistory();
     } catch (e) {
